@@ -3,6 +3,6 @@
   Go to frontend folder
   'npm install'
 
-#backend
+# backend
   Go to backend folder
   'pip install -r requirements.txt'
