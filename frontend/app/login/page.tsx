@@ -41,52 +41,53 @@ export default function Home() {
 
   return (
     <>
-      <div className="flex flex-col w-6/12 justify-items-">
-        <h1>Amry Pharmacy Inventory Management System</h1>
-        <div className="">
+      <div className="flex flex-col items-center justify-center mx-auto w-5/12 min-h-screen">
+  <h1 className="text-center mb-4">Amry Pharmacy Inventory Management System</h1>
+  <p className="text-center mb-4">Log In</p>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            {/* Username Field */}
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Username</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter your username" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+  <Form {...form}>
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
+      {/* Username Field */}
+      <FormField
+        control={form.control}
+        name="username"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Username</FormLabel>
+            <FormControl>
+              <Input placeholder="Enter your username" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
-            {/* Password Field */}
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="Enter your password"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <Button type="submit">Submit</Button>
-          </form>
-        </Form>
-        </div>
-
+      {/* Password Field */}
+      <FormField
+        control={form.control}
+        name="password"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Password</FormLabel>
+            <FormControl>
+              <Input
+                type="password"
+                placeholder="Enter your password"
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <div className="grid gap-4">
+        <Button type="submit">Submit</Button>
+        <Button type="button">Forgot Password</Button>
+        <Button type="button">Create New Account</Button>
       </div>
+    </form>
+  </Form>
+</div>
     </>
   );
 }
