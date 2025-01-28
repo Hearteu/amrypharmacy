@@ -44,11 +44,7 @@ export default function InventoryPage() {
             <Plus size={16} /> Add New Item
           </Button>
           <div className="flex items-center">
-            <img
-              src="https://via.placeholder.com/40"
-              alt="User"
-              className="w-10 h-10 rounded-full"
-            />
+
             <div className="ml-3">
               <p className="font-medium">Bryan Doe</p>
               <p className="text-sm text-gray-500">Admin</p>
