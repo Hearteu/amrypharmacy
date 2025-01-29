@@ -1,1 +1,3 @@
 ../amryenv
+__pycache__/
+*.pyc
