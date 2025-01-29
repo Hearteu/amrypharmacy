@@ -6,3 +6,5 @@
 # backend
   Go to backend folder
   'pip install -r requirements.txt'
+  Installed something new
+  'pip freeze > requirements.txt'
