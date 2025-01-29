@@ -1,10 +1,20 @@
+```md
 # amrypharmacy
-# frontend
-  Go to frontend folder
-  'npm install'
 
-# backend
-  Go to backend folder
-  'pip install -r requirements.txt'
-  Installed something new
-  'pip freeze > requirements.txt'
+## Frontend  
+Go to the frontend folder:  
+```sh
+npm install
+```
+
+## Backend  
+Go to the backend folder:  
+```sh
+pip install -r requirements.txt
+```
+
+To update `requirements.txt` after installing new packages:  
+```sh
+pip freeze > requirements.txt
+```
+```
