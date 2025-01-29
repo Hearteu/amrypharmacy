@@ -4,7 +4,7 @@ from django.contrib.auth.hashers import check_password, make_password
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth.hashers import check_password
+
 from ..supabase_client import get_supabase_client
 
 supabase = get_supabase_client()

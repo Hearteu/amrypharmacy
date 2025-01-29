@@ -1,7 +1,8 @@
 # urls.py
 from django.urls import path
-from .views import UserList, UserLoginView, PersonList, Supplier, UserList, UserRole
 from rest_framework_simplejwt.views import TokenRefreshView
+
+from .views import PersonList, Supplier, UserList, UserLoginView, UserRole
 
 urlpatterns = [
     path('persons/', PersonList.as_view(), name='person-list'),
