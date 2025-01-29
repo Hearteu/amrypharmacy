@@ -16,4 +16,3 @@ To update `requirements.txt` after installing new packages:
 ```sh
 pip freeze > requirements.txt
 ```
-```
