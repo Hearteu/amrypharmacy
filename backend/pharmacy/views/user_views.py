@@ -1,5 +1,6 @@
 # views.py
 
+from django.contrib.auth.hashers import check_password, make_password
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -19,6 +20,8 @@ class UserList(APIView):
     
     def post(self, request):
         user_data = request.data 
+        if 'password' in user_data:
+            user_data['password'] = make_password(user_data['password'])
         try:
             user = supabase.table("Users").insert(user_data).execute()
             return Response(user.data, status=201)
@@ -27,6 +30,8 @@ class UserList(APIView):
         
     def put(self, request, user_id):
         user_data = request.data 
+        if 'password' in user_data:
+            user_data['password'] = make_password(user_data['password'])
         try:
             response = supabase.table("Users").update(user_data).eq('user_id', user_id).execute()
 
