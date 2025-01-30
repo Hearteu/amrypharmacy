@@ -19,7 +19,7 @@ export default function NavBarWrapper({ children }: NavBarWrapperProps) {
   return (
     <div className={`flex min-h-screen ${shouldHideNavBar ? "" : "ml-64"}`}>
       {!shouldHideNavBar && <NavBar />}
-      <div className="flex-1 p-4">{children}</div>
+      <div className="flex-1">{children}</div>
     </div>
   );
 }

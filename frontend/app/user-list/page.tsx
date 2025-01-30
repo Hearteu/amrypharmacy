@@ -1,58 +1,6 @@
-"use client";
-
-import { Plus, Search } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-
-import * as React from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
-
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { useRouter } from "next/navigation";
-
-const frameworks = [
-  {
-    value: "next.js",
-    label: "Next.js",
-  },
-  {
-    value: "sveltekit",
-    label: "SvelteKit",
-  },
-  {
-    value: "nuxt.js",
-    label: "Nuxt.js",
-  },
-  {
-    value: "remix",
-    label: "Remix",
-  },
-  {
-    value: "astro",
-    label: "Astro",
-  },
-];
+import { Plus, Search } from "lucide-react";
+import { useRouter } from "next/router";
 
 export default function UserList() {
   const router = useRouter(); // Initialize router
@@ -62,14 +10,11 @@ export default function UserList() {
     router.push("/createProduct");
   };
 
-  const [open, setOpen] = React.useState(false);
-  const [value, setValue] = React.useState("");
-
   return (
     <>
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-bold">Inventory</h1>
+          <h1 className="text-xl font-bold"></h1>
           <div className="flex items-center space-x-4">
             <div className="relative">
               <input
@@ -93,109 +38,7 @@ export default function UserList() {
             </div>
           </div>
         </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>User List</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>User Name</TableHead>
-                  <TableHead>Address</TableHead>
-                  <TableHead>Contact Number</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {/* Example Rows */}
-                {[
-                  {
-                    genericName: "Paracetamol",
-                    brandName: "Biogesic",
-                    code: "MED001",
-                    dosage: "500mg/tab",
-                    price: "₱1.50",
-                  },
-                  {
-                    genericName: "Ibuprofen",
-                    brandName: "Medicol",
-                    code: "MED002",
-                    dosage: "400mg/tab",
-                    price: "₱1.50",
-                  },
-                ].map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{item.genericName}</TableCell>
-                    <TableCell>{item.brandName}</TableCell>
-                    <TableCell>{item.code}</TableCell>
-                    <TableCell>{item.dosage}</TableCell>
-                    <TableCell>{item.price}</TableCell>
-
-                    <TableCell>
-                      <Popover open={open} onOpenChange={setOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={open}
-                            className="w-[200px] justify-between"
-                          >
-                            {value
-                              ? frameworks.find(
-                                  (framework) => framework.value === value
-                                )?.label
-                              : "Select framework..."}
-                            <ChevronsUpDown className="opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[200px] p-0">
-                          <Command>
-                            <CommandInput
-                              placeholder="Search framework..."
-                              className="h-9"
-                            />
-                            <CommandList>
-                              <CommandEmpty>No framework found.</CommandEmpty>
-                              <CommandGroup>
-                                {frameworks.map((framework) => (
-                                  <CommandItem
-                                    key={framework.value}
-                                    value={framework.value}
-                                    onSelect={(currentValue) => {
-                                      setValue(
-                                        currentValue === value
-                                          ? ""
-                                          : currentValue
-                                      );
-                                      setOpen(false);
-                                    }}
-                                  >
-                                    {framework.label}
-                                    <Check
-                                      className={cn(
-                                        "ml-auto",
-                                        value === framework.value
-                                          ? "opacity-100"
-                                          : "opacity-0"
-                                      )}
-                                    />
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <UserList></UserList>
       </div>
     </>
   );

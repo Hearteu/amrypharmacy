@@ -31,7 +31,7 @@ export default function Login() {
     defaultValues: { username: "", password: "" },
   });
 
-  const onSubmit = async (values: any) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       const response = await axios.post("http://127.0.0.1:8000/pharmacy/login/", values);
       const { access, refresh } = response.data;
