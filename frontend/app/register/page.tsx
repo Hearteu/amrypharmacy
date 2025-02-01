@@ -1,6 +1,6 @@
 "use client";
 
-// import { z } from "zod";
+import axios from "axios";
 import RegisterForm from '../../components/RegisterForm';
 
 // Form schema definition
@@ -8,10 +8,16 @@ import RegisterForm from '../../components/RegisterForm';
 
 export default function Register() {
 
-  function handleRegister(values: any) {
-    console.log("Registering User:", values);
-    // Call API to register user
-  }
+  const handleRegister = async (values: any) => {
+    try {
+      const response = await axios.post("http://127.0.0.1:8000/pharmacy/persons/", values);
+      const response2 = await axios.post("http://127.0.0.1:8000/pharmacy/users/", values);
+
+      
+    } catch (error) {
+      console.log(error)
+    }
+  };
 
   return (
     <>
@@ -26,3 +32,4 @@ export default function Register() {
 
   );
 }
+

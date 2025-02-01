@@ -18,6 +18,8 @@ class PersonList(APIView):
             return Response({"error": "No data found or query failed"}, status=400)
         
     def post(self, request):
+        print(request.data)
+        return Response(request.data)
         person_data = request.data 
         try:
             # Insert into persons table

@@ -20,6 +20,8 @@ class UserList(APIView):
             return Response({"error": "No data found or query failed"}, status=400)
     
     def post(self, request):
+        print(request.data)
+        return Response(request.data)
         user_data = request.data 
         if 'password' in user_data:
             user_data['password'] = make_password(user_data['password'])
