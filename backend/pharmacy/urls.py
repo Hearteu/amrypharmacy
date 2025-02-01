@@ -9,7 +9,8 @@ urlpatterns = [
     path('persons/', PersonList.as_view(), name='person-list'),
     path('users/<int:user_id>/', UserList.as_view(), name='user-detail'),
     path('users/', UserList.as_view(), name='user-list'),
-    path('users/<int:user_id>/', UserList.as_view(), name='update-user-role'),
+    path('users/update/<int:user_id>/', UserList.as_view(), name='update-user-role'),
+    path('users/delete/<int:user_id>/', UserList.as_view(), name='delete-user-role'),
     
     path('roles/', UserRole.as_view(), name='role-list'),
     path('suppliers/', Supplier.as_view(), name='supplier-list'),

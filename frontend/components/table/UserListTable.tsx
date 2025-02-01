@@ -114,7 +114,7 @@ export default function UserListTable() {
       );
 
       const response = await fetch(
-        `http://127.0.0.1:8000/pharmacy/users/${user_id}/`,
+        `http://127.0.0.1:8000/pharmacy/users/update/${user_id}/`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -142,12 +142,15 @@ export default function UserListTable() {
     }
   };
 
+
+
   return (
     <Card className="my-2">
       <CardHeader>
         <CardTitle>User List</CardTitle>
+        
       </CardHeader>
-      <CardContent className="flex flex-row items-center">
+      <CardContent className="flex flex-col items-center">
         <Table>
           <TableHeader>
             <TableRow>
@@ -205,7 +208,7 @@ export default function UserListTable() {
             ) : (
               <TableRow>
                 <TableCell colSpan={7} className="text-center">
-                  No data available.
+                  Loading...
                 </TableCell>
               </TableRow>
             )}

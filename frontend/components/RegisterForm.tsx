@@ -26,7 +26,7 @@ const formSchema = z.object({
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
 
-export default function Register({ onClose }: { onClose?: () => void }) {
+export default function RegisterForm({ onClose  }: { onClose?: () => void }) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -51,10 +51,14 @@ export default function Register({ onClose }: { onClose?: () => void }) {
 
       // Check if this is a user registration or admin adding a user
       if (pathname === "/register") {
-        router.push("/"); // Redirect to login page after registration
-      } else if (onClose) {
+        router.push("/dashboard");
+      } // Redirect to login page after registration
+      else if (onClose) {
         onClose(); // Close the modal in admin panel
+        window.location.reload();
       }
+
+      
     } catch (error) {
       console.error("Registration failed:", error);
     }

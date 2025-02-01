@@ -2,16 +2,20 @@
 
 import UserListTable from "@/components/table/UserListTable";
 import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Search } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+import RegisterForm from "@/components/RegisterForm";
+import { useState } from "react";
 
 export default function UserList() {
-  const router = useRouter(); // Initialize router
-
-  // Navigate to the Create Product page
-  const handleAddNewItem = () => {
-    router.push("/createProduct");
-  };
+  const [open, setOpen] = useState(false);
 
   return (
     <>
@@ -27,12 +31,17 @@ export default function UserList() {
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             </div>
-            <Button
-              className="flex items-center gap-2 bg-blue-500 text-white"
-              onClick={handleAddNewItem}
-            >
-              <Plus size={16} /> Add New Item
-            </Button>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">Add User</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Add User</DialogTitle>
+                </DialogHeader>
+                <RegisterForm onClose={() => setOpen(false)}></RegisterForm>
+              </DialogContent>
+            </Dialog>
             <div className="flex items-center">
               <div className="ml-3">
                 <p className="font-medium">Bryan Doe</p>
@@ -42,7 +51,8 @@ export default function UserList() {
           </div>
         </div>
       </div>
-      <UserListTable></UserListTable>
+      <UserListTable />
+
     </>
   );
 }

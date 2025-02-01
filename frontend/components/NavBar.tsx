@@ -26,7 +26,7 @@ export default function NavBar() {
         <NavigationMenu>
           <NavigationMenuList className="flex flex-col p-4 space-y-2 items-start ">
             <NavigationMenuItem className="">
-              <Link href="#" legacyBehavior passHref>
+              <Link href="/dashboard" legacyBehavior passHref>
                 <NavigationMenuLink className={navigationMenuTriggerStyle()}>
                   Dashboard
                 </NavigationMenuLink>
