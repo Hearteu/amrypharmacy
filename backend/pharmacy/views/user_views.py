@@ -81,20 +81,25 @@ class UserLoginView(APIView):
     def post(self, request):
         username = request.data.get("username")
         password = request.data.get("password")
+        
+        user_response = supabase.table("Users").select("user_id").eq("username", username).execute()
+        
+        if not user_response.data:
+            return Response({"error": "User not found"}, status=404)
 
-        # Fetch user from Supabase
-        response = supabase.table("Users").select("*").eq("username", username).execute()
+        user_id = user_response.data[0]["user_id"]
+
+        # Fetch the user record from Supabase using both user_id and username
+        response = supabase.table("Users").select("*").eq("user_id", user_id).eq("username", username).execute()
 
         if not response.data:
             return Response({"error": "User not found"}, status=404)
 
         user = response.data[0]  # Get the first user record
 
-        # 🔥 Fix: Directly compare password (only if stored in plaintext)
-        if password != user["password"]:  # Remove this if using hashed passwords
+        if not check_password(password, user["password"]):
             return Response({"error": "Invalid password"}, status=400)
 
-        # 🔥 Fix: Manually generate JWT token
         refresh = RefreshToken()
         refresh["user_id"] = user["user_id"]
         refresh["username"] = user["username"]
