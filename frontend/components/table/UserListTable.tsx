@@ -104,24 +104,24 @@ export default function UserListTable() {
   }, []);
 
   // Handle role change and update the backend
-  const handleRoleChange = async (role_id: number, newRoleId: number) => {
+  const handleRoleChange = async (user_id: number, newRoleId: number) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/pharmacy/users/${role_id}/`, {
+      const response = await fetch(`http://127.0.0.1:8000/pharmacy/users/${user_id}/`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role_id: newRoleId }),
+        body: JSON.stringify({ role_id: newRoleId }), // Correctly updating role_id for the user
       });
-
+  
       const responseData = await response.json();
-
+  
       if (!response.ok) {
         throw new Error(responseData.error || "Failed to update role");
-        
       }
-
+  
+      // Update the UI with the new role_id
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
-          user.user_id === role_id ? { ...user, role_id: newRoleId } : user
+          user.user_id === user_id ? { ...user, role_id: newRoleId } : user
         )
       );
     } catch (error) {
@@ -129,6 +129,9 @@ export default function UserListTable() {
       alert("Failed to update role. Please try again.");
     }
   };
+  
+
+
 
   return (
     <Card className="my-2">

@@ -8,6 +8,8 @@ from .views import (PersonList, ProductCategory, Supplier, UserList,
 urlpatterns = [
     path('persons/', PersonList.as_view(), name='person-list'),
     path('users/', UserList.as_view(), name='user-list'),
+    path('users/<int:user_id>/', UserList.as_view(), name='update-user-role'),
+    
     path('roles/', UserRole.as_view(), name='role-list'),
     path('suppliers/', Supplier.as_view(), name='supplier-list'),
     path('product-categories/', ProductCategory.as_view(), name='product-category-list'),
