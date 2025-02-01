@@ -10,8 +10,7 @@ export default function Register() {
 
   const handleRegister = async (values: any) => {
     try {
-      const response = await axios.post("http://127.0.0.1:8000/pharmacy/persons/", values);
-      const response2 = await axios.post("http://127.0.0.1:8000/pharmacy/users/", values);
+      const response = await axios.post("http://127.0.0.1:8000/pharmacy/users/", values);
 
       
     } catch (error) {

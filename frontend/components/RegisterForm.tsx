@@ -1,7 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 import {
   Form,
   FormControl,
@@ -11,10 +8,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
 const formSchema = z.object({
-  firstName: z.string().min(2, { message: "First name must be at least 2 characters." }),
-  lastName: z.string().min(2, { message: "Last name must be at least 2 characters." }),
+  first_name: z.string().min(2, { message: "First name must be at least 2 characters." }),
+  last_name: z.string().min(2, { message: "Last name must be at least 2 characters." }),
   address: z.string().min(5, { message: "Address must be at least 5 characters." }),
   contact: z.string().regex(/^\d{10}$/, { message: "Contact must be a valid 10-digit number." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -30,8 +30,8 @@ export default function RegisterForm({ onSubmit, defaultValues }: UserFormProps)
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: defaultValues || {
-      firstName: "",
-      lastName: "",
+      first_name: "",
+      last_name: "",
       address: "",
       contact: "",
       email: "",
@@ -43,7 +43,7 @@ export default function RegisterForm({ onSubmit, defaultValues }: UserFormProps)
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         {/* First Name */}
-        <FormField control={form.control} name="firstName" render={({ field }) => (
+        <FormField control={form.control} name="first_name" render={({ field }) => (
           <FormItem>
             <FormLabel>First Name:</FormLabel>
             <FormControl>
@@ -54,7 +54,7 @@ export default function RegisterForm({ onSubmit, defaultValues }: UserFormProps)
         )} />
 
         {/* Last Name */}
-        <FormField control={form.control} name="lastName" render={({ field }) => (
+        <FormField control={form.control} name="last_name" render={({ field }) => (
           <FormItem>
             <FormLabel>Last Name:</FormLabel>
             <FormControl>
