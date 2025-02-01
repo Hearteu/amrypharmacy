@@ -1,5 +1,6 @@
 "use client"; // Ensure this is at the top to use hooks
 
+import UserListTable from "@/components/table/UserListTable";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -41,6 +42,7 @@ export default function UserList() {
           </div>
         </div>
       </div>
+      <UserListTable></UserListTable>
     </>
   );
 }
