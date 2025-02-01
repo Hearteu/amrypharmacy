@@ -110,3 +110,18 @@ class UserLoginView(APIView):
             "access": str(refresh.access_token),
             "refresh": str(refresh),
         })
+    
+class ResetPassword(APIView):
+    def put(self, request, user_id):
+        user_data = request.data 
+        if 'password' in user_data:
+            user_data['password'] = make_password(user_data['password'])
+        try:
+            response = supabase.table("Users").update(user_data).eq('user_id', user_id).execute()
+
+            if response.data:
+                return Response(response.data, status=200)
+            else:
+                return Response({"error": "Users not found or update failed"}, status=400)
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
