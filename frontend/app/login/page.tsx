@@ -40,7 +40,7 @@ export default function Login() {
       localStorage.setItem("accessToken", access);
       localStorage.setItem("refreshToken", refresh);
 
-      router.push("/"); // Redirect on successful login
+      router.push("/dashboard"); // Redirect on successful login
     } catch (error) {
       setErrorMessage("Invalid username or password.");
       console.log(error)

@@ -68,7 +68,7 @@ export default function NavBar() {
               </Link>
             </NavigationMenuItem>
             <NavigationMenuItem className="">
-              <Link href="#" legacyBehavior passHref>
+              <Link href="/user-list" legacyBehavior passHref>
                 <NavigationMenuLink className={navigationMenuTriggerStyle()}>
                   List of Users
                 </NavigationMenuLink>

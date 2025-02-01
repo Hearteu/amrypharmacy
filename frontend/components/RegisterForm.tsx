@@ -1,3 +1,10 @@
+"use client";
+
+import { useRouter, usePathname } from "next/navigation";
+import { useForm } from "react-hook-form";
+import axios from "axios";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -8,10 +15,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 
+// Define form validation schema
 const formSchema = z.object({
   first_name: z.string().min(2, { message: "First name must be at least 2 characters." }),
   last_name: z.string().min(2, { message: "Last name must be at least 2 characters." }),
@@ -21,15 +26,14 @@ const formSchema = z.object({
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
 
-interface UserFormProps {
-  onSubmit: (values: z.infer<typeof formSchema>) => void;
-  defaultValues?: Partial<z.infer<typeof formSchema>>;
-}
+export default function Register({ onClose }: { onClose?: () => void }) {
+  const router = useRouter();
+  const pathname = usePathname();
 
-export default function RegisterForm({ onSubmit, defaultValues }: UserFormProps) {
+  // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: defaultValues || {
+    defaultValues: {
       first_name: "",
       last_name: "",
       address: "",
@@ -39,9 +43,26 @@ export default function RegisterForm({ onSubmit, defaultValues }: UserFormProps)
     },
   });
 
+  // Handle form submission
+  const handleRegister = async (values: z.infer<typeof formSchema>) => {
+    try {
+      const response = await axios.post("http://127.0.0.1:8000/pharmacy/users/", values);
+      console.log("User registered successfully:", response.data);
+
+      // Check if this is a user registration or admin adding a user
+      if (pathname === "/register") {
+        router.push("/"); // Redirect to login page after registration
+      } else if (onClose) {
+        onClose(); // Close the modal in admin panel
+      }
+    } catch (error) {
+      console.error("Registration failed:", error);
+    }
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleRegister)} className="space-y-4">
         {/* First Name */}
         <FormField control={form.control} name="first_name" render={({ field }) => (
           <FormItem>

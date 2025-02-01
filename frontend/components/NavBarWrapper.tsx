@@ -13,7 +13,7 @@ export default function NavBarWrapper({ children }: NavBarWrapperProps) {
   const pathname = usePathname();
 
   // Define routes where the NavBar should not appear
-  const hideNavBarRoutes = ["/login", "/register"];
+  const hideNavBarRoutes = ["/", "/register"];
   const shouldHideNavBar = hideNavBarRoutes.includes(pathname);
 
   return (
