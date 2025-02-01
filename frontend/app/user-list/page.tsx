@@ -16,7 +16,7 @@ export default function UserList() {
   return (
     <>
       <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold"></h1>
           <div className="flex items-center space-x-4">
             <div className="relative">

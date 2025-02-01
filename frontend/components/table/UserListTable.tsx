@@ -62,6 +62,7 @@ interface MergedData {
 export default function UserListTable() {
   const [users, setUsers] = useState<MergedData[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [editingUserId, setEditingUserId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -80,7 +81,9 @@ export default function UserListTable() {
 
         // Merge users with persons
         const mergedData: MergedData[] = usersData.map((user) => {
-          const person = personsData.find((p) => p.person_id === user.person_id);
+          const person = personsData.find(
+            (p) => p.person_id === user.person_id
+          );
           return {
             user_id: user.user_id,
             username: user.username,
@@ -106,32 +109,38 @@ export default function UserListTable() {
   // Handle role change and update the backend
   const handleRoleChange = async (user_id: number, newRoleId: number) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/pharmacy/users/${user_id}/`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role_id: newRoleId }), // Correctly updating role_id for the user
-      });
-  
+      console.log(
+        `Updating role for user_id ${user_id} to role_id ${newRoleId}`
+      );
+
+      const response = await fetch(
+        `http://127.0.0.1:8000/pharmacy/users/${user_id}/`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role_id: newRoleId }), // Correctly updating role_id for the user
+        }
+      );
+
       const responseData = await response.json();
-  
+
       if (!response.ok) {
         throw new Error(responseData.error || "Failed to update role");
       }
-  
+
       // Update the UI with the new role_id
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
           user.user_id === user_id ? { ...user, role_id: newRoleId } : user
         )
       );
+
+      setEditingUserId(null); // Exit edit mode
     } catch (error) {
       console.error("Error updating role:", error);
       alert("Failed to update role. Please try again.");
     }
   };
-  
-
-
 
   return (
     <Card className="my-2">
@@ -148,6 +157,7 @@ export default function UserListTable() {
               <TableHead>Contact</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -160,18 +170,41 @@ export default function UserListTable() {
                   <TableCell>{user.contact}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    <RoleSelector
-                      userId={user.user_id}
-                      currentRoleId={user.role_id}
-                      roles={roles}
-                      onRoleChange={handleRoleChange}
-                    />
+                    {editingUserId === user.user_id ? (
+                      <RoleSelector
+                        userId={user.user_id}
+                        currentRoleId={user.role_id}
+                        roles={roles}
+                        onRoleChange={handleRoleChange}
+                      />
+                    ) : (
+                      roles.find((r) => r.role_id === user.role_id)
+                        ?.role_name || "No Role"
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingUserId === user.user_id ? (
+                      <>
+                        <div className="flex gap-x-2">
+                          <Button onClick={() => setEditingUserId(null)}>
+                            Cancel
+                          </Button>
+                          <Button onClick={() => setEditingUserId(null)} className="bg-red-600">
+                            Delete
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <Button onClick={() => setEditingUserId(user.user_id)}>
+                        Edit
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="text-center">
+                <TableCell colSpan={7} className="text-center">
                   No data available.
                 </TableCell>
               </TableRow>
@@ -203,14 +236,9 @@ function RoleSelector({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-[150px] justify-between"
-        >
+        <Button variant="outline" className="w-[150px] justify-between">
           {selectedRole}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[150px] p-0">
@@ -232,7 +260,9 @@ function RoleSelector({
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      selectedRole === role.role_name ? "opacity-100" : "opacity-0"
+                      selectedRole === role.role_name
+                        ? "opacity-100"
+                        : "opacity-0"
                     )}
                   />
                   {role.role_name}
