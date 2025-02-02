@@ -1,58 +1,99 @@
 "use client"; // Ensure this is at the top to use hooks
 
-import UserListTable from "@/components/table/UserListTable";
-import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { useState, useEffect } from "react";
+import { DataTable } from "./data-table";
+import { columns } from "./columns";
 
-import RegisterForm from "@/components/RegisterForm";
-import { useState } from "react";
+interface User {
+  user_id: number;
+  username: string;
+  person_id: number;
+  role_id: number | null;
+}
+
+interface Person {
+  person_id: number;
+  first_name: string | null;
+  last_name: string | null;
+  address: string;
+  contact: string | null;
+  email: string | null;
+}
+
+interface Role {
+  role_id: number;
+  role_name: string;
+}
+
+interface MergedData {
+  user_id: number;
+  username: string;
+  full_name: string;
+  address: string;
+  contact: string | null;
+  email: string | null;
+  role_name: string | null; // Fix: Use role_name instead of role_id
+}
 
 export default function UserList() {
-  const [open, setOpen] = useState(false);
+  const [data, setData] = useState<MergedData[]>([]);
+  const [loading, setLoading] = useState(true); // Loading state
+
+  async function getData(): Promise<MergedData[]> {
+    try {
+      const [usersRes, personsRes, rolesRes] = await Promise.all([
+        fetch("http://127.0.0.1:8000/pharmacy/users/"),
+        fetch("http://127.0.0.1:8000/pharmacy/persons/"),
+        fetch("http://127.0.0.1:8000/pharmacy/roles/"),
+      ]);
+
+      if (!usersRes.ok || !personsRes.ok || !rolesRes.ok) {
+        throw new Error("Failed to fetch data");
+      }
+
+      const usersData: User[] = await usersRes.json();
+      const personsData: Person[] = await personsRes.json();
+      const rolesData: Role[] = await rolesRes.json();
+
+      // Merge users with persons and roles
+      const mergedData: MergedData[] = usersData.map((user) => {
+        const person = personsData.find((p) => p.person_id === user.person_id);
+        const role = rolesData.find((r) => r.role_id === user.role_id);
+
+        return {
+          user_id: user.user_id,
+          username: user.username,
+          full_name: person
+            ? `${person.first_name || ""} ${person.last_name || ""}`.trim()
+            : "Unknown",
+          address: person?.address || "No Address",
+          contact: person?.contact || "No Contact",
+          email: person?.email || "No Email",
+          role_name: role?.role_name || "No Role", // Fix: Include role_name
+        };
+      });
+
+      return mergedData;
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      return [];
+    }
+  }
+
+  useEffect(() => {
+    getData().then((fetchedData) => {
+      setData(fetchedData);
+      setLoading(false);
+    });
+  }, []);
 
   return (
     <>
-      <div className="p-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold"></h1>
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search"
-                className="pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            </div>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">Add User</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Add User</DialogTitle>
-                </DialogHeader>
-                <RegisterForm onClose={() => setOpen(false)}></RegisterForm>
-              </DialogContent>
-            </Dialog>
-            <div className="flex items-center">
-              <div className="ml-3">
-                <p className="font-medium">Bryan Doe</p>
-                <p className="text-sm text-gray-500">Admin</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <UserListTable />
-
+      {loading ? (
+        <p className="text-center text-gray-500">Loading...</p>
+      ) : (
+        <DataTable columns={columns} data={data} />
+      )}
     </>
   );
 }
