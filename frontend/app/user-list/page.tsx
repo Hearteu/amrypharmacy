@@ -3,6 +3,16 @@
 import { useState, useEffect } from "react";
 import { DataTable } from "./data-table";
 import { columns } from "./columns";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+import { Button } from "@/components/ui/button";
+import RegisterForm from "@/components/RegisterForm";
 
 interface User {
   user_id: number;
@@ -87,12 +97,29 @@ export default function UserList() {
     });
   }, []);
 
+  const [open, setOpen] = useState(false);
+
   return (
     <>
       {loading ? (
         <p className="text-center text-gray-500">Loading...</p>
       ) : (
+        <>
+        <div className="w-full grid justify-items-end pt-4 pr-4">
+          <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">Add User</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Add User</DialogTitle>
+                </DialogHeader>
+                <RegisterForm onClose={() => setOpen(false)}></RegisterForm>
+              </DialogContent>
+            </Dialog>
+        </div>
         <DataTable columns={columns} data={data} />
+        </>
       )}
     </>
   );
