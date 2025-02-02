@@ -76,7 +76,7 @@ class UserList(APIView):
                 return Response({"error": "Users not found or deletion failed"}, status=400)
         except Exception as e:
             return Response({"error": str(e)}, status=400)
-               
+        
 class UserLoginView(APIView):
     def post(self, request):
         username = request.data.get("username")
