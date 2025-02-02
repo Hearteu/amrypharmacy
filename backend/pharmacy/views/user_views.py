@@ -12,15 +12,24 @@ supabase = get_supabase_client()
 #Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
 
 class UserList(APIView):
-    def get(self, request):
-        response = supabase.table('Users').select('*').execute()
-        if response.data:
-            return Response(response.data)
-        else:
-            return Response({"error": "No data found or query failed"}, status=400)
+    def get(self, request, user_id=None):
+        try:
+            query = supabase.table('Users').select('*')
+            if user_id is not None:
+                query = query.eq('user_id', user_id)
+            
+            response = query.execute()
+
+            if not response.data:
+                return Response({"error": "No Users found"}, status=404)
+
+            return Response(response.data, status=200)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
     
     def post(self, request):
-        user_data = request.data.copy()  # Copy request data
+        user_data = request.data.copy()
         # Extract password separately
         password = user_data.pop("password", None)
         print("Data being sent to Person table:", user_data)  # Debugging
@@ -51,11 +60,9 @@ class UserList(APIView):
         except Exception as e:
             print("Error:", str(e))
             return Response({"error": str(e)}, status=400)
-        
+    
     def put(self, request, user_id):
         user_data = request.data 
-        if 'password' in user_data:
-            user_data['password'] = make_password(user_data['password'])
         try:
             response = supabase.table("Users").update(user_data).eq('user_id', user_id).execute()
 
@@ -65,7 +72,7 @@ class UserList(APIView):
                 return Response({"error": "Users not found or update failed"}, status=400)
         except Exception as e:
             return Response({"error": str(e)}, status=400)
-    # change this to hide instead of delete soon
+
     def delete(self, request, user_id):
         try:
             response = supabase.table("Users").delete().eq('user_id', user_id).execute()
@@ -77,6 +84,7 @@ class UserList(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=400)
         
+
 class UserLoginView(APIView):
     def post(self, request):
         username = request.data.get("username")
@@ -88,8 +96,6 @@ class UserLoginView(APIView):
             return Response({"error": "User not found"}, status=404)
 
         user_id = user_response.data[0]["user_id"]
-
-        # Fetch the user record from Supabase using both user_id and username
         response = supabase.table("Users").select("*").eq("user_id", user_id).eq("username", username).execute()
 
         if not response.data:
@@ -111,6 +117,7 @@ class UserLoginView(APIView):
             "refresh": str(refresh),
         })
     
+    #not working yet
 class ResetPassword(APIView):
     def put(self, request, user_id):
         user_data = request.data 

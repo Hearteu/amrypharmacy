@@ -1,17 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -26,6 +14,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
 // Define data types
 interface User {
@@ -114,7 +114,7 @@ export default function UserListTable() {
       );
 
       const response = await fetch(
-        `http://127.0.0.1:8000/pharmacy/users/update/${user_id}/`,
+        `http://127.0.0.1:8000/pharmacy/users/${user_id}/`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
