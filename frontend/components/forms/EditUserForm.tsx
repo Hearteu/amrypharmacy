@@ -20,7 +20,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -77,10 +76,6 @@ const formSchema = z.object({
 });
 
 export default function EditUserForm({ user_id }: { user_id: number }) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -94,201 +89,139 @@ export default function EditUserForm({ user_id }: { user_id: number }) {
     },
   });
 
-  useEffect(() => {
-    const getData = async () => {
-      setLoading(true);
-      try {
-        const [userRes, personsRes, rolesRes] = await Promise.all([
-          fetch(`http://127.0.0.1:8000/pharmacy/users/${user_id}/`),
-          fetch("http://127.0.0.1:8000/pharmacy/persons/"),
-          fetch("http://127.0.0.1:8000/pharmacy/roles/"),
-        ]);
 
-        if (!userRes.ok || !personsRes.ok || !rolesRes.ok) {
-          throw new Error("Failed to fetch data");
-        }
 
-        const userData: User = await userRes.json();
-        const personsData: Person[] = await personsRes.json();
-        const rolesData: Role[] = await rolesRes.json();
+  // if (loading) return <p>Loading...</p>;
+  // if (error) return <p>Error: {error}</p>;
 
-        const person = personsData.find(
-          (p) => p.person_id === userData.person_id
-        );
-        const role = rolesData.find((r) => r.role_id === userData.role_id);
-
-        const mergedData: MergedData = {
-          user_id: userData.user_id,
-          username: userData.username,
-          first_name: person?.first_name || "",
-          last_name: person?.last_name || "",
-          address: person?.address || "",
-          contact: person?.contact || "",
-          email: person?.email || "",
-          role_name: role?.role_name || "",
-        };
-
-        form.reset({
-          first_name: mergedData.first_name ?? undefined,
-          last_name: mergedData.last_name ?? undefined,
-          address: mergedData.address ?? undefined,
-          contact: mergedData.contact ?? undefined,
-          email: mergedData.email ?? undefined,
-          password: "",
-        });
-
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    getData();
-  }, [user_id]);
-
-  // Handle form submission
-  const handleEdit = async (values: z.infer<typeof formSchema>) => {
-    try {
-      setLoading(true);
-      await axios.put(
-        `http://127.0.0.1:8000/pharmacy/users/${user_id}/`,
-        values
-      );
-      console.log("User updated successfully");
-      router.refresh();
-    } catch (error) {
-      console.error("Update failed:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <>
-    <Dialog onOpenChange={(open) => {
-        setIsDialogOpen(open);
-        if (open) getData(); // Fetch user data only when dialog opens
-      }}>
-      <DialogTrigger asChild>
-        <Button>Edit User</Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Update User</DialogTitle>
-          <DialogDescription>
-            Modify user details. This action cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button>Edit User</Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update User</DialogTitle>
+            <DialogDescription>
+              Modify user details. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleEdit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="first_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>First Name:</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter first name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <Form {...form}>
+            <form
+              // onSubmit={form.handleSubmit(handleEdit)}
+              className="space-y-4"
+            >
+              <FormField
+                control={form.control}
+                name="first_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>First Name:</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="last_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Last Name:</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter last name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="last_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last Name:</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Address:</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter address" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address:</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="contact"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Contact:</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="tel"
-                      placeholder="Enter contact number"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="contact"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contact:</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="tel"
+                        
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email:</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="Enter email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email:</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                      
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>New Password (optional):</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="Enter new password"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>New Password (optional):</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <div className="flex justify-end">
-              <Button type="submit" disabled={loading}>
-                {loading ? "Saving..." : "Save Changes"}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+              <div className="flex justify-end">
+                <Button>Sumbit
+      
+                </Button>
+              </div>
+            </form>
+          </Form>
+
+        </DialogContent>
+      </Dialog>
+
+
     </>
   );
 }

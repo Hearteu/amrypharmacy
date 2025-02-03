@@ -79,7 +79,7 @@ export const columns: ColumnDef<MergedData>[] = [
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Header
+          Address
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
@@ -122,6 +122,10 @@ export const columns: ColumnDef<MergedData>[] = [
     cell: ({ row }) => {
       const user = row.original;
       console.log("User ID:", user.user_id);
+      // console.log("User ID:", user.full_name);
+      // console.log("User ID:", user.address);
+      // console.log("User ID:", user.contact);
+      // console.log("User ID:", user.role_name);
 
       return (
         <>
