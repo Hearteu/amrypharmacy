@@ -1,12 +1,34 @@
-# urls.py
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .views import (Branch, Brand, Customers, CustomerType, PersonList,
-                    ProductCategory, Products, Supplier, UserList,
+from .views import (Branch, Brand, Customers, CustomerType, DisposedItems,
+                    DswdOrder, Expiration, Inventory, PersonList, Prescription,
+                    ProductCategory, Products, Receipt, Supplier, UserList,
                     UserLoginView, UserRole)
 
+# Define resources with their corresponding view classes
+resources = [
+    ("persons", PersonList),
+    ("customer-types", CustomerType),
+    ("customers", Customers),
+    ("disposed-items", DisposedItems),
+    ("dswd-orders", DswdOrder),
+    ("expirations", Expiration),
+    ("inventories", Inventory),
+    ("prescriptions", Prescription),
+    ("receipts", Receipt),
+    ("users", UserList),
+    ("roles", UserRole),
+    ("branches", Branch),
+    ("suppliers", Supplier),
+    ("products", Products),
+    ("product-categories", ProductCategory),
+    ("brands", Brand),
+]
+
+# Generate urlpatterns dynamically
 urlpatterns = [
+<<<<<<< HEAD
     #First API endpoints are for getting and posting data to the database
     #Second API endpoints are for getting, updating, and deleting specific data from the database
     path('persons/', PersonList.as_view(), name='person-list'),
@@ -40,6 +62,13 @@ urlpatterns = [
     path('brands/<int:brand_id>/', Brand.as_view(), name='edit-brand-list'),
 
     #login
+=======
+    path(f"{name}/", view.as_view(), name=f"{name}-list") for name, view in resources
+] + [
+    path(f"{name}/<int:{name[:-1].replace('-', '_')}_id>/", view.as_view(), name=f"edit-{name}-list")
+    for name, view in resources
+] + [
+>>>>>>> 1b5b9eb5c7e596e42e3b3b0ebec6bdeb1ed884d4
     path("login/", UserLoginView.as_view(), name="login"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 ]
