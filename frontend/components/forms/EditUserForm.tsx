@@ -90,9 +90,11 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
           const personResponse = await axios.get(
             `${API_BASE_URL}/persons/${user.person_id}/`
           );
-          console.log("Person Data:", personResponse.data);
-          console.log("Person Data:", user.person_id);
-          setPersonData(personResponse.data);
+          if (Array.isArray(personResponse.data) && personResponse.data.length > 0) {
+            setPersonData(personResponse.data[0]); // ✅ Extract first object
+          } else {
+            console.warn("Unexpected personData format:", personResponse.data);
+          }
         }
 
         // Step 3: Fetch role data ONLY IF role_id exists
@@ -100,8 +102,11 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
           const roleResponse = await axios.get(
             `${API_BASE_URL}/roles/${user.role_id}/`
           );
-          console.log("Role Data:", roleResponse.data);
-          setRoleData(roleResponse.data);
+          if (Array.isArray(roleResponse.data) && roleResponse.data.length > 0) {
+            setRoleData(roleResponse.data[0]); // ✅ Extract first object
+          } else {
+            console.warn("Unexpected roleData format:", roleResponse.data);
+          }
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -119,6 +124,8 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
 
   useEffect(() => {
     if (personData ) {
+      console.log("Raw Person Data:", personData); // 🔍 Logs current form values before reset
+
       form.reset({
         first_name: personData.first_name || "",
         last_name: personData.last_name || "",
@@ -128,7 +135,8 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
         password: "", // Always keep empty for security
         role: roleData?.role_name || "",
       });
-      console.log("ok")
+      console.log("After reset:", personData.first_name); // 🔍 Logs current form values before reset
+
     }
   }, [personData, roleData, form]);
   // if (loading) return <p>Loading...</p>;

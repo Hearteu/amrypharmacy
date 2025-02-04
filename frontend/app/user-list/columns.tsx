@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import EditUserForm from "@/components/forms/EditUserForm";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTrigger } from "@/components/ui/dialog";
 import { useState } from "react";
+import { DialogDescription, DialogTitle } from "@radix-ui/react-dialog";
 
 interface MergedData {
   user_id: number;
@@ -33,6 +34,10 @@ const EditUserDialog = ({ user_id }: EditUserDialogProps) => {
 
       {/* Always keep DialogContent rendered */}
       <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit User Details</DialogTitle>
+          <DialogDescription>Update the user&apos;s information, including name, email, and role.</DialogDescription>
+        </DialogHeader>
          <EditUserForm user_id={user_id} onClose={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
