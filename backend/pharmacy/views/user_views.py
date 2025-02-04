@@ -32,7 +32,7 @@ class UserList(APIView):
         user_data = request.data.copy()
         # Extract password separately
         password = user_data.pop("password", None)
-        print("Data being sent to Person table:", user_data)  # Debugging
+
         try:
             # Insert into Person table first
             person = supabase.table("Person").insert([user_data]).execute()
@@ -62,12 +62,29 @@ class UserList(APIView):
             return Response({"error": str(e)}, status=400)
     
     def put(self, request, user_id):
-        user_data = request.data 
+        user_data = request.data.copy()
+        password = user_data.pop("password", None)
+    
         try:
-            response = supabase.table("Users").update(user_data).eq('user_id', user_id).execute()
+            person_id = supabase.table("Users").select("person_id").eq("user_id", user_id).execute().data[0]["person_id"]
 
-            if response.data:
-                return Response(response.data, status=200)
+            supabase.table("Person").update(user_data).eq('person_id', person_id).execute()
+
+            first_name = user_data.get("first_name", "").strip()
+            last_name = user_data.get("last_name", "").strip()
+
+            first_initials = "".join([word[0] for word in first_name.split()]) if first_name else ""
+            username = (first_initials + last_name).lower() if first_initials and last_name else f"user_{person_id}"
+
+            hashed_password = make_password(password)
+
+            user = supabase.table("Users").update([{
+                    "username": username,
+                    "password": hashed_password
+                }]).execute()
+
+            if user.data:
+                return Response(user.data, status=200)
             else:
                 return Response({"error": "Users not found or update failed"}, status=400)
         except Exception as e:

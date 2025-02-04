@@ -5,6 +5,7 @@ from .disposed_items import DisposedItems
 from .dswd import DswdOrder
 from .expiration import Expiration
 from .inventory import Inventory
+from .order import Order
 from .person_views import PersonList
 from .prescription import Prescription
 from .product_brand import Brand

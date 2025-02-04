@@ -2,9 +2,9 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (Branch, Brand, Customers, CustomerType, DisposedItems,
-                    DswdOrder, Expiration, Inventory, PersonList, Prescription,
-                    ProductCategory, Products, Receipt, Supplier, UserList,
-                    UserLoginView, UserRole)
+                    DswdOrder, Expiration, Inventory, Order, PersonList,
+                    Prescription, ProductCategory, Products, Receipt, Supplier,
+                    UserList, UserLoginView, UserRole)
 
 # Define resources with their corresponding view classes
 resources = [
@@ -24,6 +24,7 @@ resources = [
     ("products", Products),
     ("product-categories", ProductCategory),
     ("brands", Brand),
+    ("orders", Order),
 ]
 
 # Generate urlpatterns dynamically
