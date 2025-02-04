@@ -2,14 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   Form,
   FormControl,
   FormField,
@@ -24,38 +16,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-// Interfaces
-interface User {
-  user_id: number;
-  username: string;
-  person_id: number;
-  role_id: number | null;
-}
 
-interface Person {
-  person_id: number;
-  first_name: string | null;
-  last_name: string | null;
-  address: string;
-  contact: string | null;
-  email: string | null;
-}
-
-interface Role {
-  role_id: number;
-  role_name: string;
-}
-
-interface MergedData {
-  user_id: number;
-  username: string;
-  first_name: string;
-  last_name: string;
-  address: string;
-  contact: string | null;
-  email: string | null;
-  role_name: string | null;
-}
 
 // Define form validation schema
 const formSchema = z.object({
@@ -72,11 +33,19 @@ const formSchema = z.object({
     .string()
     .regex(/^\d{10}$/, { message: "Contact must be a valid 10-digit number." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().optional(), // Password is optional for editing
+  password: z.string().optional(),
+  role: z.string().optional(),
 });
 
-export default function EditUserForm({ user_id }: { user_id: number }) {
-  // Initialize form
+interface EditUserFormProps {
+  user_id: number;
+}
+
+export default function EditUserForm({ user_id }: EditUserFormProps) {
+  const [userData, setUserData] = useState<any>(null);
+  const [personData, setPersonData] = useState<any>(null);
+  const [roleData, setRoleData] = useState<any>(null);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -86,142 +55,194 @@ export default function EditUserForm({ user_id }: { user_id: number }) {
       contact: "",
       email: "",
       password: "",
+      role: "",
     },
+    mode: "onChange",
   });
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const API_BASE_URL = "http://127.0.0.1:8000/pharmacy";
 
+        // Step 1: Fetch user data
+        const userResponse = await axios.get(
+          `${API_BASE_URL}/users/${user_id}/`
+        );
+        const userArray = userResponse.data;
 
+        console.log("Full User Response:", userArray);
+
+        // ✅ Ensure we get the first object if API returns an array
+        const user = Array.isArray(userArray) ? userArray[0] : userArray;
+
+        // ✅ Log again to check if person_id exists
+        console.log("Processed User Object:", user);
+
+        if (!user.person_id) {
+          console.warn("No person_id found in user data!");
+        }
+
+        setUserData(user);
+
+        // Step 2: Fetch person data ONLY IF person_id exists
+        if (user.person_id) {
+          const personResponse = await axios.get(
+            `${API_BASE_URL}/persons/${user.person_id}/`
+          );
+          console.log("Person Data:", personResponse.data);
+          console.log("Person Data:", user.person_id);
+          setPersonData(personResponse.data);
+        }
+
+        // Step 3: Fetch role data ONLY IF role_id exists
+        if (user.role_id) {
+          const roleResponse = await axios.get(
+            `${API_BASE_URL}/roles/${user.role_id}/`
+          );
+          console.log("Role Data:", roleResponse.data);
+          setRoleData(roleResponse.data);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    if (user_id) {
+      fetchData();
+    }
+  }, [user_id]);
+
+  const onSubmit = (data: any) => {
+    console.log("Form Submitted:", data);
+  };
+
+  useEffect(() => {
+    if (personData ) {
+      form.reset({
+        first_name: personData.first_name || "",
+        last_name: personData.last_name || "",
+        address: personData.address || "",
+        contact: personData.contact || "",
+        email: personData.email || "",
+        password: "", // Always keep empty for security
+        role: roleData?.role_name || "",
+      });
+      console.log("ok")
+    }
+  }, [personData, roleData, form]);
   // if (loading) return <p>Loading...</p>;
-  // if (error) return <p>Error: {error}</p>;
-
 
   return (
     <>
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button>Edit User</Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Update User</DialogTitle>
-            <DialogDescription>
-              Modify user details. This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
+      <Form {...form}>
+        <form
+          // onSubmit={form.handleSubmit(handleEdit)}
+          className="space-y-4"
+        >
+          <FormField
+            control={form.control}
+            name="first_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>First Name:</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          <Form {...form}>
-            <form
-              // onSubmit={form.handleSubmit(handleEdit)}
-              className="space-y-4"
-            >
-              <FormField
-                control={form.control}
-                name="first_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>First Name:</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <FormField
+            control={form.control}
+            name="last_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Last Name:</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-              <FormField
-                control={form.control}
-                name="last_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Last Name:</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <FormField
+            control={form.control}
+            name="address"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Address:</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-              <FormField
-                control={form.control}
-                name="address"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Address:</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <FormField
+            control={form.control}
+            name="contact"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Contact:</FormLabel>
+                <FormControl>
+                  <Input type="tel" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-              <FormField
-                control={form.control}
-                name="contact"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Contact:</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="tel"
-                        
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email:</FormLabel>
+                <FormControl>
+                  <Input type="email" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email:</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                      
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>New Password (optional):</FormLabel>
+                <FormControl>
+                  <Input type="password" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>New Password (optional):</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <FormField
+            control={form.control}
+            name="role"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Role:</FormLabel>
+                <FormControl>
+                  <Input type="role" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-              <div className="flex justify-end">
-                <Button>Sumbit
-      
-                </Button>
-              </div>
-            </form>
-          </Form>
-
-        </DialogContent>
-      </Dialog>
-
-
+          <div className="flex justify-end">
+            <Button>Sumbit</Button>
+          </div>
+        </form>
+      </Form>
     </>
   );
 }

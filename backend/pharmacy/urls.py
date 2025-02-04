@@ -10,7 +10,7 @@ urlpatterns = [
     #First API endpoints are for getting and posting data to the database
     #Second API endpoints are for getting, updating, and deleting specific data from the database
     path('persons/', PersonList.as_view(), name='person-list'),
-    path('persons/<int:person_id>/', PersonList.as_view(), name='edit-person-list'),
+    path('persons/<int:person_id>/', PersonList.as_view(), name='get-person-list'),
 
     path('customer-types/', CustomerType.as_view(), name='customer-type-list'),
     path('customer-types/<int:customerType_id>/', CustomerType.as_view(), name='e-customer-type-list'),
@@ -19,10 +19,10 @@ urlpatterns = [
     path('customers/<int:customer_id>/', Customers.as_view(), name='e-customer-list'),
 
     path('users/', UserList.as_view(), name='user-list'),
-    path('users/<int:user_id>/', UserList.as_view(), name='edit-user-list'),
+    path('users/<int:user_id>/', UserList.as_view(), name='get-user-list'),
 
     path('roles/', UserRole.as_view(), name='role-list'),
-    path('roles/<int:role_id>/', UserRole.as_view(), name='edit-role-list'),
+    path('roles/<int:role_id>/', UserRole.as_view(), name='get-role-list'),
 
     path('branches/', Branch.as_view(), name='branch-list'),
     path('branches/<int:branch_id>/', Branch.as_view(), name='edit-branch-list'),

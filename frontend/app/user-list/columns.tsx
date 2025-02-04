@@ -3,12 +3,10 @@ import { ArrowUpDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-
-
-
 import { Checkbox } from "@/components/ui/checkbox";
 import EditUserForm from "@/components/forms/EditUserForm";
-
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { useState } from "react";
 
 interface MergedData {
   user_id: number;
@@ -19,6 +17,27 @@ interface MergedData {
   email: string | null;
   role_name: string | null;
 }
+
+interface EditUserDialogProps {
+  user_id: number;
+}
+
+const EditUserDialog = ({ user_id }: EditUserDialogProps) => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>Edit</Button>
+      </DialogTrigger>
+
+      {/* Always keep DialogContent rendered */}
+      <DialogContent>
+         <EditUserForm user_id={user_id} onClose={() => setOpen(false)} />
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 export const columns: ColumnDef<MergedData>[] = [
   {
@@ -121,19 +140,7 @@ export const columns: ColumnDef<MergedData>[] = [
     id: "actions",
     cell: ({ row }) => {
       const user = row.original;
-      console.log("User ID:", user.user_id);
-      // console.log("User ID:", user.full_name);
-      // console.log("User ID:", user.address);
-      // console.log("User ID:", user.contact);
-      // console.log("User ID:", user.role_name);
-
-      return (
-        <>
-          {/* Dropdown Menu */}
-          <EditUserForm user_id={user.user_id}></EditUserForm>
-        </>
-        
-      );
+      return <EditUserDialog user_id={user.user_id} />;
     },
-  },
+  }
 ];
