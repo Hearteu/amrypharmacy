@@ -64,29 +64,42 @@ class UserList(APIView):
     def put(self, request, user_id):
         user_data = request.data.copy()
         password = user_data.pop("password", None)
-    
+
+        # Remove empty fields
+        user_data = {k: v for k, v in user_data.items() if v != ""}
+        
         try:
-            person_id = supabase.table("Users").select("person_id").eq("user_id", user_id).execute().data[0]["person_id"]
+            # Fetch person_id safely
+            user_query = supabase.table("Users").select("person_id").eq("user_id", user_id).execute()
+            if not user_query.data:
+                return Response({"error": "User not found"}, status=404)
 
-            supabase.table("Person").update(user_data).eq('person_id', person_id).execute()
+            person_id = user_query.data[0].get("person_id")
+            if not person_id:
+                return Response({"error": "Person ID not found"}, status=400)
 
+            # Update Person table
+            supabase.table("Person").update(user_data).eq("person_id", person_id).execute()
+
+            # Generate username
             first_name = user_data.get("first_name", "").strip()
             last_name = user_data.get("last_name", "").strip()
-
             first_initials = "".join([word[0] for word in first_name.split()]) if first_name else ""
-            username = (first_initials + last_name).lower() if first_initials and last_name else f"user_{person_id}"
+            username = (first_initials + last_name).lower() if first_initials and last_name else f"user_{user_id}"
 
-            hashed_password = make_password(password)
+            # Prepare user update data
+            update_data = {"username": username}
+            if password:  # Only update password if provided
+                update_data["password"] = make_password(password)
 
-            user = supabase.table("Users").update([{
-                    "username": username,
-                    "password": hashed_password
-                }]).execute()
+            # Update Users table
+            user_update = supabase.table("Users").update(update_data).eq("user_id", user_id).execute()
 
-            if user.data:
-                return Response(user.data, status=200)
+            if user_update.data:
+                return Response(user_update.data, status=200)
             else:
                 return Response({"error": "Users not found or update failed"}, status=400)
+
         except Exception as e:
             return Response({"error": str(e)}, status=400)
 

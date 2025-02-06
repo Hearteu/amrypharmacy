@@ -1,5 +1,5 @@
 from django.urls import path
-from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView  # type: ignore
 
 from .views import (Branch, Brand, Customers, CustomerType, DisposedItems,
                     DswdOrder, Expiration, Inventory, Order, PersonList,

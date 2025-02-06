@@ -118,8 +118,14 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
     }
   }, [user_id]);
 
-  const onSubmit = (data: any) => {
-    console.log("Form Submitted:", data);
+  const onSubmit = async (data: any) => {
+    try {
+      const response = await axios.put(`http://127.0.0.1:8000/pharmacy/users/${user_id}/`, data);
+      console.log("Form Submitted:", data);
+    }catch (error) {
+      console.error("Error submitting form:", error);
+    }
+    
   };
 
   useEffect(() => {
@@ -246,7 +252,7 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
             )}
           />
           <div className="flex justify-end">
-            <Button type="submit">Sumbit</Button>
+            <Button type="submit">Submit</Button>
           </div>
         </form>
       </Form>
