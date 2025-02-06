@@ -145,7 +145,7 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
     <>
       <Form {...form}>
         <form
-          onSubmit={form.handleSubmit(handleEdit)}
+          onSubmit={form.handleSubmit(onSubmit)}
           className="space-y-4"
         >
           <FormField
