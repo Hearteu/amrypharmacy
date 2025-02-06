@@ -1,102 +1,103 @@
 "use client";
-import { useForm } from "react-hook-form"; // Form handling library
-import { Button } from "@/components/ui/button"; // Reusable button component
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"; // Card layout
-import { Input } from "@/components/ui/input"; // Input field styling
-import { Select, SelectItem } from "@/components/ui/select"; // Select dropdown
 
-// Example category and brand data (Replace with API call later)
-const categories = ["Medicines-Branded", "Medicines-Generic", "Grocery Supplies", "Medical Supplies"];
-const brands = ["Biogesic", "Medicol", "Tempra", "Omron", "Betadine"];
-const units = ["Tablet", "Capsule", "Syrup", "Device", "Pack", "Bottle"];
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
 
-export default function NewProductForm() {
-  // React Hook Form setup
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm();
 
-  // Form submission handler
+interface NewProductFormProps {
+  product_id: number;
+}
+export default function AddProductForm() {
+  const [open, setOpen] = useState(false);
+
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm({
+    defaultValues: {
+      product_name: "",
+      category: "",
+      price: "",
+      unit: "",
+    },
+  });
+
   const onSubmit = (data: any) => {
     console.log("New Product Data:", data);
-    alert("Product added successfully!");
-    reset(); // Reset form fields after submission
+    setOpen(false); // Close dialog after submission
   };
 
   return (
-    <Card className="max-w-lg mx-auto p-6 shadow-lg">
-      {/* Form Header */}
-      <CardHeader>
-        <CardTitle>Add New Product</CardTitle>
-      </CardHeader>
-
-      {/* Form Content */}
-      <CardContent>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>Add Item</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add New Product</DialogTitle>
+        </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Product Name */}
-          <div>
-            <label className="block font-medium">Product Name</label>
-            <Input type="text" {...register("productName", { required: "Product name is required" })} />
-            {errors.productName && <p className="text-red-500 text-sm">{errors.productName.message}</p>}
-          </div>
+          <FormItem>
+            <FormLabel>Product Name</FormLabel>
+            <FormControl>
+              <Input {...register("product_name", { required: "Product name is required" })} />
+            </FormControl>
+            {errors.product_name && <FormMessage>{errors.product_name.message}</FormMessage>}
+          </FormItem>
 
           {/* Category Dropdown */}
-          <div>
-            <label className="block font-medium">Category</label>
-            <Select {...register("category", { required: "Category is required" })}>
-              <SelectItem value="">Select Category</SelectItem>
-              {categories.map((cat) => (
-                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-              ))}
-            </Select>
-            {errors.category && <p className="text-red-500 text-sm">{errors.category.message}</p>}
-          </div>
+          <FormItem>
+            <FormLabel>Category</FormLabel>
+            <FormControl>
+              <Select onValueChange={(value) => setValue("category", value, { shouldValidate: true })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="electronics">Electronics</SelectItem>
+                  <SelectItem value="fashion">Fashion</SelectItem>
+                  <SelectItem value="grocery">Grocery</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormControl>
+            {errors.category && <FormMessage>{errors.category.message}</FormMessage>}
+          </FormItem>
 
-          {/* Brand Dropdown */}
-          <div>
-            <label className="block font-medium">Brand</label>
-            <Select {...register("brand", { required: "Brand is required" })}>
-              <SelectItem value="">Select Brand</SelectItem>
-              {brands.map((brand) => (
-                <SelectItem key={brand} value={brand}>{brand}</SelectItem>
-              ))}
-            </Select>
-            {errors.brand && <p className="text-red-500 text-sm">{errors.brand.message}</p>}
-          </div>
-
-          {/* Price */}
-          <div>
-            <label className="block font-medium">Price (₱)</label>
-            <Input type="number" {...register("price", { required: "Price is required", min: 1 })} />
-            {errors.price && <p className="text-red-500 text-sm">{errors.price.message}</p>}
-          </div>
-
-          {/* Dosage */}
-          <div>
-            <label className="block font-medium">Dosage</label>
-            <Input type="text" {...register("dosage", { required: "Dosage is required" })} />
-            {errors.dosage && <p className="text-red-500 text-sm">{errors.dosage.message}</p>}
-          </div>
+          {/* Price Input */}
+          <FormItem>
+            <FormLabel>Price</FormLabel>
+            <FormControl>
+              <Input type="number" {...register("price", { required: "Price is required" })} />
+            </FormControl>
+            {errors.price && <FormMessage>{errors.price.message}</FormMessage>}
+          </FormItem>
 
           {/* Unit of Measure Dropdown */}
-          <div>
-            <label className="block font-medium">Unit of Measure</label>
-            <Select {...register("unit", { required: "Unit of measure is required" })}>
-              <SelectItem value="">Select Unit</SelectItem>
-              {units.map((unit) => (
-                <SelectItem key={unit} value={unit}>{unit}</SelectItem>
-              ))}
-            </Select>
-            {errors.unit && <p className="text-red-500 text-sm">{errors.unit.message}</p>}
-          </div>
+          <FormItem>
+            <FormLabel>Unit of Measure</FormLabel>
+            <FormControl>
+              <Select onValueChange={(value) => setValue("unit", value, { shouldValidate: true })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pcs">Pieces (pcs)</SelectItem>
+                  <SelectItem value="kg">Kilograms (kg)</SelectItem>
+                  <SelectItem value="liters">Liters (L)</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormControl>
+            {errors.unit && <FormMessage>{errors.unit.message}</FormMessage>}
+          </FormItem>
 
-          {/* Submit Button */}
-          <Button type="submit" className="w-full bg-blue-500 text-white">Add Product</Button>
+          <DialogFooter>
+            <Button type="submit">Save Product</Button>
+          </DialogFooter>
         </form>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 }

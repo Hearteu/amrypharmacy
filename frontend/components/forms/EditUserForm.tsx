@@ -145,7 +145,7 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
     <>
       <Form {...form}>
         <form
-          // onSubmit={form.handleSubmit(handleEdit)}
+          onSubmit={form.handleSubmit(handleEdit)}
           className="space-y-4"
         >
           <FormField
@@ -245,9 +245,8 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
               </FormItem>
             )}
           />
-
           <div className="flex justify-end">
-            <Button>Sumbit</Button>
+            <Button type="submit">Sumbit</Button>
           </div>
         </form>
       </Form>
