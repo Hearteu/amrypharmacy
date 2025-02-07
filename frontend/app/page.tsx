@@ -16,11 +16,17 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import Image from "next/image";
+import Link from "next/link";
 
 // Define validation schema
 const formSchema = z.object({
-  username: z.string().min(2, { message: "Username must be at least 2 characters." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  username: z
+    .string()
+    .min(2, { message: "Username must be at least 2 characters." }),
+  password: z
+    .string()
+    .min(6, { message: "Password must be at least 6 characters." }),
 });
 
 export default function Login() {
@@ -33,7 +39,10 @@ export default function Login() {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      const response = await axios.post("http://127.0.0.1:8000/pharmacy/login/", values);
+      const response = await axios.post(
+        "http://127.0.0.1:8000/pharmacy/login/",
+        values
+      );
       const { access, refresh } = response.data;
 
       // Store tokens in local storage
@@ -43,44 +52,81 @@ export default function Login() {
       router.push("/dashboard"); // Redirect on successful login
     } catch (error) {
       setErrorMessage("Invalid username or password.");
-      console.log(error)
+      console.log(error);
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center mx-auto w-5/12 min-h-screen">
-      <h1 className="text-center mb-4">Amry Pharmacy Inventory Management System</h1>
-      <p className="text-center mb-4">Log In</p>
-      
-      {errorMessage && <p className="text-red-500">{errorMessage}</p>}
+    <div className="bg-[#2B2F88]">
+      <div className="flex flex-col items-center justify-center mx-auto w-5/12 min-h-screen">
+        <div className="bg-white p-8 flex flex-col items-center rounded-xl">
+          <Image
+            src="/images/logo.png"
+            alt="alt"
+            width={150}
+            height={150}
+            unoptimized
+            className="pb-8"
+          />
+          <h1 className="text-center mb-4 font-bold">
+            Amry Pharmacy Inventory Management System
+          </h1>
+          <p className="text-center mb-4">Log In</p>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
-          <FormField control={form.control} name="username" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Username</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter your username" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
+          {errorMessage && <p className="text-red-500">{errorMessage}</p>}
 
-          <FormField control={form.control} name="password" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input type="password" placeholder="Enter your password" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-8 w-full"
+            >
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Username</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter your username" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <div className="grid gap-4">
-            <Button type="submit">Submit</Button>
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="Enter your password"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid gap-4">
+                <Button type="submit">Submit</Button>
+              </div>
+            </form>
+          </Form>
+          <div className="py-4">
+            New User?{" "}
+            <Link href="/register" legacyBehavior passHref>
+              <a className="font-bold text-[#2B2F88] hover:underline">
+                Register
+              </a>
+            </Link>
           </div>
-        </form>
-      </Form>
+        </div>
+      </div>
     </div>
   );
 }
