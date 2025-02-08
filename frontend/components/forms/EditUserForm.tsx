@@ -55,17 +55,13 @@ interface Role {
   role_name: string;
 }
 
-interface RoleSelectorProps {
-  roles: Role[]
-  value: number | null
-  onChange: (roleId: number) => void
-}
 
 export default function EditUserForm({ user_id }: EditUserFormProps) {
   const [userData, setUserData] = useState<any>(null);
   const [personData, setPersonData] = useState<any>(null);
   const [roleData, setRoleData] = useState<any>(null);
-
+  const [open, setOpen] = useState(false);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -149,89 +145,14 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
     fetchRole();
   }, []);
 
-  function RoleSelector({
-    roles,
-    currentRoleId,
-    onRoleChange, // Callback to update the form
-  }: {
-    roles: Role[];
-    currentRoleId: number | null;
-    onRoleChange: (roleId: number) => void;
-  }) {
-    const [open, setOpen] = useState(false);
-
-    // ✅ Set the initial selected role based on currentRoleId
-    const currentRole = roles.find((role) => role.role_id === currentRoleId);
-    const [selectedRole, setSelectedRole] = useState<string>(
-      currentRole?.role_name || "Select Role"
-    );
-
-    // ✅ Update selected role when currentRoleId changes
-    useEffect(() => {
-      const newRole = roles.find((role) => role.role_id === currentRoleId);
-      setSelectedRole(newRole?.role_name || "Select Role");
-    }, [currentRoleId, roles]);
-
-    return (
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="outline" className="w-[150px] justify-between">
-            {selectedRole}
-            <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[150px] p-0">
-          <Command>
-            <CommandInput placeholder="Search role..." />
-            <CommandList>
-              {roles.length === 0 ? (
-                <CommandEmpty>No roles found.</CommandEmpty>
-              ) : (
-                <CommandGroup>
-                  {roles.map((role) => (
-                    <CommandItem
-                      key={role.role_id}
-                      value={role.role_name}
-                      onSelect={() => {
-                        // form.setValue("role", role.role_name);
-                        console.log(role.role_name) // ✅ Update form
-                        setSelectedRole(role.role_name); // ✅ Update UI
-                        onRoleChange(role.role_id);
-                        setOpen(false);
-                      }}
-                    >
-                      <Check
-                        className={`mr-2 h-4 w-4 ${
-                          selectedRole === role.role_name
-                            ? "opacity-100"
-                            : "opacity-0"
-                        }`}
-                      />
-                      {role.role_name}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              )}
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-    );
-  }
 
   const onSubmit = async (data: any) => {
     try {
-      const payload = {
-        ...data,
-        role_id: data.role, // ✅ Ensure correct role_id is sent
-      };
-
       const response = await axios.put(
         `http://127.0.0.1:8000/pharmacy/users/${user_id}/`,
-        payload
+        data
       );
-
-      console.log("Form Submitted:", payload);
+      console.log("Form Submitted:", data);
     } catch (error) {
       console.error("Error submitting form:", error);
     }
@@ -251,6 +172,7 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
     }
   }, [personData, roleData, form]);
 
+    console.log("Roles:",roles)
   return (
     <>
       <Form {...form}>
@@ -304,7 +226,11 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
               <FormItem>
                 <FormLabel>Contact:</FormLabel>
                 <FormControl>
-                  <Input type="tel" {...field} />
+                  <Input
+                    type="tel"
+                    {...field}
+                    onChange={(e) => field.onChange(String(e.target.value))}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -343,24 +269,68 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
             control={form.control}
             name="role"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col">
                 <FormLabel>Role:</FormLabel>
-                <FormControl>
-                <RoleSelector
-                  roles={roles}
-                  currentRoleId={userData?.role_id || null}
-                  onRoleChange={(roleId) => {
-                    console.log("Updating form role to:", roleId);
-                  }}
-                />
-                </FormControl>
-                
+                <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "w-[200px] justify-between",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value}
+                        <ChevronsUpDown className="opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search role..."
+                        className="h-9"
+                      />
+                      <CommandList>
+                        <CommandEmpty>No roles found.</CommandEmpty>
+                        <CommandGroup>
+                          {roles.map((role) => (
+                            <CommandItem
+                              key={role.role_id}
+                              value={role.role_name}
+                              onSelect={() => {
+                                console.log("✅ Role Selected:", role.role_name, " (ID:", role.role_id, ")");
+                                field.onChange(role.role_id.toString());
+                                setOpen(false);
+                                console.log("🔄 Updated Form Value:", form.getValues("role"));
+                                
+                              }}
+                            >
+                              {role.role_name}
+                              <Check
+                                className={cn(
+                                  "ml-auto",
+                                  role.role_name === field.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </FormItem>
             )}
           />
           <div className="flex justify-end">
             <Button type="submit">Submit</Button>
           </div>
+          
         </form>
       </Form>
     </>
