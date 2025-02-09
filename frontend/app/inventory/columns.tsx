@@ -2,7 +2,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import AddProductForm from "@/components/forms/NewProductForm";
+import AddProductForm from "@/components/forms/newProductForm";
 import { Dialog, DialogContent, DialogHeader, DialogTrigger } from "@/components/ui/dialog";
 import { useState } from "react";
 import { DialogDescription, DialogTitle } from "@radix-ui/react-dialog";
