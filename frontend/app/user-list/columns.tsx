@@ -21,9 +21,10 @@ interface MergedData {
 
 interface EditUserDialogProps {
   user_id: number;
+  onSuccess: () => void;
 }
 
-const EditUserDialog = ({ user_id }: EditUserDialogProps) => {
+const EditUserDialog = ({ user_id, onSuccess }: EditUserDialogProps) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -38,13 +39,18 @@ const EditUserDialog = ({ user_id }: EditUserDialogProps) => {
           <DialogTitle>Edit User Details</DialogTitle>
           <DialogDescription>Update the user&apos;s information, including name, email, and role.</DialogDescription>
         </DialogHeader>
-         <EditUserForm user_id={user_id} onClose={() => setOpen(false)} />
+         <EditUserForm user_id={user_id} onSuccess={(data) => { 
+          console.log("From the columns component", data)
+            setOpen(false);
+          onSuccess()
+        }
+        } />
       </DialogContent>
     </Dialog>
   );
 };
 
-export const columns: ColumnDef<MergedData>[] = [
+export const columns: (onSuccess: () => void) => ColumnDef<MergedData>[] = (onSuccess) => [
   {
     id: "select",
     header: ({ table }) => (
@@ -145,7 +151,10 @@ export const columns: ColumnDef<MergedData>[] = [
     id: "actions",
     cell: ({ row }) => {
       const user = row.original;
-      return <EditUserDialog user_id={user.user_id} />;
+      return <EditUserDialog user_id={user.user_id} onSuccess={(data) => {
+        console.log("Data", data)
+        onSuccess()
+      }} />;
     },
   }
 ];

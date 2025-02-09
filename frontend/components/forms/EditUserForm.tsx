@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -48,6 +48,7 @@ const formSchema = z.object({
 
 interface EditUserFormProps {
   user_id: number;
+  onSuccess: (data: AxiosResponse) => void;
 }
 
 interface Role {
@@ -55,13 +56,12 @@ interface Role {
   role_name: string;
 }
 
-
-export default function EditUserForm({ user_id }: EditUserFormProps) {
+export default function EditUserForm({ user_id, onSuccess }: EditUserFormProps) {
   const [userData, setUserData] = useState<any>(null);
   const [personData, setPersonData] = useState<any>(null);
   const [roleData, setRoleData] = useState<any>(null);
   const [open, setOpen] = useState(false);
-  
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -83,7 +83,7 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
 
         // Step 1: Fetch user data
         const userResponse = await axios.get(
-          `${API_BASE_URL}/users/${user_id}/`
+          `${API_BASE_URL}/users/${user_id}/`,
         );
         const userArray = userResponse.data;
 
@@ -95,7 +95,7 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
         // Step 2: Fetch person data ONLY IF person_id exists
         if (user.person_id) {
           const personResponse = await axios.get(
-            `${API_BASE_URL}/persons/${user.person_id}/`
+            `${API_BASE_URL}/persons/${user.person_id}/`,
           );
           if (
             Array.isArray(personResponse.data) &&
@@ -108,7 +108,7 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
         // Step 3: Fetch role data ONLY IF role_id exists
         if (user.role_id) {
           const roleResponse = await axios.get(
-            `${API_BASE_URL}/roles/${user.role_id}/`
+            `${API_BASE_URL}/roles/${user.role_id}/`,
           );
           if (
             Array.isArray(roleResponse.data) &&
@@ -145,14 +145,14 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
     fetchRole();
   }, []);
 
-
   const onSubmit = async (data: any) => {
+    console.log(data);
     try {
       const response = await axios.put(
         `http://127.0.0.1:8000/pharmacy/users/${user_id}/`,
-        data
+        data,
       );
-      console.log("Form Submitted:", data);
+      onSuccess(response)
     } catch (error) {
       console.error("Error submitting form:", error);
     }
