@@ -62,12 +62,40 @@ class UserList(APIView):
             return Response({"error": str(e)}, status=400)
     
     def put(self, request, user_id):
-        user_data = request.data.copy()
-        password = user_data.pop("password", None)
+        print(request.data)
+        request_data = request.data.copy()
+        print("Request data", request_data)
+        password = request_data.pop("password", None)
+
+        user_fields = [
+            "user_id",
+            "username",
+            "password",
+            "person_id",
+            "role_id",
+        ]
+        persons_fields = [
+            "person_id",
+            "first_name",
+            "address",
+            "contact",
+            "email",
+            "last_name",
+        ]
 
         # Remove empty fields
-        user_data = {k: v for k, v in user_data.items() if v != ""}
-        
+        user_data = {
+            k: v for k, v in request_data.items() if v != "" and k in user_fields
+        }
+        print("Person data", request_data.items())
+        print("Person data", "first_name" in persons_fields, persons_fields)
+        person_data = {
+            k: v for k, v in request_data.items() if k in persons_fields
+        }
+
+        print(user_data)
+        print(person_data)
+
         try:
             # Fetch person_id safely
             user_query = supabase.table("Users").select("person_id").eq("user_id", user_id).execute()
@@ -79,21 +107,22 @@ class UserList(APIView):
                 return Response({"error": "Person ID not found"}, status=400)
 
             # Update Person table
-            supabase.table("Person").update(user_data).eq("person_id", person_id).execute()
+            supabase.table("Person").update(person_data).eq("person_id", person_id).execute()
 
             # Generate username
-            first_name = user_data.get("first_name", "").strip()
-            last_name = user_data.get("last_name", "").strip()
+            first_name = person_data.get("first_name", "").strip()
+            last_name = person_data.get("last_name", "").strip()
             first_initials = "".join([word[0] for word in first_name.split()]) if first_name else ""
             username = (first_initials + last_name).lower() if first_initials and last_name else f"user_{user_id}"
 
             # Prepare user update data
-            update_data = {"username": username}
+            user_data["username"] = username
             if password:  # Only update password if provided
-                update_data["password"] = make_password(password)
+                user_data["password"] = make_password(password)
 
             # Update Users table
-            user_update = supabase.table("Users").update(update_data).eq("user_id", user_id).execute()
+            user_update = supabase.table("Users").update(user_data).eq("user_id", user_id).execute()
+            print(user_update)
 
             if user_update.data:
                 return Response(user_update.data, status=200)

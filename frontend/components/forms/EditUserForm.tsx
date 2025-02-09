@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -43,11 +43,12 @@ const formSchema = z.object({
     .regex(/^\d{10}$/, { message: "Contact must be a valid 10-digit number." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
   password: z.string().optional(),
-  role: z.string().optional(),
+  role_id: z.string().optional(),
 });
 
 interface EditUserFormProps {
   user_id: number;
+  onSuccess: (data: AxiosResponse) => void;
 }
 
 interface Role {
@@ -55,13 +56,12 @@ interface Role {
   role_name: string;
 }
 
-
-export default function EditUserForm({ user_id }: EditUserFormProps) {
+export default function EditUserForm({ user_id, onSuccess }: EditUserFormProps) {
   const [userData, setUserData] = useState<any>(null);
   const [personData, setPersonData] = useState<any>(null);
   const [roleData, setRoleData] = useState<any>(null);
   const [open, setOpen] = useState(false);
-  
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -71,7 +71,7 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
       contact: "",
       email: "",
       password: "",
-      role: "",
+      role_id: "",
     },
     mode: "onChange",
   });
@@ -83,7 +83,7 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
 
         // Step 1: Fetch user data
         const userResponse = await axios.get(
-          `${API_BASE_URL}/users/${user_id}/`
+          `${API_BASE_URL}/users/${user_id}/`,
         );
         const userArray = userResponse.data;
 
@@ -95,7 +95,7 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
         // Step 2: Fetch person data ONLY IF person_id exists
         if (user.person_id) {
           const personResponse = await axios.get(
-            `${API_BASE_URL}/persons/${user.person_id}/`
+            `${API_BASE_URL}/persons/${user.person_id}/`,
           );
           if (
             Array.isArray(personResponse.data) &&
@@ -108,7 +108,7 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
         // Step 3: Fetch role data ONLY IF role_id exists
         if (user.role_id) {
           const roleResponse = await axios.get(
-            `${API_BASE_URL}/roles/${user.role_id}/`
+            `${API_BASE_URL}/roles/${user.role_id}/`,
           );
           if (
             Array.isArray(roleResponse.data) &&
@@ -145,14 +145,14 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
     fetchRole();
   }, []);
 
-
   const onSubmit = async (data: any) => {
+    console.log(data);
     try {
       const response = await axios.put(
         `http://127.0.0.1:8000/pharmacy/users/${user_id}/`,
-        data
+        data,
       );
-      console.log("Form Submitted:", data);
+      onSuccess(response)
     } catch (error) {
       console.error("Error submitting form:", error);
     }
@@ -164,10 +164,10 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
         first_name: personData.first_name || "",
         last_name: personData.last_name || "",
         address: personData.address || "",
-        contact: personData.contact || "",
+        contact: String(personData.contact) || "",
         email: personData.email || "",
         password: "", // Always keep empty for security
-        role: roleData?.role_name || "",
+        role_id: String(roleData?.role_id) || "",
       });
     }
   }, [personData, roleData, form]);
@@ -267,7 +267,7 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
 
           <FormField
             control={form.control}
-            name="role"
+            name="role_id"
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Role:</FormLabel>
@@ -279,10 +279,13 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
                         role="combobox"
                         className={cn(
                           "w-[200px] justify-between",
-                          !field.value && "text-muted-foreground"
+                          !field.value && "text-muted-foreground",
                         )}
                       >
-                        {field.value}
+                        {
+                          roles.find((role) => role.role_id == field.value)
+                            ?.role_name
+                        }
                         <ChevronsUpDown className="opacity-50" />
                       </Button>
                     </FormControl>
@@ -301,11 +304,19 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
                               key={role.role_id}
                               value={role.role_name}
                               onSelect={() => {
-                                console.log("✅ Role Selected:", role.role_name, " (ID:", role.role_id, ")");
+                                console.log(
+                                  "✅ Role Selected:",
+                                  role.role_name,
+                                  " (ID:",
+                                  role.role_id,
+                                  ")",
+                                );
                                 field.onChange(role.role_id.toString());
                                 setOpen(false);
-                                console.log("🔄 Updated Form Value:", form.getValues("role"));
-                                
+                                console.log(
+                                  "🔄 Updated Form Value:",
+                                  form.getValues("role_id"),
+                                );
                               }}
                             >
                               {role.role_name}
@@ -314,7 +325,7 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
                                   "ml-auto",
                                   role.role_name === field.value
                                     ? "opacity-100"
-                                    : "opacity-0"
+                                    : "opacity-0",
                                 )}
                               />
                             </CommandItem>
@@ -330,7 +341,6 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
           <div className="flex justify-end">
             <Button type="submit">Submit</Button>
           </div>
-          
         </form>
       </Form>
     </>

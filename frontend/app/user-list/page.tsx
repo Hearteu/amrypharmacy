@@ -90,11 +90,18 @@ export default function UserList() {
     }
   }
 
-  useEffect(() => {
+  const refreshData = () => {
+    console.log("Refreshing data")
     getData().then((fetchedData) => {
       setData(fetchedData);
       setLoading(false);
     });
+  }
+
+  const tableColumns = columns(refreshData)
+
+  useEffect(() => {
+    refreshData()
   }, []);
 
   const [open, setOpen] = useState(false);
@@ -118,7 +125,7 @@ export default function UserList() {
               </DialogContent>
             </Dialog>
         </div>
-        <DataTable columns={columns} data={data} />
+        <DataTable columns={tableColumns} data={data} />
         </>
       )}
     </>
