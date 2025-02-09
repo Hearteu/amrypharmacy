@@ -43,7 +43,7 @@ const formSchema = z.object({
     .regex(/^\d{10}$/, { message: "Contact must be a valid 10-digit number." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
   password: z.string().optional(),
-  role: z.string().optional(),
+  role_id: z.string().optional(),
 });
 
 interface EditUserFormProps {
@@ -71,7 +71,7 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
       contact: "",
       email: "",
       password: "",
-      role: "",
+      role_id: "",
     },
     mode: "onChange",
   });
@@ -164,10 +164,10 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
         first_name: personData.first_name || "",
         last_name: personData.last_name || "",
         address: personData.address || "",
-        contact: personData.contact || "",
+        contact: String(personData.contact) || "",
         email: personData.email || "",
         password: "", // Always keep empty for security
-        role: roleData?.role_name || "",
+        role_id: String(roleData?.role_id) || "",
       });
     }
   }, [personData, roleData, form]);
@@ -267,7 +267,7 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
 
           <FormField
             control={form.control}
-            name="role"
+            name="role_id"
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Role:</FormLabel>
@@ -279,10 +279,13 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
                         role="combobox"
                         className={cn(
                           "w-[200px] justify-between",
-                          !field.value && "text-muted-foreground"
+                          !field.value && "text-muted-foreground",
                         )}
                       >
-                        {field.value}
+                        {
+                          roles.find((role) => role.role_id == field.value)
+                            ?.role_name
+                        }
                         <ChevronsUpDown className="opacity-50" />
                       </Button>
                     </FormControl>
@@ -301,11 +304,19 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
                               key={role.role_id}
                               value={role.role_name}
                               onSelect={() => {
-                                console.log("✅ Role Selected:", role.role_name, " (ID:", role.role_id, ")");
+                                console.log(
+                                  "✅ Role Selected:",
+                                  role.role_name,
+                                  " (ID:",
+                                  role.role_id,
+                                  ")",
+                                );
                                 field.onChange(role.role_id.toString());
                                 setOpen(false);
-                                console.log("🔄 Updated Form Value:", form.getValues("role"));
-                                
+                                console.log(
+                                  "🔄 Updated Form Value:",
+                                  form.getValues("role_id"),
+                                );
                               }}
                             >
                               {role.role_name}
@@ -314,7 +325,7 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
                                   "ml-auto",
                                   role.role_name === field.value
                                     ? "opacity-100"
-                                    : "opacity-0"
+                                    : "opacity-0",
                                 )}
                               />
                             </CommandItem>
@@ -330,7 +341,6 @@ export default function EditUserForm({ user_id }: EditUserFormProps) {
           <div className="flex justify-end">
             <Button type="submit">Submit</Button>
           </div>
-          
         </form>
       </Form>
     </>
