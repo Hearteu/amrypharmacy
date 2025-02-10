@@ -1,5 +1,3 @@
-from unit_measure import UnitMeasure
-
 from .branch import Branch
 from .customer_type import CustomerType
 from .customers import Customers
