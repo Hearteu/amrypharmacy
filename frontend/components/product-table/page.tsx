@@ -44,7 +44,7 @@ interface MergedProductData {
 export default function ProductList() {
   const [data, setData] = useState<MergedProductData[]>([]);
   const [loading, setLoading] = useState(true); // Loading state
-  
+
   async function getData(): Promise<MergedProductData[]> {
     try {
       const [productRes, brandRes, categoryRes, measureRes] = await Promise.all([
@@ -53,30 +53,35 @@ export default function ProductList() {
         fetch("http://127.0.0.1:8000/pharmacy/product-categories/"),
         fetch("http://127.0.0.1:8000/pharmacy/unit-measures/"),
       ]);
-  
+
       if (!productRes.ok || !brandRes.ok || !categoryRes.ok || !measureRes.ok) {
         throw new Error("Failed to fetch data");
       }
-  
+
       const productData: Product[] = await productRes.json();
       const brandData: Brand[] = await brandRes.json();
       const categoryData: Category[] = await categoryRes.json();
       const measureData: UnitofMeasure[] = await measureRes.json();
-  
+
+      // Merge products with brand and category
       const mergedProductData: MergedProductData[] = productData.map((product) => {
-        const measurement = measureData.find((m) => m.unit_id === product.unit_of_measure); // ✅ Fixed matching condition
+        const brand = brandData.find((b) => b.brand_id === product.brand_id);
+        const category = categoryData.find((c) => c.category_id === product.category_id);
+        const measurement = measureData.find((m) => m.unit_id === product.unit_of_measure);
   
         return {
           product_id: product.product_id,
           product_name: product.product_name,
+          brand_name: brand ? brand.brand_name : "Unknown",
+          category_name: category ? category.category_name : "Unknown",
           current_price: product.current_price,
           dosage_strength: product.dosage_strength,
           dosage_form: product.dosage_form,
           net_content: product.net_content,
-          unit_of_measure: measurement ? measurement.measurement : "Unknown", // ✅ Correctly assigns measurement
+          unit_of_measure: measurement ? measurement.measurement : "Unknown", // ✅ Fixed unit of measure
         };
       });
-  
+
       return mergedProductData;
     } catch (error) {
       console.error("Error Fetching Product Data", error);
