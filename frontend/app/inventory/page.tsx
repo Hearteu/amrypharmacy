@@ -4,6 +4,7 @@ import { useState } from "react";
 import { DataTable } from "./data-table";
 import { columns } from "./columns"; // Import columns configuration
 import AddProductForm from  "@/components/forms/NewProductForm"; // Import the Add Product Dialog
+import ProductList from "@/components/product-table/page";
 
 export default function Inventory() {
   const [products, setProducts] = useState<any[]>([]);
@@ -19,12 +20,17 @@ export default function Inventory() {
   };
 
   return (
+    <>
     <div>
       <div className="w-full grid justify-items-end pt-4 pr-4">
         <AddProductForm />
       </div>
-      <h2 className="text-xl font-semibold">Inventory</h2>
+      <h2 className="text-xl font-semibold px-4">Inventory</h2>
       <DataTable columns={columns} data={products} />
     </div>
+    <div className="">
+      <ProductList></ProductList>
+    </div>
+    </>
   );
 }
