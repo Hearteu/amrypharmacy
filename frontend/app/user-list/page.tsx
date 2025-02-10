@@ -121,7 +121,11 @@ export default function UserList() {
                 <DialogHeader>
                   <DialogTitle>Add User</DialogTitle>
                 </DialogHeader>
-                <RegisterForm onClose={() => setOpen(false)}></RegisterForm>
+                <RegisterForm onSuccess={(data) => {
+                  console.log("From the columns component", data)
+                  setOpen(false);
+                  refreshData();
+                  }}></RegisterForm>
               </DialogContent>
             </Dialog>
         </div>

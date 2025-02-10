@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { useForm } from "react-hook-form";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,12 @@ const formSchema = z.object({
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
 
-export default function RegisterForm({ onClose  }: { onClose?: () => void }) {
+interface RegisterFormProps {
+  onSuccess: (data: AxiosResponse) => void;
+
+}
+
+export default function RegisterForm({ onSuccess } : RegisterFormProps) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -53,9 +58,9 @@ export default function RegisterForm({ onClose  }: { onClose?: () => void }) {
       if (pathname === "/register") {
         router.push("/dashboard");
       } // Redirect to login page after registration
-      else if (onClose) {
-        onClose(); // Close the modal in admin panel
-        window.location.reload();
+      else if (onSuccess) {
+        onSuccess(response.data); // Close the modal in admin panel
+        // window.location.reload();
       }
 
       
