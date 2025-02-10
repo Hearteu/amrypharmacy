@@ -1,3 +1,5 @@
+from unit_measure import UnitMeasure
+
 from .branch import Branch
 from .customer_type import CustomerType
 from .customers import Customers
@@ -8,10 +10,14 @@ from .inventory import Inventory
 from .order import Order
 from .person_views import PersonList
 from .prescription import Prescription
+from .price_history import PriceHistory
 from .product_brand import Brand
 from .product_category import ProductCategory
 from .products import Products
+from .purchase_order import PurchaseOrder
 from .receipt import Receipt
+from .stock_transfer import StockTransfer
 from .supplier import Supplier
+from .unit_measure import UnitMeasure
 from .user_role import UserRole
 from .user_views import UserList, UserLoginView
