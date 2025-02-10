@@ -13,7 +13,6 @@ import {
 
 import { Button } from "@/components/ui/button";
 import RegisterForm from "@/components/forms/RegisterForm";
-import Inventory from "../inventory/page";
 
 interface User {
   user_id: number;
