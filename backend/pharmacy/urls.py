@@ -3,8 +3,9 @@ from rest_framework_simplejwt.views import TokenRefreshView  # type: ignore
 
 from .views import (Branch, Brand, Customers, CustomerType, DisposedItems,
                     DswdOrder, Expiration, Inventory, Order, PersonList,
-                    Prescription, ProductCategory, Products, Receipt, Supplier,
-                    UserList, UserLoginView, UserRole)
+                    Prescription, PriceHistory, ProductCategory, Products,
+                    PurchaseOrder, Receipt, StockTransfer, Supplier,
+                    UnitMeasure, UserList, UserLoginView, UserRole)
 
 # Define resources with their corresponding view classes
 resources = [
@@ -25,6 +26,10 @@ resources = [
     ("product-categories", ProductCategory),
     ("brands", Brand),
     ("orders", Order),
+    ("purchase-orders", PurchaseOrder),
+    ("stock-transfers", StockTransfer),
+    ("unit-measures", UnitMeasure),
+    ("price-histories", PriceHistory),
 ]
 
 # Generate urlpatterns dynamically
