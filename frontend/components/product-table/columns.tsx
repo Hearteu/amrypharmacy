@@ -94,17 +94,16 @@ export const columns: ColumnDef<MergedProductData>[] = [
   },
   {
     accessorKey: "current_price",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Price
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
-    },
+    header: () => <div className="text-right">Price</div>,
+    cell: ({ row }) => {
+      const current_price = parseFloat(row.getValue("current_price"))
+      const formatted = new Intl.NumberFormat("en-PH", {
+        style: "currency",
+        currency: "PHP",
+      }).format(current_price)
+
+      return <div className="text-right font-medium">{formatted}</div>
+    }
   },
   {
     accessorKey: "dosage_strength",
