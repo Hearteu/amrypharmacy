@@ -88,8 +88,7 @@ export default function ProductList() {
       return [];
     }
   }
-
-
+  
   useEffect(() => {
     const fetchData = async () => {
       const fetchedData = await getData();

@@ -32,7 +32,7 @@ interface Branch {
 
 interface MergedInventoryData {
   inventory_id: number;
-  product_name_brand: number;
+  product_name_brand: string;
   reorder_threshold: number;
   physical_quantity: number;
   stockroom_quantity: number;
