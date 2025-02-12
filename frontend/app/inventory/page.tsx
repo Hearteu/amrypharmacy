@@ -4,6 +4,15 @@ import { useEffect, useState } from "react";
 import { DataTable } from "./data-table";
 import { columns } from "./columns"; // Import columns configuration
 import ProductList from "@/components/product-table/page";
+import { Slash } from "lucide-react";
+
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 interface Inventory {
   inventory_id: number;
@@ -106,15 +115,38 @@ export default function Inventory() {
 
   return (
     <>
-      <div>
-        <div className="w-full grid justify-items-end pt-4 pr-4"></div>
-        <h2 className="text-xl font-semibold px-4">Inventory</h2>
-        {loading ? <p className="px-4">Loading...</p> : <DataTable columns={columns} data={data} />}
+      <div className="p-4 fixed">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="#inventory">Inventory</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator>
+              <Slash />
+            </BreadcrumbSeparator>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="#product">Product List</BreadcrumbLink>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
+      <div className="pt-4">
+
+        <div id="inventory" className="min-h-screen w-full pt-8 pr-4">
+        <h2 className="text-xl font-semibold p-4">Inventory</h2>
+        {loading ? (
+          <p className="px-4">Loading...</p>
+        ) : (
+          <DataTable columns={columns} data={data} />
+        )}
+
         
       </div>
-      <div className="">
+      <div id="product" className="min-h-screen bg-gray-100">
         <ProductList></ProductList>
       </div>
+      </div>
+
     </>
   );
 }

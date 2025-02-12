@@ -100,6 +100,7 @@ export default function ProductList() {
   }, []);
 
   return (
+    
     <div className="container mx-auto py-10">
       <h2 className="text-xl font-semibold px-4">Product List</h2>
       {loading ? <p className="px-4">Loading...</p> : <DataTable columns={columns} data={data} />}

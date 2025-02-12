@@ -33,7 +33,8 @@ export default function NavBar() {
               </Link>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <Link href="#" legacyBehavior passHref>
+              
+              <Link href="/inventory" legacyBehavior passHref>
                 <NavigationMenuLink className={navigationMenuTriggerStyle()}>
                   Inventory
                 </NavigationMenuLink>
