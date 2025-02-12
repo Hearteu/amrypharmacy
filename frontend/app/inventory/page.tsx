@@ -13,6 +13,10 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import AddProductForm from "@/components/forms/newProductForm";
+import { Dialog, DialogContent, DialogTrigger } from "@radix-ui/react-dialog";
+import { Button } from "@/components/ui/button";
+import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Inventory {
   inventory_id: number;
@@ -113,6 +117,8 @@ export default function Inventory() {
     fetchData();
   }, []);
 
+
+
   return (
     <>
       <div className="p-4 fixed">
@@ -131,22 +137,28 @@ export default function Inventory() {
         </Breadcrumb>
       </div>
       <div className="pt-4">
-
         <div id="inventory" className="min-h-screen w-full pt-8 pr-4">
-        <h2 className="text-xl font-semibold p-4">Inventory</h2>
-        {loading ? (
-          <p className="px-4">Loading...</p>
-        ) : (
-          <DataTable columns={columns} data={data} />
-        )}
+          <div className="flex flex-row justify-between">
+            <h2 className="text-xl font-semibold p-4">Inventory</h2>
+          </div>
 
-        
+          {loading ? (
+            <p className="px-4">Loading...</p>
+          ) : (
+            <DataTable columns={columns} data={data} />
+          )}
+        </div>
       </div>
-      <div id="product" className="min-h-screen bg-gray-100">
+      <div id="product" className="min-h-screen bg-gray-100 pt-8 pr-4">
+        <div className="flex flex-row justify-between">
+          <h2 className="text-xl font-semibold p-4">Product List</h2>
+    
+              <AddProductForm></AddProductForm>
+           
+        </div>
+
         <ProductList></ProductList>
       </div>
-      </div>
-
     </>
   );
 }
