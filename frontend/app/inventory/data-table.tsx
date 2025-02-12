@@ -27,16 +27,6 @@ import { Input } from "@/components/ui/input";
 import { DataTablePagination } from "@/components/table/DataTablePagination";
 import { DataTableViewOptions } from "@/components/table/DataTableViewOptions";
 
-interface InventoryItem {
-  item_id: number;
-  item_name: string;
-  category: string;
-  quantity: number;
-  price: number;
-  supplier: string;
-  last_updated: string;
-}
-
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -78,9 +68,9 @@ export function DataTable<TData, TValue>({
       <div className="flex items-center pt-4 mx-4">
         <Input
           placeholder="Search Item..."
-          value={(table.getColumn("item_name")?.getFilterValue() as string) ?? ""}
+          value={(table.getColumn("product_name_brand")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
-            table.getColumn("item_name")?.setFilterValue(event.target.value)
+            table.getColumn("product_name_brand")?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
         />
