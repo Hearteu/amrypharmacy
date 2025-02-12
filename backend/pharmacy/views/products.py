@@ -25,15 +25,29 @@ class Products(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+       
         
     def post(self, request):
-        data = request.data 
+        data = request.data
         try:
-           
-            response = supabase.table("Product").insert(data).execute()
-            return Response(response.data, status=201)
+            # Insert product into Product table
+            product_response = supabase.table("Product").insert(data).execute()
+
+            if not product_response.data:
+                return Response({"error": "Product insertion failed"}, status=400)
+
+            # Get the generated product_id
+            product_id = product_response.data[0]["product_id"]
+
+            # Insert the product_id into the Inventory table with other fields as NULL
+            inventory_data = {"product_id": product_id}  # Other columns remain NULL
+            supabase.table("Inventory").insert(inventory_data).execute()
+
+            return Response(product_response.data, status=201)
+
         except Exception as e:
             return Response({"error": str(e)}, status=400)
+
  
     def put(self, request, product_id):
         data = request.data 
