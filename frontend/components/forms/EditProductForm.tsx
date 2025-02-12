@@ -24,7 +24,7 @@ import {
   Controller,
 } from "react-hook-form";
 
-export default function AddProductForm() {
+export default function EditProductForm() {
   const [open, setOpen] = useState(false);
 
   const formMethods = useForm({
@@ -48,18 +48,18 @@ export default function AddProductForm() {
   } = formMethods;
 
   const onSubmit = (data: any) => {
-    console.log("New Product Data:", data);
+    console.log("Edit Product Data:", data);
     setOpen(false); // Close dialog after submission
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>Add Item</Button>
+        <Button>Edit Item</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add New Product</DialogTitle>
+          <DialogTitle>Edit Product</DialogTitle>
         </DialogHeader>
 
         {/* Wrap the form in FormProvider */}
@@ -132,7 +132,7 @@ export default function AddProductForm() {
             </div>           
             
             <DialogFooter>
-              <Button type="submit">Save Product</Button>
+              <Button type="submit">Save Edit</Button>
             </DialogFooter>
           </form>
         </FormProvider>

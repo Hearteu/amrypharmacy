@@ -1,44 +1,28 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import AddProductForm from "@/components/forms/newProductForm";
-import { Dialog, DialogContent, DialogHeader, DialogTrigger } from "@/components/ui/dialog";
-import { useState } from "react";
-import { DialogDescription, DialogTitle } from "@radix-ui/react-dialog";
 
-interface InventoryData {
-  product_id: number;
-  product_name: string;
-  category: string;
-  price: number;
-  unit: string;
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
+interface MergedInventoryData {
+  inventory_id: number;
+  product_name_brand: string;
+  reorder_threshold: number;
+  physical_quantity: number;
+  stockroom_quantity: number;
+  branch_name: string;
 }
 
-interface EditProductDialogProps {
-  product_id: number;
-}
 
-const EditProductDialog = ({ product_id }: EditProductDialogProps) => {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>Edit</Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Edit Product Details</DialogTitle>
-          <DialogDescription>Update the product details, including name, category, price, and unit.</DialogDescription>
-        </DialogHeader>
-        <AddProductForm product_id={product_id} onClose={() => setOpen(false)} />
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-export const columns: ColumnDef<InventoryData>[] = [
+export const columns: ColumnDef<MergedInventoryData>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -62,7 +46,7 @@ export const columns: ColumnDef<InventoryData>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "product_name",
+    accessorKey: "product_name_brand",
     header: ({ column }) => (
       <Button
         variant="ghost"
@@ -74,38 +58,78 @@ export const columns: ColumnDef<InventoryData>[] = [
     ),
   },
   {
-    accessorKey: "category",
+    accessorKey: "reorder_threshold",
     header: ({ column }) => (
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Category
+        Reorder Threshold
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
   },
   {
-    accessorKey: "price",
+    accessorKey: "physical_quantity",
     header: ({ column }) => (
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Price
+        Physical Quantity
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
   },
   {
-    accessorKey: "unit",
-    header: "Unit",
+    accessorKey: "stockroom_quantity",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Stockroom Quantity
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+  },
+  // branch_name
+  {
+    accessorKey: "branch_name",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Branch
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
   },
   {
     id: "actions",
-    cell: ({ row }) => {
-      const product = row.original;
-      return <EditProductDialog product_id={product.product_id} />;
+    cell: ({  }) => {
+ 
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem
+            >
+              Copy payment ID
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>View customer</DropdownMenuItem>
+            <DropdownMenuItem>View payment details</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
     },
-  }
+  },
 ];
