@@ -13,7 +13,7 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import AddProductForm from "@/components/forms/newProductForm";
+import AddProductForm from "@/components/forms/AddProductForm";
 import { Dialog, DialogContent, DialogTrigger } from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
