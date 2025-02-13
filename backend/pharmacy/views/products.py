@@ -29,6 +29,7 @@ class Products(APIView):
         
     def post(self, request):
         data = request.data
+        print(data)
         try:
             # Insert product into Product table
             product_response = supabase.table("Product").insert(data).execute()

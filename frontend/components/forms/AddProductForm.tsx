@@ -1,30 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useEffect, useState } from "react";
 
-import { useForm } from "react-hook-form";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "../ui/form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import axios from "axios";
 import { Check, ChevronsUpDown } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import {
   Command,
   CommandEmpty,
@@ -33,11 +25,20 @@ import {
   CommandItem,
   CommandList,
 } from "../ui/command";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "../ui/form";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 
 const formSchema = z.object({
   product_name: z.string().min(2),
-  category: z.string(),
-  brand_name: z.string(),
+  category_id: z.string(),
+  brand_id: z.string(),
   current_price: z.string(),
   dosage_strength: z.string(),
   dosage_form: z.string(),
@@ -60,6 +61,10 @@ interface Categeory {
   category_name: string;
 }
 
+// interface AddFormProps {
+//   onSuccess: (data: AxiosResponse) => void;
+// }
+
 export default function AddProductForm() {
   const [measureOpen, setMeasureOpen] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
@@ -70,15 +75,14 @@ export default function AddProductForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       product_name: "",
-      category: "",
+      category_id: "",
       current_price: "",
       dosage_strength: "",
       dosage_form: "",
       net_content: "",
       measurement: "",
     },
-    mode: "onChange",
-  }, []);
+  });
 
   //Fetch  Brand for combobox
 
@@ -118,8 +122,6 @@ export default function AddProductForm() {
     fetchCategory();
   }, []);
 
-
-
   //Fetch Unit of Measurement combobox
 
   const [measurements, setMeasurement] = useState<Measurement[]>([]);
@@ -138,7 +140,26 @@ export default function AddProductForm() {
       }
     };
     fetchMeasurement();
-  });
+  }, []);
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      const response = await axios.post(
+        "http://127.0.0.1:8000/pharmacy/products/",
+        
+          values
+        
+      );
+      // onSuccess(response.data);
+      console.log(response.data);
+    } catch (error) {
+      console.log("Error adding new product:", error);
+      
+      if (axios.isAxiosError(error)) {
+        console.error("⚠️ Axios Error Response:", error.response?.data);
+      }
+    }
+  };
 
   // const onSubmit = (data: any) => {
   //   console.log("New Product Data:", data);
@@ -155,7 +176,7 @@ export default function AddProductForm() {
           <DialogTitle>Add New Product</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="product_name"
@@ -172,7 +193,7 @@ export default function AddProductForm() {
 
             <FormField
               control={form.control}
-              name="category"
+              name="category_id"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Category</FormLabel>
@@ -188,10 +209,8 @@ export default function AddProductForm() {
                           )}
                         >
                           {
-                            cats.find(
-                              (cat) =>
-                                cat.category_id == field.value
-                            )?.category_name
+                            cats.find((cat) => cat.category_id == field.value)
+                              ?.category_name
                           }
                           <ChevronsUpDown className="opacity-50" />
                         </Button>
@@ -211,9 +230,7 @@ export default function AddProductForm() {
                                 key={cat.category_id}
                                 value={cat.category_name}
                                 onSelect={() => {
-                                  field.onChange(
-                                    cat.category_id.toString()
-                                  );
+                                  field.onChange(cat.category_id.toString());
                                   setCatOpen(false);
                                   console.log(
                                     "🔄 Updated Form Value:",
@@ -243,10 +260,10 @@ export default function AddProductForm() {
 
             <FormField
               control={form.control}
-              name="brand_name"
+              name="brand_id"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel className="">Unit of Measurement</FormLabel>
+                  <FormLabel className="">Brand Name</FormLabel>
                   <Popover open={brandOpen} onOpenChange={setBrandOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -259,7 +276,9 @@ export default function AddProductForm() {
                           )}
                         >
                           {
-                            brands.find((brand) => brand.brand_id  == field.value) ?.brand_name
+                            brands.find(
+                              (brand) => brand.brand_id == field.value
+                            )?.brand_name
                           }
                           <ChevronsUpDown className="opacity-50" />
                         </Button>
@@ -291,7 +310,7 @@ export default function AddProductForm() {
                                 <Check
                                   className={cn(
                                     "ml-auto",
-                                    brand.brand_name === field.value
+                                    brand.brand_id.toString() === field.value
                                       ? "opacity-100"
                                       : "opacity-0"
                                   )}
@@ -343,6 +362,20 @@ export default function AddProductForm() {
                   <FormLabel>Dosage Form</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter dosage form" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="net_content"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Net Content</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter Net Content" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
