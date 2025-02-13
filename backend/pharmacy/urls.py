@@ -2,7 +2,7 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView  # type: ignore
 
 from .views import (Branch, Brand, Customers, CustomerType, DisposedItems,
-                    DswdOrder, Expiration, Inventory, Order, PersonList,
+                    Drugs, DswdOrder, Expiration, Inventory, Order, PersonList,
                     Prescription, PriceHistory, ProductCategory, Products,
                     PurchaseOrder, Receipt, StockTransfer, Supplier,
                     UnitMeasure, UserList, UserLoginView, UserRole)
@@ -30,6 +30,7 @@ resources = [
     ("stock-transfers", StockTransfer),
     ("unit-measures", UnitMeasure),
     ("price-histories", PriceHistory),
+    ("drugs", Drugs)
 ]
 
 # Generate urlpatterns dynamically
