@@ -1,30 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useEffect, useState } from "react";
 
-import { useForm } from "react-hook-form";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "../ui/form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import axios from "axios";
 import { Check, ChevronsUpDown } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import {
   Command,
   CommandEmpty,
@@ -33,12 +25,20 @@ import {
   CommandItem,
   CommandList,
 } from "../ui/command";
-import axios, { AxiosResponse } from "axios";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "../ui/form";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 
 const formSchema = z.object({
   product_name: z.string().min(2),
-  category: z.string(),
-  brand_name: z.string(),
+  category_id: z.string(),
+  brand_id: z.string(),
   current_price: z.string(),
   dosage_strength: z.string(),
   dosage_form: z.string(),
@@ -75,7 +75,7 @@ export default function AddProductForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       product_name: "",
-      category: "",
+      category_id: "",
       current_price: "",
       dosage_strength: "",
       dosage_form: "",
@@ -154,7 +154,7 @@ export default function AddProductForm() {
       console.log(response.data);
     } catch (error) {
       console.log("Error adding new product:", error);
-      console.log(response.data);
+      
       if (axios.isAxiosError(error)) {
         console.error("⚠️ Axios Error Response:", error.response?.data);
       }
@@ -193,7 +193,7 @@ export default function AddProductForm() {
 
             <FormField
               control={form.control}
-              name="category"
+              name="category_id"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Category</FormLabel>
@@ -260,7 +260,7 @@ export default function AddProductForm() {
 
             <FormField
               control={form.control}
-              name="brand_name"
+              name="brand_id"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel className="">Brand Name</FormLabel>
