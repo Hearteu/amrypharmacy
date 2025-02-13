@@ -29,24 +29,37 @@ class Drugs(APIView):
         
     def post(self, request):
         data = request.data
-        print(data)
-        try:
-            product_response = supabase.table("Drugs").insert(data).execute()
+        
+        # Extract product-related fields and remove them from `data`
+        product_fields = ["brand_id", "category_id", "product_name", "current_price", "net_content"]
+        product_data = {key: data.pop(key, None) for key in product_fields}
 
+        try:
+            # Insert into Products table first (if needed)
+            product_response = supabase.table("Products").insert(product_data).execute()
+                
             if not product_response.data:
+                return Response({"error": "Products insertion failed"}, status=400)
+                
+                # Retrieve the generated products_id
+            products_id = product_response.data[0]["products_id"]
+            data["products_id"] = products_id  # Assign to the Drugs entry
+
+            # Insert into Drugs table
+            drugs_response = supabase.table("Drugs").insert(data).execute()
+
+            if not drugs_response.data:
                 return Response({"error": "Drugs insertion failed"}, status=400)
 
-            # Get the generated drugs_id
-            drugs_id = product_response.data[0]["drugs_id"]
-
-            # Insert the drugs_id into the Inventory table with other fields as NULL
-            inventory_data = {"drugs_id": drugs_id}  # Other columns remain NULL
+            # Insert into Inventory table (products_id must be available)
+            inventory_data = {"products_id": data["products_id"]}  
             supabase.table("Inventory").insert(inventory_data).execute()
 
-            return Response(product_response.data, status=201)
+            return Response(drugs_response.data, status=201)
 
         except Exception as e:
             return Response({"error": str(e)}, status=400)
+
 
  
     def put(self, request, drugs_id):
