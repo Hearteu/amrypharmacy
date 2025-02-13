@@ -41,7 +41,7 @@ class Drugs(APIView):
             if not product_response.data:
                 return Response({"error": "Products insertion failed"}, status=400)
                 
-                # Retrieve the generated products_id
+            # Retrieve the generated products_id
             products_id = product_response.data[0]["products_id"]
             data["products_id"] = products_id  # Assign to the Drugs entry
 
@@ -61,7 +61,6 @@ class Drugs(APIView):
             return Response({"error": str(e)}, status=400)
 
 
- 
     def put(self, request, drugs_id):
         data = request.data 
         try:

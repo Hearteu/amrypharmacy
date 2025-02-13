@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosResponse } from "axios";
@@ -34,7 +35,6 @@ import {
   FormMessage,
 } from "../ui/form";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const medFormSchema = z.object({
   product_name: z.string().min(2),
@@ -161,10 +161,10 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
     fetchMeasurement();
   }, []);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof medFormSchema>) => {
     try {
       const response = await axios.post(
-        "http://127.0.0.1:8000/pharmacy/products/",
+        "http://127.0.0.1:8000/pharmacy/drugs/",
 
         values
       );
