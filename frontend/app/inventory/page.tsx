@@ -13,10 +13,12 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import AddProductForm from "@/components/forms/newProductForm";
+import AddProductForm from "@/components/forms/AddProductForm";
+import EditInventory from "@/components/forms/EditInventoryForm";
 import { Dialog, DialogContent, DialogTrigger } from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import EditInventoryForm from "@/components/forms/EditInventoryForm";
 
 interface Inventory {
   inventory_id: number;
@@ -154,6 +156,7 @@ export default function Inventory() {
           <h2 className="text-xl font-semibold p-4">Product List</h2>
     
               <AddProductForm></AddProductForm>
+              <EditInventoryForm></EditInventoryForm>
            
         </div>
 
