@@ -98,6 +98,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
     defaultValues: {
       product_name: "",
       category_id: "",
+      brand_id: "",
       current_price: "",
       net_content: "",
     },
@@ -165,6 +166,25 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
     try {
       const response = await axios.post(
         "http://127.0.0.1:8000/pharmacy/drugs/",
+
+        values
+      );
+      onSuccess(response.data);
+      setDialogOpen(false);
+      console.log(response.data);
+    } catch (error) {
+      console.log("Error adding new product:", error);
+
+      if (axios.isAxiosError(error)) {
+        console.error("⚠️ Axios Error Response:", error.response?.data);
+      }
+    }
+  };
+
+  const onNonMedSubmit = async (values: z.infer<typeof nonMedForm>) => {
+    try {
+      const response = await axios.post(
+        "http://127.0.0.1:8000/pharmacy/products/",
 
         values
       );
@@ -493,7 +513,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
           <TabsContent value="non-medicine">
             <Form {...nonMedForm}>
               <form
-                onSubmit={nonMedForm.handleSubmit(onSubmit)}
+                onSubmit={nonMedForm.handleSubmit(onNonMedSubmit)}
                 className="space-y-4"
               >
                 <FormField
