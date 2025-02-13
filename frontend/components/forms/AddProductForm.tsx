@@ -181,7 +181,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
     }
   };
 
-  const onNonMedSubmit = async (values: z.infer<typeof nonMedForm>) => {
+  const onNonMedSubmit = async (values: z.infer<typeof nonMedFormSchema>) => {
     try {
       const response = await axios.post(
         "http://127.0.0.1:8000/pharmacy/products/",
