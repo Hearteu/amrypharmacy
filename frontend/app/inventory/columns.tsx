@@ -22,7 +22,7 @@ interface MergedInventoryData {
 }
 
 
-export const columns: ColumnDef<MergedInventoryData>[] = [
+export const columns: (onSuccess: () => void) => ColumnDef<MergedInventoryData>[] = (onSuccess) => [
   {
     id: "select",
     header: ({ table }) => (

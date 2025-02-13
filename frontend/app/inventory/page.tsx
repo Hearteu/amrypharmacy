@@ -55,6 +55,7 @@ interface MergedInventoryData {
 export default function Inventory() {
   const [data, setData] = useState<MergedInventoryData[]>([]);
   const [loading, setLoading] = useState(true); // Loading state
+  const [open, setOpen] = useState(false);
 
   async function getData(): Promise<MergedInventoryData[]> {
     try {
@@ -107,17 +108,19 @@ export default function Inventory() {
     }
   }
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const fetchedData = await getData();
+  const refreshData = () => {
+    console.log("Refreshing data");
+    getData().then((fetchedData) => {
       setData(fetchedData);
       setLoading(false);
-    };
+    });
+  };
 
-    fetchData();
+  const tableColumns = columns(refreshData);
+
+  useEffect(() => {
+    refreshData();
   }, []);
-
-
 
   return (
     <>
@@ -145,19 +148,18 @@ export default function Inventory() {
           {loading ? (
             <p className="px-4">Loading...</p>
           ) : (
-            <DataTable columns={columns} data={data} />
+            <DataTable columns={tableColumns} data={data} />
           )}
         </div>
       </div>
       <div id="product" className="min-h-screen bg-gray-100 pt-8 pr-4">
         <div className="flex flex-row justify-between">
           <h2 className="text-xl font-semibold p-4">Product List</h2>
-    
-              <AddProductForm></AddProductForm>
-           
+
+          <AddProductForm onSuccess={(data) => {}}/>
         </div>
 
-        <ProductList></ProductList>
+          <ProductList></ProductList>
       </div>
     </>
   );
