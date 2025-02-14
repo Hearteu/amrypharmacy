@@ -17,12 +17,9 @@ import { Checkbox } from "../ui/checkbox"
 
 interface MergedProductData {
   product_id: number;
-  product_name: string;
-  brand_name: string;
+  product_name: string; // Now includes brand, dosage strength, and form
   category_name: string;
   current_price: number;
-  dosage_strength: string;
-  dosage_form: string;
   net_content: string;
   unit_of_measure: string;
 }
@@ -65,20 +62,6 @@ export const columns: ColumnDef<MergedProductData>[] = [
     },
   },
   {
-    accessorKey: "brand_name",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Brand
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
-    },
-  },
-  {
     accessorKey: "category_name",
     header: ({ column }) => {
       return (
@@ -106,20 +89,12 @@ export const columns: ColumnDef<MergedProductData>[] = [
     }
   },
   {
-    accessorKey: "dosage_strength",
-    header: "Dosage Strength",
-  },
-  {
-    accessorKey: "dosage_form",
-    header: "Dosage Form",
-  },
-  {
     accessorKey: "net_content",
     header: "Net Content",
   },
   {
     accessorKey: "unit_of_measure",
-    header: "Unit of Measure",
+    header: "Unit of Measurement",
   },
   {
     id: "actions",

@@ -18,19 +18,21 @@ import { Dialog, DialogContent, DialogTrigger } from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-interface Inventory {
-  inventory_id: number;
-  product_id: number;
-  branch_id: number;
-  reorder_threshold: number;
-  physical_quantity: number;
-  stockroom_quantity: number;
+interface Product {
+  products_id: number; // ✅ Fixed naming
+  brand_id: number;
+  category_id: number;
+  product_name: string;
+  current_price: number;
+  net_content: string;
 }
 
-interface Product {
-  product_id: number;
-  brand_id: number;
-  product_name: string;
+interface Drug {
+  drugs_id: number;
+  products_id: number; // ✅ Fixed naming
+  measurement: number; // Links to `unit-measures`
+  dosage_strength: string;
+  dosage_form: string;
 }
 
 interface Brand {
@@ -43,10 +45,19 @@ interface Branch {
   branch_name: string;
 }
 
+interface Inventory {
+  inventory_id: number;
+  products_id: number; // ✅ Fixed naming
+  branch_id: number | null;
+  reorder_threshold: number | null; // ✅ Changed to number
+  physical_quantity: number; // ✅ Changed to number
+  stockroom_quantity: number; // ✅ Changed to number
+}
+
 interface MergedInventoryData {
   inventory_id: number;
-  product_name_brand: string;
-  reorder_threshold: number;
+  product_name: string; // Includes brand, dosage strength, and form
+  reorder_threshold: number | null;
   physical_quantity: number;
   stockroom_quantity: number;
   branch_name: string;
@@ -55,58 +66,62 @@ interface MergedInventoryData {
 export default function Inventory() {
   const [data, setData] = useState<MergedInventoryData[]>([]);
   const [loading, setLoading] = useState(true); // Loading state
-  const [open, setOpen] = useState(false);
 
   async function getData(): Promise<MergedInventoryData[]> {
     try {
-      const [invRes, prodRes, brandRes, branchRes] = await Promise.all([
-        fetch("http://127.0.0.1:8000/pharmacy/inventories/"),
+      const [productRes, brandRes, drugsRes, invRes, branchRes] = await Promise.all([
         fetch("http://127.0.0.1:8000/pharmacy/products/"),
         fetch("http://127.0.0.1:8000/pharmacy/brands/"),
+        fetch("http://127.0.0.1:8000/pharmacy/drugs/"),
+        fetch("http://127.0.0.1:8000/pharmacy/inventories/"),
         fetch("http://127.0.0.1:8000/pharmacy/branches/"),
       ]);
 
-      if (!invRes.ok || !prodRes.ok || !branchRes.ok || !brandRes.ok) {
-        throw new Error("Failed to fetch Inventory Data");
+      if (![productRes, brandRes, drugsRes, invRes, branchRes].every(res => res.ok)) {
+        throw new Error("Failed to fetch data");
       }
 
-      const invData: Inventory[] = await invRes.json();
-      const prodData: Product[] = await prodRes.json();
+      const productData: Product[] = await productRes.json();
       const brandData: Brand[] = await brandRes.json();
+      const drugsData: Drug[] = await drugsRes.json();
+      const invData: Inventory[] = await invRes.json();
       const branchData: Branch[] = await branchRes.json();
 
-      const mergedInventoryData: MergedInventoryData[] = invData.map(
-        (inventory) => {
-          const product = prodData.find(
-            (prod) => prod.product_id === inventory.product_id
-          );
-          const brand = brandData.find(
-            (brand) => brand.brand_id === product?.brand_id
-          );
-          const branch = branchData.find(
-            (branch) => branch.branch_id === inventory.branch_id
-          );
-
-          return {
-            inventory_id: inventory.inventory_id,
-            product_name_brand:
-              product && brand
-                ? `${product.product_name} - ${brand.brand_name}`
-                : "Unknown Product",
-            reorder_threshold: inventory.reorder_threshold,
-            physical_quantity: inventory.physical_quantity,
-            stockroom_quantity: inventory.stockroom_quantity,
-            branch_name: branch ? branch.branch_name : "Unknown Branch",
-          };
+      // ✅ Ensure correct mapping between inventory and products
+      const mergedInventoryData: MergedInventoryData[] = invData
+      .map((inventory) => {
+        // Fix product lookup
+        const product = productData.find((p) => p.products_id === inventory.products_id);
+        if (!product) return null; // Skip if product is missing
+    
+        const brand = brandData.find((b) => b.brand_id === product.brand_id);
+        const drug = drugsData.find((d) => d.products_id === product.products_id);
+        const branch = branchData.find((b) => b.branch_id === inventory.branch_id);
+    
+        // Fix product name formatting
+        let fullProductName = `${product.product_name} (${brand?.brand_name ?? "Unknown"})`;
+        if (drug) {
+          fullProductName = `${product.product_name} ${drug.dosage_strength} ${drug.dosage_form} (${brand?.brand_name ?? "Unknown"})`;
         }
-      );
-
+    
+        return {
+          inventory_id: inventory.inventory_id,
+          product_name: fullProductName,
+          reorder_threshold: Number(inventory.reorder_threshold) || 0,
+          physical_quantity: Number(inventory.physical_quantity) || 0,
+          stockroom_quantity: Number(inventory.stockroom_quantity) || 0,
+          branch_name: branch?.branch_name ?? "Unassigned Branch",
+        };
+      })
+      .filter((item): item is MergedInventoryData => item !== null); // Remove null values
+        console.log(mergedInventoryData)
       return mergedInventoryData;
     } catch (error) {
-      console.log(error);
+      console.error("Error fetching data:", error);
       return [];
     }
   }
+
 
   const refreshData = () => {
     console.log("Refreshing data");
