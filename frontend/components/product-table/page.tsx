@@ -85,8 +85,6 @@ export default function ProductList() {
             (m) => m.unit_id === drug?.measurement
           );
 
-          console.log("Product ID:", product.products_id, "Drug:", drug); // ✅ Debugging
-
           // ✅ Ensure dosage details are always defined
           const dosageDetails = drug
             ? `${drug.dosage_strength ?? "Unknown"} ${

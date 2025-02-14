@@ -168,16 +168,20 @@ export default function EditProductForm({products_id} : EditProductFormProps) {
   
       } catch (error) {
         console.error("❌ Error fetching data:", error);
-        console.log("⚠️ Debugging Info:", { products_id, productData });
+        console.error("productsData:", productData);
+        
+      
       }
     };
-  
+
     if (products_id) {
       fetchData();
     }
   }, [products_id]);
   
 
+  console.error("productsData:", productData?.products_id);
+  
 
   useEffect(() => {
     if (productData) {
@@ -190,16 +194,6 @@ export default function EditProductForm({products_id} : EditProductFormProps) {
         dosage_strength: drugData?.dosage_strength || "", // ✅ Use drugData if it's a medicine
         dosage_form: drugData?.dosage_form || "", // ✅ Use drugData if it's a medicine
       });
-  
-      // console.log("✅ Form Updated with Product Data:", {
-      //   product_name: productData.product_name,
-      //   category_id: productData.category_id,
-      //   current_price: productData.current_price,
-      //   net_content: productData.net_content,
-      //   measurement: unitMeasureData?.measurement,
-      //   dosage_strength: drugData?.dosage_strength,
-      //   dosage_form: drugData?.dosage_form,
-      // });
     }
   }, [productData, drugData, unitMeasureData]);
 

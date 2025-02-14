@@ -120,6 +120,8 @@ export const columns: ColumnDef<MergedProductData>[] = [
     cell: ({ row }) => {
       
       const products = row.original
+      
+      console.log(products)
       return (
         <EditProductDialog products_id={products.products_id}/>
       )
