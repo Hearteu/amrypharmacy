@@ -35,7 +35,7 @@ interface UnitofMeasure {
 }
 
 interface MergedProductData {
-  product_id: number;
+  products_id: number;
   product_name: string; // Now includes brand, dosage strength, and form
   category_name: string;
   current_price: number;
@@ -108,7 +108,7 @@ export default function ProductList() {
           }
 
           return {
-            product_id: product.products_id,
+            products_id: product.products_id,
             product_name: fullProductName,
             category_name: category ? category.category_name : "Unknown",
             current_price: product.current_price,
