@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import axios, { AxiosResponse } from "axios";
+import axios from "axios";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -71,7 +71,7 @@ interface Categeory {
 }
 
 interface AddFormProps {
-  onSuccess: (data: AxiosResponse) => void;
+  onSuccess: () => void;
 }
 
 export default function AddProductForm({ onSuccess }: AddFormProps) {
@@ -169,7 +169,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
 
         values
       );
-      onSuccess(response.data);
+      onSuccess();
       setDialogOpen(false);
       console.log(response.data);
     } catch (error) {
