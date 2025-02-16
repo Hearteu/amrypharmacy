@@ -257,7 +257,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                               {
                                 cats.find(
                                   (cat) => cat.category_id == field.value
-                                )?.category_name
+                                )?.category_name || "Select Category"
                               }
                               <ChevronsUpDown className="opacity-50" />
                             </Button>
@@ -270,7 +270,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                               className="h-9"
                             />
                             <CommandList>
-                              <CommandEmpty>No roles found.</CommandEmpty>
+                              <CommandEmpty>No category found.</CommandEmpty>
                               <CommandGroup>
                                 {cats.map((cat) => (
                                   <CommandItem
@@ -327,7 +327,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                               {
                                 brands.find(
                                   (brand) => brand.brand_id == field.value
-                                )?.brand_name
+                                )?.brand_name || "Select brand"
                               }
                               <ChevronsUpDown className="opacity-50" />
                             </Button>
@@ -550,7 +550,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                               {
                                 cats.find(
                                   (cat) => cat.category_id == field.value
-                                )?.category_name
+                                )?.category_name || "Select Category"
                               }
                               <ChevronsUpDown className="opacity-50" />
                             </Button>
@@ -574,10 +574,6 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                                         cat.category_id.toString()
                                       );
                                       setCatOpen(false);
-                                      console.log(
-                                        "🔄 Updated Form Value:",
-                                        medicineForm.getValues("measurement")
-                                      );
                                     }}
                                   >
                                     {cat.category_name}
@@ -620,7 +616,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                               {
                                 brands.find(
                                   (brand) => brand.brand_id == field.value
-                                )?.brand_name
+                                )?.brand_name || "Select Brand"
                               }
                               <ChevronsUpDown className="opacity-50" />
                             </Button>
@@ -629,11 +625,11 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                         <PopoverContent className="w-[200px] p-0">
                           <Command>
                             <CommandInput
-                              placeholder="Search role..."
+                              placeholder="Search brand..."
                               className="h-9"
                             />
                             <CommandList>
-                              <CommandEmpty>No roles found.</CommandEmpty>
+                              <CommandEmpty>No brand found.</CommandEmpty>
                               <CommandGroup>
                                 {brands.map((brand) => (
                                   <CommandItem
@@ -642,10 +638,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                                     onSelect={() => {
                                       field.onChange(brand.brand_id.toString());
                                       setBrandOpen(false);
-                                      console.log(
-                                        "🔄 Updated Form Value:",
-                                        medicineForm.getValues("measurement")
-                                      );
+                                    
                                     }}
                                   >
                                     {brand.brand_name}
@@ -696,6 +689,8 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                     </FormItem>
                   )}
                 />
+
+                
                 <div className="flex justify-end">
                   <Button type="submit">Submit</Button>
                 </div>

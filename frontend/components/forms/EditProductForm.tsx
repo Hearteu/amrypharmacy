@@ -67,6 +67,7 @@ interface EditProductFormProps {
   products_id: number;
 }
 
+
 export default function EditProductForm({products_id} : EditProductFormProps) {
   const [measureOpen, setMeasureOpen] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
@@ -130,7 +131,8 @@ export default function EditProductForm({products_id} : EditProductFormProps) {
   
             const measureResponse = await axios.get(`${API_BASE_URL}/unit-measures/${drug.measurement}/`);
             console.log("✅ Unit Measure Response:", measureResponse.data);
-  
+            setUnitMeasureData(measureResponse.data);
+            
             if (measureResponse.data) {
               setUnitMeasureData(measureResponse.data);
               console.log("📌 Unit Measure Data Set:", measureResponse.data);
@@ -190,7 +192,8 @@ export default function EditProductForm({products_id} : EditProductFormProps) {
         category_id: String(productData.category_id) || "",
         current_price: String(productData.current_price) || "",
         net_content: productData.net_content || "",
-        measurement: unitMeasureData?.measurement || "", // ✅ Use unitMeasureData if available
+        brand_id: String(productData.brand_id) || "",
+        measurement: String(unitMeasureData?.measurement) || "", // ✅ Use unitMeasureData if available
         dosage_strength: drugData?.dosage_strength || "", // ✅ Use drugData if it's a medicine
         dosage_form: drugData?.dosage_form || "", // ✅ Use drugData if it's a medicine
       });
@@ -215,6 +218,7 @@ export default function EditProductForm({products_id} : EditProductFormProps) {
     fetchBrand();
   }, []);
 
+  //For the combobox
   //Fetch Category for combobox
 
   const [cats, setCat] = useState<Category[]>([]);
@@ -274,10 +278,6 @@ export default function EditProductForm({products_id} : EditProductFormProps) {
     }
   };
 
-  // const onSubmit = (data: any) => {
-  //   console.log("New Product Data:", data);
-  //   setOpen(false); // Close dialog after submission
-  // };
 
   return (
         <Form {...form}>

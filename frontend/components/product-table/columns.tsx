@@ -9,6 +9,7 @@ import { Checkbox } from "../ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog"
 import EditProductForm from "../forms/EditProductForm"
 import { useState } from "react"
+import axios from "axios"
 
 interface MergedProductData {
   products_id: number;
@@ -41,6 +42,15 @@ const EditProductDialog = ({ products_id}: EditProductDialogProps) => {
     </Dialog>
   )
 }
+
+const deleteItem = async (id: number) => {
+  try {
+    await axios.delete(`http://127.0.0.1:8000/products/${id}/`);
+    console.log("Item deleted successfully");
+  } catch (error) {
+    console.error("Error deleting item:", error);
+  }
+};
 
 
 export const columns: ColumnDef<MergedProductData>[] = [
@@ -123,7 +133,14 @@ export const columns: ColumnDef<MergedProductData>[] = [
       
       console.log(products)
       return (
-        <EditProductDialog products_id={products.products_id}/>
+        <>
+        <div className="flex gap-2">
+        <EditProductDialog  products_id={products.products_id}/>
+        <Button variant="destructive" asChild >
+          <button onClick={() => deleteItem(products.products_id)}>Delete</button>
+        </Button>
+        </div>
+        </>
       )
     },
   },
