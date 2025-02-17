@@ -2,30 +2,56 @@
 
 import { ColumnDef } from "@tanstack/react-table"
 
-import { ArrowUpDown, MoreHorizontal } from "lucide-react"
+import { ArrowUpDown } from "lucide-react"
  
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Checkbox } from "../ui/checkbox"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog"
+import EditProductForm from "../forms/EditProductForm"
+import { useState } from "react"
+import axios from "axios"
 
 interface MergedProductData {
-  product_id: number;
-  product_name: string;
-  brand_name: string;
+  products_id: number;
+  product_name: string; // Now includes brand, dosage strength, and form
   category_name: string;
   current_price: number;
-  dosage_strength: string;
-  dosage_form: string;
   net_content: string;
   unit_of_measure: string;
 }
+interface EditProductDialogProps {
+  products_id: number;
+}
+
+const EditProductDialog = ({ products_id}: EditProductDialogProps) => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>Edit</Button>
+      </DialogTrigger>
+
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Product Details</DialogTitle>
+          <DialogDescription>Update the products&apos;s information</DialogDescription>
+        </DialogHeader>
+        <EditProductForm products_id={products_id}></EditProductForm>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+const deleteItem = async (id: number) => {
+  try {
+    await axios.delete(`http://127.0.0.1:8000/products/${id}/`);
+    console.log("Item deleted successfully");
+  } catch (error) {
+    console.error("Error deleting item:", error);
+  }
+};
+
 
 export const columns: ColumnDef<MergedProductData>[] = [
   {
@@ -65,20 +91,6 @@ export const columns: ColumnDef<MergedProductData>[] = [
     },
   },
   {
-    accessorKey: "brand_name",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Brand
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
-    },
-  },
-  {
     accessorKey: "category_name",
     header: ({ column }) => {
       return (
@@ -106,44 +118,29 @@ export const columns: ColumnDef<MergedProductData>[] = [
     }
   },
   {
-    accessorKey: "dosage_strength",
-    header: "Dosage Strength",
-  },
-  {
-    accessorKey: "dosage_form",
-    header: "Dosage Form",
-  },
-  {
     accessorKey: "net_content",
     header: "Net Content",
   },
   {
     accessorKey: "unit_of_measure",
-    header: "Unit of Measure",
+    header: "Unit of Measurement",
   },
   {
     id: "actions",
-    cell: ({  }) => {
- 
+    cell: ({ row }) => {
+      
+      const products = row.original
+      
+      console.log(products)
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-            >
-              Copy payment ID
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>View customer</DropdownMenuItem>
-            <DropdownMenuItem>View payment details</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <>
+        <div className="flex gap-2">
+        <EditProductDialog  products_id={products.products_id}/>
+        <Button variant="destructive" asChild >
+          <button onClick={() => deleteItem(products.products_id)}>Delete</button>
+        </Button>
+        </div>
+        </>
       )
     },
   },

@@ -14,7 +14,7 @@ import {
 
 interface MergedInventoryData {
   inventory_id: number;
-  product_name_brand: string;
+  product_name: string; 
   reorder_threshold: number;
   physical_quantity: number;
   stockroom_quantity: number;
@@ -22,7 +22,7 @@ interface MergedInventoryData {
 }
 
 
-export const columns: ColumnDef<MergedInventoryData>[] = [
+export const columns: (onSuccess: () => void) => ColumnDef<MergedInventoryData>[] = (onSuccess) => [
   {
     id: "select",
     header: ({ table }) => (
@@ -46,7 +46,7 @@ export const columns: ColumnDef<MergedInventoryData>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "product_name_brand",
+    accessorKey: "product_name",
     header: ({ column }) => (
       <Button
         variant="ghost"

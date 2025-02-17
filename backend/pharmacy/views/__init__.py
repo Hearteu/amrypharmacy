@@ -2,6 +2,7 @@ from .branch import Branch
 from .customer_type import CustomerType
 from .customers import Customers
 from .disposed_items import DisposedItems
+from .drugs import Drugs
 from .dswd import DswdOrder
 from .expiration import Expiration
 from .inventory import Inventory

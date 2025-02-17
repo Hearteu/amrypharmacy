@@ -125,7 +125,7 @@ export default function UserList() {
                   console.log("From the columns component", data)
                   setOpen(false);
                   refreshData();
-                  }}></RegisterForm>
+                  }}/>
               </DialogContent>
             </Dialog>
         </div>
