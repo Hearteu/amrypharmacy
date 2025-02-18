@@ -75,11 +75,11 @@ class Products(APIView):
 
             formatted_products.append({
                 "product_id": product.get("product_id"),
-                "Full Product Name": full_name,
-                "Category": category_name,
-                "Price": product["current_price"],
-                "Net Content": product["net_content"],
-                "Unit": unit_name
+                "full_product_name": full_name,
+                "category": category_name,
+                "price": product["current_price"],
+                "net_content": product["net_content"],
+                "unit": unit_name
             })
 
         return Response(formatted_products)
