@@ -12,7 +12,7 @@ supabase = get_supabase_client()
 class UnitMeasure(APIView):
     def get(self, request, unit_id=None):
         try:
-            query = supabase.table('Unit_of_measure').select('*')
+            query = supabase.table('Unit').select('*')
             if unit_id is not None:
                 query = query.eq('unit_id', unit_id)
             
@@ -30,7 +30,7 @@ class UnitMeasure(APIView):
         data = request.data 
         try:
            
-            response = supabase.table("Unit_of_measure").insert(data).execute()
+            response = supabase.table("Unit").insert(data).execute()
             return Response(response.data, status=201)
         except Exception as e:
             return Response({"error": str(e)}, status=400)
@@ -38,22 +38,22 @@ class UnitMeasure(APIView):
     def put(self, request, unit_id):
         data = request.data 
         try:
-            response = supabase.table("Unit_of_measure").update(data).eq('unit_id', unit_id).execute()
+            response = supabase.table("Unit").update(data).eq('unit_id', unit_id).execute()
 
             if response.data:
                 return Response(response.data, status=200)
             else:
-                return Response({"error": "Unit_of_measure not found or update failed"}, status=400)
+                return Response({"error": "Unit not found or update failed"}, status=400)
         except Exception as e:
             return Response({"error": str(e)}, status=400)
    
     def delete(self, request, unit_id):
         try:
-            response = supabase.table("Unit_of_measure").delete().eq('unit_id', unit_id).execute()
+            response = supabase.table("Unit").delete().eq('unit_id', unit_id).execute()
 
             if response.data:
-                return Response({"message": "Unit_of_measure deleted successfully"}, status=204)
+                return Response({"message": "Unit deleted successfully"}, status=204)
             else:
-                return Response({"error": "Unit_of_measure not found or deletion failed"}, status=400)
+                return Response({"error": "Unit not found or deletion failed"}, status=400)
         except Exception as e:
             return Response({"error": str(e)}, status=400)

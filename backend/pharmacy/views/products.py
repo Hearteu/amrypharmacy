@@ -88,29 +88,45 @@ class Products(APIView):
     def post(self, request):
         data = request.data
         print(data)
+
         try:
-            product_response = supabase.table("Products").insert(data).execute()
+            # Insert into Products table
+            product_response = supabase.table("Products").insert({
+                "product_name": data["product_name"],
+                "category_id": data["category_id"],
+                "brand_id": data["brand_id"],
+                "current_price": data["current_price"],
+                "net_content": data["net_content"],
+                "unit_id": data["unit_id"]
+            }).execute()
 
             if not product_response.data:
                 return Response({"error": "Products insertion failed"}, status=400)
 
-            # Get the generated products_id
-            products_id = product_response.data[0]["products_id"]
+            # Get the generated product_id
+            product_id = product_response.data[0]["product_id"]
 
-            # Insert the products_id into the Inventory table with other fields as NULL
-            inventory_data = {"products_id": products_id}  # Other columns remain NULL
-            supabase.table("Inventory").insert(inventory_data).execute()
+            # Check if it's a drug (has dosage_strength and dosage_form)
+            if "dosage_strength" in data and "dosage_form" in data:
+                drug_response = supabase.table("Drugs").insert({
+                    "product_id": product_id,  # FK to Products
+                    "dosage_strength": data["dosage_strength"],
+                    "dosage_form": data["dosage_form"]
+                }).execute()
 
-            return Response(product_response.data, status=201)
+                if not drug_response.data:
+                    return Response({"error": "Drugs insertion failed"}, status=400)
+
+            return Response({"message": "Product added successfully", "product": product_response.data}, status=201)
 
         except Exception as e:
             return Response({"error": str(e)}, status=400)
 
  
-    def put(self, request, products_id):
-        data = request.data 
+    def put(self, request, product_id):
+        data = request.data
         try:
-            response = supabase.table("Products").update(data).eq('products_id', products_id).execute()
+            response = supabase.table("Products").update(data).eq('product_id', product_id).execute()
 
             if response.data:
                 return Response(response.data, status=200)
@@ -119,9 +135,10 @@ class Products(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=400)
    
-    def delete(self, request, products_id):
+   
+    def delete(self, request, product_id):
         try:
-            response = supabase.table("Products").delete().eq('products_id', products_id).execute()
+            response = supabase.table("Products").delete().eq('product_id', product_id).execute()
 
             if response.data:
                 return Response({"message": "Products deleted successfully"}, status=204)

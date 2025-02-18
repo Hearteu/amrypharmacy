@@ -28,7 +28,7 @@ resources = [
     ("orders", Order),
     ("purchase-orders", PurchaseOrder),
     ("stock-transfers", StockTransfer),
-    ("unit-measures", UnitMeasure),
+    ("unit", UnitMeasure),
     ("price-histories", PriceHistory),
     ("drugs", Drugs)
 ]
