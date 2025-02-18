@@ -1,7 +1,11 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
+import { ArrowUpDown } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+
+import { Checkbox } from "@/components/ui/checkbox";
 interface Products {
   product_id: number;
   full_product_name: string;
@@ -9,28 +13,55 @@ interface Products {
   price: string;
   net_content: string;
   unit: string;
-};
+}
 
-export const columns: ColumnDef<Products>[] = [
+export const  columns: (onSuccess: () => void) => ColumnDef<Products>[] = (onSuccess) => [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: "full_product_name",
-    header: "Status",
+    header: "Product Name",
   },
   {
     accessorKey: "category",
-    header: "Email",
+    header: "Category",
   },
   {
     accessorKey: "price",
-    header: "Amount",
+    header: "Price",
   },
   {
     accessorKey: "net_content",
-    header: "Amount",
+    header: "Net Content",
   },
   {
     accessorKey: "unit",
-    header: "Amount",
+    header: "Unit",
   },
-
+  {
+    id: "actions",
+    cell: ({  }) => {
+      return <></>
+    },
+  }
 ];

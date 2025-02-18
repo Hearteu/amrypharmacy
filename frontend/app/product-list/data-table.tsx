@@ -69,7 +69,7 @@ export function DataTable<TData, TValue>({
       {/* Search */}
       <div className="flex items-center pt-4 mx-4">
         <Input
-          placeholder="Searc Product..."
+          placeholder="Search Product..."
           value={(table.getColumn("full_product_name")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("full_product_name")?.setFilterValue(event.target.value)
