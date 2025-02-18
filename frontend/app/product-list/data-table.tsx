@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 
 import { Input } from "@/components/ui/input";
+
 import { DataTablePagination } from "@/components/table/DataTablePagination";
 import { DataTableViewOptions } from "@/components/table/DataTableViewOptions";
 
@@ -40,8 +41,9 @@ export function DataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
+  const [columnVisibility, setColumnVisibility] =
+  React.useState<VisibilityState>({})
+  const [rowSelection, setRowSelection] = React.useState({})
 
   const table = useReactTable({
     data,
@@ -67,14 +69,14 @@ export function DataTable<TData, TValue>({
       {/* Search */}
       <div className="flex items-center pt-4 mx-4">
         <Input
-          placeholder="Search Item..."
-          value={(table.getColumn("product_name")?.getFilterValue() as string) ?? ""}
+          placeholder="Searc Product..."
+          value={(table.getColumn("full_product_name")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
-            table.getColumn("product_name_brand")?.setFilterValue(event.target.value)
+            table.getColumn("full_product_name")?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
         />
-        <DataTableViewOptions table={table} />
+        <DataTableViewOptions table={table}/>
       </div>
       {/* Table */}
       <div className="rounded-md border m-4">
@@ -116,7 +118,10 @@ export function DataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
                   No results.
                 </TableCell>
               </TableRow>

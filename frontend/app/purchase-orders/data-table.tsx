@@ -23,10 +23,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { DataTableViewOptions } from "@/components/table/DataTableViewOptions";
+import { DataTablePagination } from "@/components/table/DataTablePagination";
 
-import { DataTablePagination } from "../table/DataTablePagination";
-import { Input } from "../ui/input";
-import { DataTableViewOptions } from "../table/DataTableViewOptions";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -72,10 +72,10 @@ export function DataTable<TData, TValue>({
           <Input
             placeholder="Search Item..."
             value={
-              (table.getColumn("product_name")?.getFilterValue() as string) ?? ""
+              (table.getColumn("supplier_name")?.getFilterValue() as string) ?? ""
             }
             onChange={(event) =>
-              table.getColumn("product_name")?.setFilterValue(event.target.value)
+              table.getColumn("supplier_name")?.setFilterValue(event.target.value)
             }
             className="max-w-sm"
           />
