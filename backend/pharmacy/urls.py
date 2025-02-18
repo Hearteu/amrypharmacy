@@ -37,7 +37,7 @@ resources = [
 urlpatterns = [
     path(f"{name}/", view.as_view(), name=f"{name}-list") for name, view in resources
 ] + [
-    path(f"{name}/<int:products_id>/", view.as_view(), name=f"edit-{name}-list") if name == "products" else
+    path(f"{name}/<int:product_id>/", view.as_view(), name=f"edit-{name}-list") if name == "products" else
     path(f"{name}/<int:unit_id>/", view.as_view(), name=f"edit-{name}-list") if name == "unit-measures" else
     path(f"{name}/<int:category_id>/", view.as_view(), name=f"edit-{name}-list") if name == "product-categories" else
     path(f"{name}/<int:{name[:-1].replace('-', '_')}_id>/", view.as_view(), name=f"edit-{name}-list")
