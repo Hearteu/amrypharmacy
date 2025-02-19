@@ -54,7 +54,8 @@ class Products(APIView):
                     "category_id": product.get("Product_Category", {}).get("category_id"),
                     "brand_id": product.get("Brand", {}).get("brand_id"),
                     "current_price": product.get("current_price", 0),
-                    "net_content": product.get("net_content", "").strip()
+                    "net_content": product.get("net_content", "").strip(),
+                    "unit_id": product.get("Unit", {}).get("unit_id")
                 })
 
         # If no product_id is provided, return the list
