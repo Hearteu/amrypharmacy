@@ -38,11 +38,14 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+<<<<<<< HEAD
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',  # Example: If your Next.js frontend is running on localhost:3000
     # Add other origins as needed
 ]
 
+=======
+>>>>>>> ad1588e131cf2c2bd4de82344a4ecdfacb909eef
 # Application definition
 
 INSTALLED_APPS = [
@@ -53,9 +56,29 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+<<<<<<< HEAD
+=======
+    'rest_framework_simplejwt',
+>>>>>>> ad1588e131cf2c2bd4de82344a4ecdfacb909eef
     'pharmacy',
     'corsheaders',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+from datetime import timedelta
+
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),  # Token expires in 30 mins
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Refresh token valid for 7 days
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -66,6 +89,13 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+<<<<<<< HEAD
+=======
+]
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',  # Next.js URL
+>>>>>>> ad1588e131cf2c2bd4de82344a4ecdfacb909eef
 ]
 
 ROOT_URLCONF = 'backend.urls'

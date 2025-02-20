@@ -1,3 +1,9 @@
+<<<<<<< HEAD
 /sc
 /back
 /backend/.env
+=======
+../amryenv
+__pycache__/
+*.pyc
+>>>>>>> ad1588e131cf2c2bd4de82344a4ecdfacb909eef
