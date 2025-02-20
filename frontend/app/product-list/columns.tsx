@@ -1,22 +1,21 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
+import EditProductForm from "@/components/forms/EditProductForm";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useState } from "react";
 import {
   Dialog,
+  DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogContent,
   DialogTrigger,
-  DialogDescription,
 } from "@/components/ui/dialog";
-import EditProductForm from "@/components/forms/EditProductForm";
 import axios from "axios";
+import { useState } from "react";
 interface Products {
   product_id: number;
   full_product_name: string;
@@ -73,7 +72,7 @@ const deleteItem = async ({
   product_id
 }: DeleteProductDialogProps) => {
   try {
-    await axios.delete(`http://127.0.0.1:8000/product/${product_id}/`);
+    await axios.delete(`http://127.0.0.1:8000/pharmacy/products/${product_id}/`);
     console.log("✅ Item deleted successfully");
 
     // if (onSuccess) {

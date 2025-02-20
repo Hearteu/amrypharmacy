@@ -207,9 +207,7 @@ export default function EditProductForm({
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      const response = await axios.put(
-        "http://127.0.0.1:8000/pharmacy/product/",
-        values
+      const response = await axios.put(`http://127.0.0.1:8000/pharmacy/products/${product_id}/`, values
       );
       onSuccess(response);
       console.log(response.data);
