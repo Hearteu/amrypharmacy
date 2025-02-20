@@ -118,10 +118,10 @@ export default function EditProductForm({
             setProductData(product);
             // console.log("Product data set successfully:", product);
           } else {
-            // console.warn("API returned no product data.");
+            console.warn("API returned no product data.");
           }
         } catch (error) {
-          // console.error("Error fetching product:", error);
+          console.error("Error fetching product:", error);
         }
       };
     
@@ -207,16 +207,15 @@ export default function EditProductForm({
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      const response = await axios.post(
-        "http://127.0.0.1:8000/pharmacy/products/",
-
+      const response = await axios.put(
+        "http://127.0.0.1:8000/pharmacy/product/",
         values
       );
       onSuccess(response);
       console.log(response.data);
     } catch (error) {
-      console.log("Error adding new product:", error);
-
+      console.log("❌ Error adding new product:", error);
+  
       if (axios.isAxiosError(error)) {
         console.error("⚠️ Axios Error Response:", error.response?.data);
       }

@@ -72,7 +72,7 @@ class Products(APIView):
                 dosage_form = drug_info.get("dosage_form", "").strip()
                 full_name = f"{product['product_name']} {dosage_strength} {dosage_form} {brand_name}"
             else:
-                full_name = f"{product['product_name']} ({brand_name})"
+                full_name = f"{product['product_name']} {product['net_content']} per {unit_name} ({brand_name})"
 
             formatted_products.append({
                 "product_id": product.get("product_id"),
@@ -126,6 +126,7 @@ class Products(APIView):
  
     def put(self, request, product_id=None):
         data = request.data
+        print(data)
         try:
             # Update the Products table
             product_response = supabase.table("Products").update({
@@ -169,6 +170,9 @@ class Products(APIView):
    
    
     def delete(self, request, product_id=None):
+        data = request.data
+        print(data)
+        
         try:
             # Check if the product exists
             product_check = supabase.table("Products").select("product_id").eq("product_id", product_id).execute()

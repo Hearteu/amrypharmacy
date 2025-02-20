@@ -16,6 +16,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import EditProductForm from "@/components/forms/EditProductForm";
+import axios from "axios";
 interface Products {
   product_id: number;
   full_product_name: string;
@@ -28,6 +29,10 @@ interface Products {
 interface EditProductDialogProps {
   product_id: number;
   onSuccess: () => void;
+}
+
+interface DeleteProductDialogProps {
+  product_id: number;
 }
 
 const EditProductDialog = ({
@@ -62,6 +67,22 @@ const EditProductDialog = ({
       </Dialog>
     </>
   );
+};
+
+const deleteItem = async ({
+  product_id
+}: DeleteProductDialogProps) => {
+  try {
+    await axios.delete(`http://127.0.0.1:8000/product/${product_id}/`);
+    console.log("✅ Item deleted successfully");
+
+    // if (onSuccess) {
+    //   onSuccess(); // Call onSuccess callback if provided
+    // }
+  } catch (error) {
+    console.error("❌ Error deleting item:", error);
+    console.log("Product ID Delete:", product_id);
+  }
 };
 
 export const columns: (onSuccess: () => void) => ColumnDef<Products>[] = (
@@ -115,10 +136,29 @@ export const columns: (onSuccess: () => void) => ColumnDef<Products>[] = (
       const product = row.original;
       // console.log(product.product_id)
 
-      return <EditProductDialog product_id={product.product_id} onSuccess={(data) => {
-        console.log("Data:", data)
-        onSuccess()
-      }}></EditProductDialog>
+      return (
+        <>
+          <div className="flex gap-2 ">
+            <EditProductDialog
+              product_id={product.product_id}
+              onSuccess={(data) => {
+                console.log("Data:", data);
+                onSuccess();
+              }}
+            ></EditProductDialog>
+            <Button variant="destructive" asChild>
+              <button
+                onClick={() => {
+                  console.log("Deleting product:", product.product_id);
+                  deleteItem({ product_id: product.product_id })
+                }}
+              >
+                Delete
+              </button>
+            </Button>
+          </div>
+        </>
+      );
     },
   },
 ];
