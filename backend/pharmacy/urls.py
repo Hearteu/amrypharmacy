@@ -4,8 +4,8 @@ from rest_framework_simplejwt.views import TokenRefreshView  # type: ignore
 from .views import (Branch, Brand, Customers, CustomerType, DisposedItems,
                     Drugs, DswdOrder, Expiration, Inventory, Order, PersonList,
                     Prescription, PriceHistory, ProductCategory, Products,
-                    PurchaseOrder, Receipt, StockTransfer, Supplier,
-                    UnitMeasure, UserList, UserLoginView, UserRole)
+                    PurchaseOrder, Receipt, StockTransfer, Supplier, Unit,
+                    UserList, UserLoginView, UserRole)
 
 # Define resources with their corresponding view classes
 resources = [
@@ -28,7 +28,7 @@ resources = [
     ("orders", Order),
     ("purchase-orders", PurchaseOrder),
     ("stock-transfers", StockTransfer),
-    ("unit", UnitMeasure),
+    ("unit", Unit),
     ("price-histories", PriceHistory),
     ("drugs", Drugs)
 ]
@@ -38,8 +38,8 @@ urlpatterns = [
     path(f"{name}/", view.as_view(), name=f"{name}-list") for name, view in resources
 ] + [
     path(f"{name}/<int:product_id>/", view.as_view(), name=f"edit-{name}-list") if name == "products" else
-    path(f"{name}/<int:unit_id>/", view.as_view(), name=f"edit-{name}-list") if name == "unit-measures" else
-    path(f"{name}/<int:category_id>/", view.as_view(), name=f"edit-{name}-list") if name == "product-categories" else
+    path(f"{name}/<int:unit_id>/", view.as_view(), name=f"edit-{name}-list") if name == "unit" else
+    path(f"{name}/<int:category_id>/", view.as_view(), name=f"edit-{name}-list") if name == "product-category" else
     path(f"{name}/<int:{name[:-1].replace('-', '_')}_id>/", view.as_view(), name=f"edit-{name}-list")
     for name, view in resources
 ] + [

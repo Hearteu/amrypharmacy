@@ -27,16 +27,15 @@ class Brand(APIView):
             return Response({"error": str(e)}, status=500)
         
     def post(self, request):
-        data = request.data 
+        data = request.data
         try:
-           
             response = supabase.table("Brand").insert(data).execute()
             return Response(response.data, status=201)
         except Exception as e:
             return Response({"error": str(e)}, status=400)
  
     def put(self, request, brand_id):
-        data = request.data 
+        data = request.data
         try:
             response = supabase.table("Brand").update(data).eq('brand_id', brand_id).execute()
 

@@ -17,6 +17,6 @@ from .purchase_order import PurchaseOrder
 from .receipt import Receipt
 from .stock_transfer import StockTransfer
 from .supplier import Supplier
-from .unit_measure import UnitMeasure
+from .unit import Unit
 from .user_role import UserRole
 from .user_views import UserList, UserLoginView
