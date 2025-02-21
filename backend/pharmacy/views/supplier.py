@@ -104,6 +104,9 @@ class Supplier(APIView):
         try:
             data = request.data
 
+            if supplier_id is None:
+                return Response({"error": "Supplier ID is required"}, status=400)
+
             # Check if supplier exists
             supplier_response = supabase.table("Supplier").select("person_id").eq("supplier_id", supplier_id).execute()
 
@@ -111,6 +114,12 @@ class Supplier(APIView):
                 return Response({"error": "Supplier not found"}, status=404)
 
             person_id = supplier_response.data[0]["person_id"]
+
+            # If only is_active is provided (ignoring supplier_id), update only that field
+            # for dropdown is_active update
+            if set(data.keys()) == {"supplier_id", "is_active"} or set(data.keys()) == {"is_active"}:
+                supabase.table("Supplier").update({"is_active": data["is_active"]}).eq("supplier_id", supplier_id).execute()
+                return Response({"message": "Supplier status updated successfully"}, status=200)
 
             # Update Person table
             person_update = {
