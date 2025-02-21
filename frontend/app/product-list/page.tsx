@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 
 import { Button } from "@/components/ui/button";
+import AddProductForm from "@/components/forms/AddProductForm";
 
 interface Products {
   product_id: number;
@@ -26,8 +27,9 @@ export default function ProducList() {
   const [data, setData] = useState<Products[]>([]);
   const [loading, setLoading] = useState(true); // Loading state
   const [error, setError] = useState<string | null>(null); // Error state
+  const [open, setOpen] = useState(false);
 
-  async function getData() {
+  async function getData(): Promise<Products[]> {
     try {
       const prodRes = await fetch("http://127.0.0.1:8000/pharmacy/products/");
 
@@ -46,29 +48,60 @@ export default function ProducList() {
         unit: product.unit,
       }));
 
-      setData(productData);
+      return productData;
     } catch (error) {
       console.error("Error fetching data", error);
       setError("Failed to load products");
+      return [];
     } finally {
       setLoading(false);
     }
   }
 
+  const refreshData = () => {
+    console.log("Refreshing data...");
+    getData().then((fetchedData) => {
+      setData(fetchedData);
+      setLoading(false);
+    });
+  };
+
+  const tableColumns = columns(refreshData);
+
   useEffect(() => {
-    getData();
+    refreshData(); // Fetch initial data
   }, []);
 
-  if (loading) return <p>Loading products...</p>;
   if (error) return <p>{error}</p>;
 
-  return(
-  <>
-    {loading ? (
-      <p className="text-center text-gray-500">Loading...</p>
-    ) : (
-      <DataTable columns={columns} data={data} />
-    )}
-  </>
-  )
+  return (
+    <>
+      {loading ? (
+        <p className="text-center text-gray-500">Loading...</p>
+      ) : (
+        <>
+          <div className="w-full grid justify-items-end pt-4 pr-4">
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">Add User</Button>
+              </DialogTrigger>
+              <DialogContent className="w-auto">
+                <DialogHeader>
+                  <DialogTitle>Add New Product</DialogTitle>
+                </DialogHeader>
+                <AddProductForm
+                  onSuccess={(data) => {
+                    console.log("Columns", data);
+                    setOpen(false);
+                    refreshData();
+                  }}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
+          <DataTable columns={tableColumns} data={data} />
+        </>
+      )}
+    </>
+  );
 }

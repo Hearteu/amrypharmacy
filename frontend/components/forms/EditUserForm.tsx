@@ -14,7 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosResponse } from "axios";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { TypeOf, z } from "zod";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Check, ChevronsUpDown } from "lucide-react";
 import {
@@ -145,7 +145,7 @@ export default function EditUserForm({ user_id, onSuccess }: EditUserFormProps) 
     fetchRole();
   }, []);
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
     console.log(data);
     try {
       const response = await axios.put(

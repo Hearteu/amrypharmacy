@@ -37,7 +37,7 @@ const EditUserDialog = ({ user_id, onSuccess }: EditUserDialogProps) => {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit User Details</DialogTitle>
-          <DialogDescription>Update the user&apos;s information, including name, email, and role.</DialogDescription>
+          <DialogDescription>Update the user&apos;s information</DialogDescription>
         </DialogHeader>
          <EditUserForm user_id={user_id} onSuccess={(data) => { 
             console.log("From the columns component", data)

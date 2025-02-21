@@ -9,7 +9,7 @@ supabase = get_supabase_client()
 
 #Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
 
-class UnitMeasure(APIView):
+class Unit(APIView):
     def get(self, request, unit_id=None):
         try:
             query = supabase.table('Unit').select('*')
@@ -19,7 +19,7 @@ class UnitMeasure(APIView):
             response = query.execute()
 
             if not response.data:
-                return Response({"error": "No UnitMeasure found"}, status=404)
+                return Response({"error": "No Unit found"}, status=404)
 
             return Response(response.data, status=200)
 
@@ -27,7 +27,7 @@ class UnitMeasure(APIView):
             return Response({"error": str(e)}, status=500)
         
     def post(self, request):
-        data = request.data 
+        data = request.data
         try:
            
             response = supabase.table("Unit").insert(data).execute()
@@ -36,7 +36,7 @@ class UnitMeasure(APIView):
             return Response({"error": str(e)}, status=400)
  
     def put(self, request, unit_id):
-        data = request.data 
+        data = request.data
         try:
             response = supabase.table("Unit").update(data).eq('unit_id', unit_id).execute()
 

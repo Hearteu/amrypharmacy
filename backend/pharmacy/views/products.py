@@ -54,7 +54,8 @@ class Products(APIView):
                     "category_id": product.get("Product_Category", {}).get("category_id"),
                     "brand_id": product.get("Brand", {}).get("brand_id"),
                     "current_price": product.get("current_price", 0),
-                    "net_content": product.get("net_content", "").strip()
+                    "net_content": product.get("net_content", "").strip(),
+                    "unit_id": product.get("Unit", {}).get("unit_id")
                 })
 
         # If no product_id is provided, return the list
@@ -71,7 +72,7 @@ class Products(APIView):
                 dosage_form = drug_info.get("dosage_form", "").strip()
                 full_name = f"{product['product_name']} {dosage_strength} {dosage_form} {brand_name}"
             else:
-                full_name = f"{product['product_name']} ({brand_name})"
+                full_name = f"{product['product_name']} {product['net_content']} per {unit_name} ({brand_name})"
 
             formatted_products.append({
                 "product_id": product.get("product_id"),
@@ -123,26 +124,76 @@ class Products(APIView):
             return Response({"error": str(e)}, status=400)
 
  
-    def put(self, request, product_id):
+    def put(self, request, product_id=None):
         data = request.data
+        print(data)
         try:
-            response = supabase.table("Products").update(data).eq('product_id', product_id).execute()
+            # Update the Products table
+            product_response = supabase.table("Products").update({
+                "product_name": data["product_name"],
+                "category_id": data["category_id"],
+                "brand_id": data["brand_id"],
+                "current_price": data["current_price"],
+                "net_content": data["net_content"],
+                "unit_id": data["unit_id"]
+            }).eq("product_id", product_id).execute()
 
-            if response.data:
-                return Response(response.data, status=200)
-            else:
-                return Response({"error": "Products not found or update failed"}, status=400)
+            if not product_response.data:
+                return Response({"error": "Product not found or update failed"}, status=400)
+
+            # Check if it's a drug (has dosage_strength and dosage_form)
+            if "dosage_strength" in data and "dosage_form" in data:
+                # Check if the drug entry already exists
+                drug_check = supabase.table("Drugs").select("product_id").eq("product_id", product_id).execute()
+
+                if drug_check.data:
+                    # Update existing drug entry
+                    drug_response = supabase.table("Drugs").update({
+                        "dosage_strength": data["dosage_strength"],
+                        "dosage_form": data["dosage_form"]
+                    }).eq("product_id", product_id).execute()
+                else:
+                    # Insert new drug entry if it doesn't exist
+                    drug_response = supabase.table("Drugs").insert({
+                        "product_id": product_id,
+                        "dosage_strength": data["dosage_strength"],
+                        "dosage_form": data["dosage_form"]
+                    }).execute()
+
+                if not drug_response.data:
+                    return Response({"error": "Drugs update failed"}, status=400)
+
+            return Response({"message": "Product updated successfully", "product": product_response.data}, status=200)
+
         except Exception as e:
             return Response({"error": str(e)}, status=400)
    
    
-    def delete(self, request, product_id):
+    def delete(self, request, product_id=None):
+        data = request.data
+        print(data)
+        
         try:
-            response = supabase.table("Products").delete().eq('product_id', product_id).execute()
+            # Check if the product exists
+            product_check = supabase.table("Products").select("product_id").eq("product_id", product_id).execute()
+            if not product_check.data:
+                return Response({"error": "Product not found"}, status=404)
+
+            # Check if the product exists in the Drugs table
+            drug_check = supabase.table("Drugs").select("product_id").eq("product_id", product_id).execute()
+
+            if drug_check.data:
+                # Delete from Drugs table first
+                supabase.table("Drugs").delete().eq("product_id", product_id).execute()
+
+            # Delete from Products table
+            response = supabase.table("Products").delete().eq("product_id", product_id).execute()
 
             if response.data:
-                return Response({"message": "Products deleted successfully"}, status=204)
+                return Response({"message": "Product deleted successfully"}, status=200)
             else:
-                return Response({"error": "Products not found or deletion failed"}, status=400)
+                return Response({"error": "Product deletion failed"}, status=400)
+
         except Exception as e:
             return Response({"error": str(e)}, status=400)
+

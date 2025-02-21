@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -44,7 +44,7 @@ const medFormSchema = z.object({
   dosage_strength: z.string(),
   dosage_form: z.string(),
   net_content: z.string(),
-  measurement: z.string(),
+  unit_id: z.string(),
 });
 
 const nonMedFormSchema = z.object({
@@ -53,11 +53,12 @@ const nonMedFormSchema = z.object({
   brand_id: z.string(),
   current_price: z.string(),
   net_content: z.string(),
+  unit_id: z.string(),
 });
 
-interface Measurement {
+interface Unit {
   unit_id: number;
-  measurement: string;
+  unit: string;
 }
 
 interface Brand {
@@ -71,7 +72,7 @@ interface Categeory {
 }
 
 interface AddFormProps {
-  onSuccess: () => void;
+  onSuccess: (data: AxiosResponse) => void;
 }
 
 export default function AddProductForm({ onSuccess }: AddFormProps) {
@@ -89,7 +90,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
       dosage_strength: "",
       dosage_form: "",
       net_content: "",
-      measurement: "",
+      unit_id: "",
     },
   });
 
@@ -101,6 +102,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
       brand_id: "",
       current_price: "",
       net_content: "",
+      unit_id: "",
     },
   });
 
@@ -144,39 +146,37 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
 
   //Fetch Unit of Measurement combobox
 
-  const [measurements, setMeasurement] = useState<Measurement[]>([]);
+  const [unit, setUnit] = useState<Unit[]>([]);
 
   useEffect(() => {
-    const fetchMeasurement = async () => {
+    const fetchUnit = async () => {
       try {
-        const measurementRes = await fetch(
-          "http://127.0.0.1:8000/pharmacy/unit-measures/"
-        );
-        const measurementData: Measurement[] = await measurementRes.json();
+        const unitRes = await fetch("http://127.0.0.1:8000/pharmacy/unit/");
+        const unitData: Unit[] = await unitRes.json();
 
-        setMeasurement(measurementData);
+        setUnit(unitData);
       } catch (error) {
         console.error("Error fetching measurement data:", error);
       }
     };
-    fetchMeasurement();
+    fetchUnit();
   }, []);
 
   const onSubmit = async (values: z.infer<typeof medFormSchema>) => {
     try {
       const response = await axios.post(
-        "http://127.0.0.1:8000/pharmacy/drugs/",
+        "http://127.0.0.1:8000/pharmacy/products/",
 
         values
       );
-      onSuccess();
+      onSuccess(response.data);
       setDialogOpen(false);
       console.log(response.data);
     } catch (error) {
       console.log("Error adding new product:", error);
 
       if (axios.isAxiosError(error)) {
-        console.error("⚠️ Axios Error Response:", error.response?.data);
+        console.error("⚠️ Axios Error Response:", error.response);
       }
     }
   };
@@ -195,510 +195,521 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
       console.log("Error adding new product:", error);
 
       if (axios.isAxiosError(error)) {
-        console.error("⚠️ Axios Error Response:", error.response?.data);
+        console.error("⚠️ Axios Error Response:", Response);
       }
     }
   };
 
   return (
-    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" onClick={() => setDialogOpen(true)}>
-          Add New Product
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add New Product</DialogTitle>
-        </DialogHeader>
+    <Tabs defaultValue="medicine" className="w-[400px]">
+      <TabsList className="">
+        <TabsTrigger value="medicine">Medicine</TabsTrigger>
+        <TabsTrigger value="non-medicine">Non-Medicine</TabsTrigger>
+      </TabsList>
+      <TabsContent value="medicine">
+        <Form {...medicineForm}>
+          <form
+            onSubmit={medicineForm.handleSubmit(onSubmit)}
+            className="space-y-4"
+          >
+            <FormField
+              control={medicineForm.control}
+              name="product_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Product Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter product name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <Tabs defaultValue="medicine" className="w-[400px]">
-          <TabsList>
-            <TabsTrigger value="medicine">Medicine</TabsTrigger>
-            <TabsTrigger value="non-medicine">Non-Medicine</TabsTrigger>
-          </TabsList>
-          <TabsContent value="medicine">
-            <Form {...medicineForm}>
-              <form
-                onSubmit={medicineForm.handleSubmit(onSubmit)}
-                className="space-y-4"
-              >
-                <FormField
-                  control={medicineForm.control}
-                  name="product_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Product Name</FormLabel>
+            <FormField
+              control={medicineForm.control}
+              name="category_id"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Category</FormLabel>
+                  <Popover open={catOpen} onOpenChange={setCatOpen}>
+                    <PopoverTrigger asChild>
                       <FormControl>
-                        <Input placeholder="Enter product name" {...field} />
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-[200px] justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {cats.find((cat) => cat.category_id == field.value)
+                            ?.category_name || "Select Category"}
+                          <ChevronsUpDown className="opacity-50" />
+                        </Button>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search role..."
+                          className="h-9"
+                        />
+                        <CommandList>
+                          <CommandEmpty>No category found.</CommandEmpty>
+                          <CommandGroup>
+                            {cats.map((cat) => (
+                              <CommandItem
+                                key={cat.category_id}
+                                value={cat.category_name}
+                                onSelect={() => {
+                                  field.onChange(cat.category_id.toString());
+                                  setCatOpen(false);
+                                }}
+                              >
+                                {cat.category_name}
+                                <Check
+                                  className={cn(
+                                    "ml-auto",
+                                    cat.category_name === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={medicineForm.control}
-                  name="category_id"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Category</FormLabel>
-                      <Popover open={catOpen} onOpenChange={setCatOpen}>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={cn(
-                                "w-[200px] justify-between",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {
-                                cats.find(
-                                  (cat) => cat.category_id == field.value
-                                )?.category_name || "Select Category"
-                              }
-                              <ChevronsUpDown className="opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[200px] p-0">
-                          <Command>
-                            <CommandInput
-                              placeholder="Search role..."
-                              className="h-9"
-                            />
-                            <CommandList>
-                              <CommandEmpty>No category found.</CommandEmpty>
-                              <CommandGroup>
-                                {cats.map((cat) => (
-                                  <CommandItem
-                                    key={cat.category_id}
-                                    value={cat.category_name}
-                                    onSelect={() => {
-                                      field.onChange(
-                                        cat.category_id.toString()
-                                      );
-                                      setCatOpen(false);
-                                      console.log(
-                                        "🔄 Updated Form Value:",
-                                        medicineForm.getValues("measurement")
-                                      );
-                                    }}
-                                  >
-                                    {cat.category_name}
-                                    <Check
-                                      className={cn(
-                                        "ml-auto",
-                                        cat.category_name === field.value
-                                          ? "opacity-100"
-                                          : "opacity-0"
-                                      )}
-                                    />
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={medicineForm.control}
-                  name="brand_id"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="">Brand Name</FormLabel>
-                      <Popover open={brandOpen} onOpenChange={setBrandOpen}>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={cn(
-                                "w-[200px] justify-between",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {
-                                brands.find(
-                                  (brand) => brand.brand_id == field.value
-                                )?.brand_name || "Select brand"
-                              }
-                              <ChevronsUpDown className="opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[200px] p-0">
-                          <Command>
-                            <CommandInput
-                              placeholder="Search role..."
-                              className="h-9"
-                            />
-                            <CommandList>
-                              <CommandEmpty>No roles found.</CommandEmpty>
-                              <CommandGroup>
-                                {brands.map((brand) => (
-                                  <CommandItem
-                                    key={brand.brand_id}
-                                    value={brand.brand_name}
-                                    onSelect={() => {
-                                      field.onChange(brand.brand_id.toString());
-                                      setBrandOpen(false);
-                                      console.log(
-                                        "🔄 Updated Form Value:",
-                                        medicineForm.getValues("measurement")
-                                      );
-                                    }}
-                                  >
-                                    {brand.brand_name}
-                                    <Check
-                                      className={cn(
-                                        "ml-auto",
-                                        brand.brand_id.toString() ===
-                                          field.value
-                                          ? "opacity-100"
-                                          : "opacity-0"
-                                      )}
-                                    />
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={medicineForm.control}
-                  name="current_price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Price</FormLabel>
+            <FormField
+              control={medicineForm.control}
+              name="brand_id"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel className="">Brand Name</FormLabel>
+                  <Popover open={brandOpen} onOpenChange={setBrandOpen}>
+                    <PopoverTrigger asChild>
                       <FormControl>
-                        <Input placeholder="Enter price" {...field} />
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-[200px] justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {brands.find((brand) => brand.brand_id == field.value)
+                            ?.brand_name || "Select brand"}
+                          <ChevronsUpDown className="opacity-50" />
+                        </Button>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search role..."
+                          className="h-9"
+                        />
+                        <CommandList>
+                          <CommandEmpty>No roles found.</CommandEmpty>
+                          <CommandGroup>
+                            {brands.map((brand) => (
+                              <CommandItem
+                                key={brand.brand_id}
+                                value={brand.brand_name}
+                                onSelect={() => {
+                                  field.onChange(brand.brand_id.toString());
+                                  setBrandOpen(false);
+                                }}
+                              >
+                                {brand.brand_name}
+                                <Check
+                                  className={cn(
+                                    "ml-auto",
+                                    brand.brand_id.toString() === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={medicineForm.control}
-                  name="dosage_strength"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Dosage Strength</FormLabel>
+            <FormField
+              control={medicineForm.control}
+              name="current_price"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter price" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={medicineForm.control}
+              name="dosage_strength"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Dosage Strength</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter dosage strength" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={medicineForm.control}
+              name="dosage_form"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Dosage Form</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter dosage form" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={medicineForm.control}
+              name="net_content"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Net Content</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter Net Content" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={medicineForm.control}
+              name="unit_id"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel className="">Unit Name</FormLabel>
+                  <Popover open={measureOpen} onOpenChange={setMeasureOpen}>
+                    <PopoverTrigger asChild>
                       <FormControl>
-                        <Input placeholder="Enter dosage strength" {...field} />
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-[200px] justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {unit.find((units) => units.unit_id == field.value)
+                            ?.unit || "Select Unit"}
+                          <ChevronsUpDown className="opacity-50" />
+                        </Button>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search brand..."
+                          className="h-9"
+                        />
+                        <CommandList>
+                          <CommandEmpty>No brand found.</CommandEmpty>
+                          <CommandGroup>
+                            {unit.map((units) => (
+                              <CommandItem
+                                key={units.unit}
+                                value={units.unit}
+                                onSelect={() => {
+                                  field.onChange(units.unit_id.toString());
+                                  setBrandOpen(false);
+                                  console.log(units.unit_id);
+                                }}
+                              >
+                                {units.unit}
+                                <Check
+                                  className={cn(
+                                    "ml-auto",
+                                    units.unit_id.toString() === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={medicineForm.control}
-                  name="dosage_form"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Dosage Form</FormLabel>
+            <div className="flex justify-end">
+              <Button type="submit">Submit</Button>
+            </div>
+          </form>
+        </Form>
+      </TabsContent>
+      <TabsContent value="non-medicine">
+        <Form {...nonMedForm}>
+          <form
+            onSubmit={nonMedForm.handleSubmit(onNonMedSubmit)}
+            className="space-y-4"
+          >
+            <FormField
+              control={nonMedForm.control}
+              name="product_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Product Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter product name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={nonMedForm.control}
+              name="category_id"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Category</FormLabel>
+                  <Popover open={catOpen} onOpenChange={setCatOpen}>
+                    <PopoverTrigger asChild>
                       <FormControl>
-                        <Input placeholder="Enter dosage form" {...field} />
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-[200px] justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {cats.find((cat) => cat.category_id == field.value)
+                            ?.category_name || "Select Category"}
+                          <ChevronsUpDown className="opacity-50" />
+                        </Button>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search role..."
+                          className="h-9"
+                        />
+                        <CommandList>
+                          <CommandEmpty>No roles found.</CommandEmpty>
+                          <CommandGroup>
+                            {cats.map((cat) => (
+                              <CommandItem
+                                key={cat.category_id}
+                                value={cat.category_name}
+                                onSelect={() => {
+                                  field.onChange(cat.category_id.toString());
+                                  setCatOpen(false);
+                                }}
+                              >
+                                {cat.category_name}
+                                <Check
+                                  className={cn(
+                                    "ml-auto",
+                                    cat.category_name === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={medicineForm.control}
-                  name="net_content"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Net Content</FormLabel>
+            <FormField
+              control={nonMedForm.control}
+              name="brand_id"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel className="">Brand Name</FormLabel>
+                  <Popover open={brandOpen} onOpenChange={setBrandOpen}>
+                    <PopoverTrigger asChild>
                       <FormControl>
-                        <Input placeholder="Enter Net Content" {...field} />
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-[200px] justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {brands.find((brand) => brand.brand_id == field.value)
+                            ?.brand_name || "Select Brand"}
+                          <ChevronsUpDown className="opacity-50" />
+                        </Button>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search brand..."
+                          className="h-9"
+                        />
+                        <CommandList>
+                          <CommandEmpty>No brand found.</CommandEmpty>
+                          <CommandGroup>
+                            {brands.map((brand) => (
+                              <CommandItem
+                                key={brand.brand_id}
+                                value={brand.brand_name}
+                                onSelect={() => {
+                                  field.onChange(brand.brand_id.toString());
+                                  setBrandOpen(false);
+                                }}
+                              >
+                                {brand.brand_name}
+                                <Check
+                                  className={cn(
+                                    "ml-auto",
+                                    brand.brand_id.toString() === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={medicineForm.control}
-                  name="measurement"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Unit of Measurement</FormLabel>
-                      <Popover open={measureOpen} onOpenChange={setMeasureOpen}>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={cn(
-                                "w-[200px] justify-between",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {measurements.find(
-                                (measurement) =>
-                                  measurement.unit_id == field.value
-                              )?.measurement || "Select Measurement"}
-                              <ChevronsUpDown className="opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[200px] p-0">
-                          <Command>
-                            <CommandInput
-                              placeholder="Search measurement..."
-                              className="h-9"
-                            />
-                            <CommandList>
-                              <CommandEmpty>
-                                No measurements found.
-                              </CommandEmpty>
-                              <CommandGroup>
-                                {measurements.map((measurement) => (
-                                  <CommandItem
-                                    key={measurement.unit_id}
-                                    value={measurement.unit_id.toString()} // ✅ Corrected
-                                    onSelect={() => {
-                                      field.onChange(
-                                        measurement.unit_id.toString()
-                                      );
-                                      setMeasureOpen(false);
-                                      console.log(
-                                        "🔄 Updated Measurement Field:",
-                                        medicineForm.getValues("measurement")
-                                      );
-                                    }}
-                                  >
-                                    {measurement.measurement}
-                                    <Check
-                                      className={cn(
-                                        "ml-auto",
-                                        measurement.unit_id.toString() ===
-                                          field.value
-                                          ? "opacity-100"
-                                          : "opacity-0"
-                                      )}
-                                    />
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </FormItem>
-                  )}
-                />
+            <FormField
+              control={nonMedForm.control}
+              name="current_price"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter price" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                <div className="flex justify-end">
-                  <Button type="submit">Submit</Button>
-                </div>
-              </form>
-            </Form>
-          </TabsContent>
-          <TabsContent value="non-medicine">
-            <Form {...nonMedForm}>
-              <form
-                onSubmit={nonMedForm.handleSubmit(onNonMedSubmit)}
-                className="space-y-4"
-              >
-                <FormField
-                  control={nonMedForm.control}
-                  name="product_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Product Name</FormLabel>
+            <FormField
+              control={nonMedForm.control}
+              name="net_content"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Net Content</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter Net Content" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={nonMedForm.control}
+              name="unit_id"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel className="">Unit Name</FormLabel>
+                  <Popover open={measureOpen} onOpenChange={setMeasureOpen}>
+                    <PopoverTrigger asChild>
                       <FormControl>
-                        <Input placeholder="Enter product name" {...field} />
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-[200px] justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {unit.find((units) => units.unit_id == field.value)
+                            ?.unit || "Select Unit"}
+                          <ChevronsUpDown className="opacity-50" />
+                        </Button>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search brand..."
+                          className="h-9"
+                        />
+                        <CommandList>
+                          <CommandEmpty>No brand found.</CommandEmpty>
+                          <CommandGroup>
+                            {unit.map((units) => (
+                              <CommandItem
+                                key={units.unit}
+                                value={units.unit}
+                                onSelect={() => {
+                                  field.onChange(units.unit_id.toString());
+                                  setBrandOpen(false);
+                                  console.log(units.unit_id);
+                                }}
+                              >
+                                {units.unit}
+                                <Check
+                                  className={cn(
+                                    "ml-auto",
+                                    units.unit_id.toString() === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={nonMedForm.control}
-                  name="category_id"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Category</FormLabel>
-                      <Popover open={catOpen} onOpenChange={setCatOpen}>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={cn(
-                                "w-[200px] justify-between",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {
-                                cats.find(
-                                  (cat) => cat.category_id == field.value
-                                )?.category_name || "Select Category"
-                              }
-                              <ChevronsUpDown className="opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[200px] p-0">
-                          <Command>
-                            <CommandInput
-                              placeholder="Search role..."
-                              className="h-9"
-                            />
-                            <CommandList>
-                              <CommandEmpty>No roles found.</CommandEmpty>
-                              <CommandGroup>
-                                {cats.map((cat) => (
-                                  <CommandItem
-                                    key={cat.category_id}
-                                    value={cat.category_name}
-                                    onSelect={() => {
-                                      field.onChange(
-                                        cat.category_id.toString()
-                                      );
-                                      setCatOpen(false);
-                                    }}
-                                  >
-                                    {cat.category_name}
-                                    <Check
-                                      className={cn(
-                                        "ml-auto",
-                                        cat.category_name === field.value
-                                          ? "opacity-100"
-                                          : "opacity-0"
-                                      )}
-                                    />
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={nonMedForm.control}
-                  name="brand_id"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="">Brand Name</FormLabel>
-                      <Popover open={brandOpen} onOpenChange={setBrandOpen}>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={cn(
-                                "w-[200px] justify-between",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {
-                                brands.find(
-                                  (brand) => brand.brand_id == field.value
-                                )?.brand_name || "Select Brand"
-                              }
-                              <ChevronsUpDown className="opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[200px] p-0">
-                          <Command>
-                            <CommandInput
-                              placeholder="Search brand..."
-                              className="h-9"
-                            />
-                            <CommandList>
-                              <CommandEmpty>No brand found.</CommandEmpty>
-                              <CommandGroup>
-                                {brands.map((brand) => (
-                                  <CommandItem
-                                    key={brand.brand_id}
-                                    value={brand.brand_name}
-                                    onSelect={() => {
-                                      field.onChange(brand.brand_id.toString());
-                                      setBrandOpen(false);
-                                    
-                                    }}
-                                  >
-                                    {brand.brand_name}
-                                    <Check
-                                      className={cn(
-                                        "ml-auto",
-                                        brand.brand_id.toString() ===
-                                          field.value
-                                          ? "opacity-100"
-                                          : "opacity-0"
-                                      )}
-                                    />
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={nonMedForm.control}
-                  name="current_price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Price</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter price" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={nonMedForm.control}
-                  name="net_content"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Net Content</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter Net Content" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                
-                <div className="flex justify-end">
-                  <Button type="submit">Submit</Button>
-                </div>
-              </form>
-            </Form>
-          </TabsContent>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+            <div className="flex justify-end">
+              <Button type="submit">Submit</Button>
+            </div>
+          </form>
+        </Form>
+      </TabsContent>
+    </Tabs>
   );
 }
