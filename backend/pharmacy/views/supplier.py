@@ -143,16 +143,51 @@ class Supplier(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=500)
         
-        
-    def delete(self, request, supplier_id):
+    # HARD DELETE
+    def delete(self, request, supplier_id=None):
         try:
-            response = supabase.table("Supplier").delete().eq('supplier_id', supplier_id).execute()
+            if supplier_id is None:
+                return Response({"error": "Supplier ID is required"}, status=400)
 
-            if response.data:
-                return Response({"message": "Supplier deleted successfully"}, status=204)
-            else:
-                return Response({"error": "Supplier not found or deletion failed"}, status=400)
+            # Check if supplier exists
+            supplier_response = supabase.table("Supplier").select("person_id").eq("supplier_id", supplier_id).execute()
+
+            if not supplier_response.data:
+                return Response({"error": "Supplier not found"}, status=404)
+
+            person_id = supplier_response.data[0]["person_id"]
+
+            # Delete supplier record
+            supabase.table("Supplier").delete().eq("supplier_id", supplier_id).execute()
+
+            # Delete associated person record
+            supabase.table("Person").delete().eq("person_id", person_id).execute()
+
+            return Response({"message": "Supplier deleted successfully"}, status=200)
+
         except Exception as e:
-            return Response({"error": str(e)}, status=400)
+            return Response({"error": str(e)}, status=500)
+    
+    # SOFT DELETE
+    # def delete(self, request, supplier_id=None):
+    #     try:
+    #         if supplier_id is None:
+    #             return Response({"error": "Supplier ID is required"}, status=400)
+
+    #         # Check if supplier exists
+    #         supplier_response = supabase.table("Supplier").select("supplier_id").eq("supplier_id", supplier_id).execute()
+
+    #         if not supplier_response.data:
+    #             return Response({"error": "Supplier not found"}, status=404)
+
+    #         # Soft delete by setting is_active to False
+    #         supabase.table("Supplier").update({"is_active": False}).eq("supplier_id", supplier_id).execute()
+
+    #         return Response({"message": "Supplier deactivated successfully"}, status=200)
+
+    #     except Exception as e:
+    #         return Response({"error": str(e)}, status=500)
+
+
                
 
