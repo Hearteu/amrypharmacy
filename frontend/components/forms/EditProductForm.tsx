@@ -80,10 +80,6 @@ export default function EditProductForm({
   const [catOpen, setCatOpen] = useState(false);
   
   const [productData, setProductData] = useState<Product | null>(null);
-  const [drugData, setDrugData] = useState<Drug | null>(null);
-  const [brandData, setBrandData] = useState<Brand | null>(null);
-  const [categoryData, setCategoryData] = useState<Category | null>(null);
-  const [unitMeasureData, setUnitMeasureData] = useState<Unit | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

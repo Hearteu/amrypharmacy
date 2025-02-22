@@ -14,8 +14,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import axios from "axios";
 import { useState } from "react";
+
+
 interface Products {
   product_id: number;
   full_product_name: string;
@@ -32,6 +45,7 @@ interface EditProductDialogProps {
 
 interface DeleteProductDialogProps {
   product_id: number;
+  onSuccess: () => void;
 }
 
 const EditProductDialog = ({
@@ -69,19 +83,29 @@ const EditProductDialog = ({
 };
 
 const deleteItem = async ({
-  product_id
+  product_id,
+  onSuccess,
 }: DeleteProductDialogProps) => {
   try {
-    await axios.delete(`http://127.0.0.1:8000/pharmacy/products/${product_id}/`);
+    await axios.delete(
+      `http://127.0.0.1:8000/pharmacy/products/${product_id}/`
+    );
     console.log("✅ Item deleted successfully");
 
-    // if (onSuccess) {
-    //   onSuccess(); // Call onSuccess callback if provided
-    // }
+    if (onSuccess) {
+      onSuccess(); // Call onSuccess callback if provided
+    }
   } catch (error) {
     console.error("❌ Error deleting item:", error);
     console.log("Product ID Delete:", product_id);
   }
+};
+
+const handleDelete = () => {
+  deleteItem({
+    product_id,
+    onSuccess: () => console.log("Product deleted and UI updated"),
+  });
 };
 
 export const columns: (onSuccess: () => void) => ColumnDef<Products>[] = (
@@ -133,28 +157,40 @@ export const columns: (onSuccess: () => void) => ColumnDef<Products>[] = (
     id: "actions",
     cell: ({ row }) => {
       const product = row.original;
-      // console.log(product.product_id)
+      const handleDelete = () => {
+        deleteItem({
+          product_id: product.product_id,
+          onSuccess: onSuccess,
+        });
+      };
 
       return (
         <>
           <div className="flex gap-2 ">
             <EditProductDialog
               product_id={product.product_id}
-              onSuccess={(data) => {
-                console.log("Data:", data);
+              onSuccess={() => {
                 onSuccess();
               }}
             ></EditProductDialog>
-            <Button variant="destructive" asChild>
-              <button
-                onClick={() => {
-                  console.log("Deleting product:", product.product_id);
-                  deleteItem({ product_id: product.product_id })
-                }}
-              >
-                Delete
-              </button>
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">Delete</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete {product.full_product_name}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete
+                    your account and remove your data from our servers.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete}>Continue</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </>
       );
