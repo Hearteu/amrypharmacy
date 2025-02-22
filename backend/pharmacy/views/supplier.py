@@ -10,7 +10,9 @@ supabase = get_supabase_client()
 class Supplier(APIView):
     def get(self, request, supplier_id=None):
         try:
-            query = supabase.table("Supplier").select("supplier_id, company_name, vat_num, is_active, person_id (first_name, last_name, contact, email, address)")
+            query = supabase.table("Supplier").select(
+                "supplier_id, supplier_name, vat_num, status_id, Status(status), person_id, Person(first_name, last_name, contact, email, address)"
+            )
 
             if supplier_id is not None:
                 query = query.eq("supplier_id", supplier_id)
@@ -20,58 +22,54 @@ class Supplier(APIView):
             if not response.data:
                 return Response({"error": "No supplier found"}, status=404)
 
-            # Process response based on single/multiple suppliers
+            # Process response for all suppliers
             if supplier_id is None:
                 suppliers = [
                     {
                         "supplier_id": item["supplier_id"],
-                        "company_name": item["company_name"],
-                        "contact_person": f"{item['person_id']['first_name']} {item['person_id']['last_name']}",
-                        "contact": item["person_id"]["contact"],
-                        "email": item["person_id"]["email"],
-                        "address": item["person_id"]["address"],
+                        "supplier_name": item["supplier_name"],
+                        "contact_person": f"{item['Person']['first_name']} {item['Person']['last_name']}",
+                        "contact": item["Person"]["contact"],
+                        "email": item["Person"]["email"],
+                        "address": item["Person"]["address"],
                         "vat_num": item["vat_num"],
-                        "is_active": item["is_active"],
+                        # "status": item["Status"]["status"],  # Returning status name for list
+                        "status_id": item["status_id"],  # Returning status_id for list
                     }
                     for item in response.data
                 ]
                 return Response(suppliers, status=200)
 
+            # Process response for a specific supplier
             item = response.data[0]
             supplier = {
                 "supplier_id": item["supplier_id"],
-                "company_name": item["company_name"],
-                "first_name": item["person_id"]["first_name"],
-                "last_name": item["person_id"]["last_name"],
-                "contact": item["person_id"]["contact"],
-                "email": item["person_id"]["email"],
-                "address": item["person_id"]["address"],
+                "supplier_name": item["supplier_name"],
+                "first_name": item["Person"]["first_name"],
+                "last_name": item["Person"]["last_name"],
+                "contact": item["Person"]["contact"],
+                "email": item["Person"]["email"],
+                "address": item["Person"]["address"],
                 "vat_num": item["vat_num"],
-                "is_active": item["is_active"],
+                "status_id": item["status_id"],  # Returning status_id for specific supplier
             }
             return Response(supplier, status=200)
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
     
     def post(self, request):
         try:
             data = request.data
 
-            # Extract Person Data
-            first_name = data.get("first_name")
-            last_name = data.get("last_name")
-            contact = data.get("contact")
-            email = data.get("email")
-            address = data.get("address")
-
             # Insert into Person table
             person_response = supabase.table("Person").insert({
-                "first_name": first_name,
-                "last_name": last_name,
-                "contact": contact,
-                "email": email,
-                "address": address
+                "first_name": data.get("first_name"),
+                "last_name": data.get("last_name"),
+                "contact": data.get("contact"),
+                "email": data.get("email"),
+                "address": data.get("address")
             }).execute()
 
             if not person_response.data:
@@ -79,16 +77,11 @@ class Supplier(APIView):
 
             person_id = person_response.data[0]["person_id"]
 
-            # Extract Supplier Data
-            company_name = data.get("company_name")
-            vat_num = data.get("vat_num")
-            is_active = data.get("is_active")
-
             # Insert into Supplier table
             supplier_response = supabase.table("Supplier").insert({
-                "company_name": company_name,
-                "vat_num": vat_num,
-                "is_active": is_active,
+                "supplier_name": data.get("supplier_name"),
+                "vat_num": data.get("vat_num"),
+                "status_id": data.get("status_id"),
                 "person_id": person_id
             }).execute()
 
@@ -99,6 +92,7 @@ class Supplier(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
         
     def put(self, request, supplier_id=None):
         try:
@@ -115,10 +109,9 @@ class Supplier(APIView):
 
             person_id = supplier_response.data[0]["person_id"]
 
-            # If only is_active is provided (ignoring supplier_id), update only that field
-            # for dropdown is_active update
-            if set(data.keys()) == {"supplier_id", "is_active"} or set(data.keys()) == {"is_active"}:
-                supabase.table("Supplier").update({"is_active": data["is_active"]}).eq("supplier_id", supplier_id).execute()
+            # If only status_id is provided, update only that field
+            if "status_id" in data and len(data) == 1:
+                supabase.table("Supplier").update({"status_id": data["status_id"]}).eq("supplier_id", supplier_id).execute()
                 return Response({"message": "Supplier status updated successfully"}, status=200)
 
             # Update Person table
@@ -133,7 +126,7 @@ class Supplier(APIView):
 
             # Update Supplier table
             supplier_update = {
-                "company_name": data.get("company_name"),
+                "supplier_name": data.get("supplier_name"),
                 "vat_num": data.get("vat_num"),
             }
             supabase.table("Supplier").update(supplier_update).eq("supplier_id", supplier_id).execute()
@@ -142,6 +135,7 @@ class Supplier(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
         
     # HARD DELETE
     def delete(self, request, supplier_id=None):
@@ -180,8 +174,8 @@ class Supplier(APIView):
     #         if not supplier_response.data:
     #             return Response({"error": "Supplier not found"}, status=404)
 
-    #         # Soft delete by setting is_active to False
-    #         supabase.table("Supplier").update({"is_active": False}).eq("supplier_id", supplier_id).execute()
+    #         # Soft delete by setting status_id to False
+    #         supabase.table("Supplier").update({"status_id": False}).eq("supplier_id", supplier_id).execute()
 
     #         return Response({"message": "Supplier deactivated successfully"}, status=200)
 
