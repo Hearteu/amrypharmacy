@@ -166,7 +166,6 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
     try {
       const response = await axios.post(
         "http://127.0.0.1:8000/pharmacy/products/",
-
         values
       );
       onSuccess(response.data);

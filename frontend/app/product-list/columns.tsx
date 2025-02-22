@@ -24,10 +24,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
 import axios from "axios";
 import { useState } from "react";
-
 
 interface Products {
   product_id: number;
@@ -179,7 +178,9 @@ export const columns: (onSuccess: () => void) => ColumnDef<Products>[] = (
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete {product.full_product_name}?</AlertDialogTitle>
+                  <AlertDialogTitle>
+                    Delete {product.full_product_name}?
+                  </AlertDialogTitle>
                   <AlertDialogDescription>
                     This action cannot be undone. This will permanently delete
                     your account and remove your data from our servers.
@@ -187,7 +188,9 @@ export const columns: (onSuccess: () => void) => ColumnDef<Products>[] = (
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>Continue</AlertDialogAction>
+                  <AlertDialogAction onClick={handleDelete}>
+                    Continue
+                  </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

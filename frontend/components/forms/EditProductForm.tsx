@@ -71,14 +71,24 @@ interface EditProductFormProps {
   onSuccess: (data: AxiosResponse) => void;
 }
 
+interface BrandSelectorProps {
+  onSelect?: (brand: Brand) => void;
+  defaultValue?: Brand;
+  className?: string;
+}
+
+interface ApiError {
+  message: string;
+  status: number;
+}
+
 export default function EditProductForm({
   product_id,
   onSuccess,
 }: EditProductFormProps) {
   const [measureOpen, setMeasureOpen] = useState(false);
-  const [brandOpen, setBrandOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
-  
+
   const [productData, setProductData] = useState<Product | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -95,74 +105,122 @@ export default function EditProductForm({
     mode: "onChange",
   });
 
-    //Fetch product details
-    useEffect(() => {
-      const fetchProductData = async () => {
-        try {
-          const productResponse = await axios.get(
-            `http://127.0.0.1:8000/pharmacy/products/${product_id}/`
-          );
-    
-          console.log("Raw API Response:", productResponse.data);
-    
-          // Ensure productData is an object, not an array
-          const product = Array.isArray(productResponse.data)
-            ? productResponse.data[0] // If it's an array, get the first item
-            : productResponse.data; // Otherwise, use it directly
-    
-          if (product) {
-            setProductData(product);
-            // console.log("Product data set successfully:", product);
-          } else {
-            console.warn("API returned no product data.");
-          }
-        } catch (error) {
-          console.error("Error fetching product:", error);
+  //Fetch product details
+  useEffect(() => {
+    const fetchProductData = async () => {
+      try {
+        const productResponse = await axios.get(
+          `http://127.0.0.1:8000/pharmacy/products/${product_id}/`
+        );
+
+        console.log("Raw API Response:", productResponse.data);
+
+        // Ensure productData is an object, not an array
+        const product = Array.isArray(productResponse.data)
+          ? productResponse.data[0] // If it's an array, get the first item
+          : productResponse.data; // Otherwise, use it directly
+
+        if (product) {
+          setProductData(product);
+          // console.log("Product data set successfully:", product);
+        } else {
+          console.warn("API returned no product data.");
         }
-      };
-    
-      if (product_id) {
-        console.log(`Fetching product data for product_id: ${product_id}`);
-        fetchProductData(); // ✅ Call the function!
+      } catch (error) {
+        console.error("Error fetching product:", error);
       }
-    }, [product_id]);
-    
-    // Reset form with product details
-    useEffect(() => {
-      if (productData) {
-        form.reset({
-          product_name: productData.product_name || "",
-          category_id: String(productData.category_id) || "",
-          current_price: String(productData.current_price) || "",
-          net_content: productData.net_content || "",
-          brand_id: String(productData.brand_id) || "",
-          unit_id: String(productData.unit_id) || "",
-          dosage_form: productData.dosage_form || "",
-          dosage_strength: productData.dosage_strength || "",
-        });
-    
-        console.log("Form reset with product data:", productData);
-      } 
-    }, [productData]);
+    };
+
+    if (product_id) {
+      console.log(`Fetching product data for product_id: ${product_id}`);
+      fetchProductData(); // ✅ Call the function!
+    }
+  }, [product_id]);
+
+  // Reset form with product details
+  useEffect(() => {
+    if (productData) {
+      form.reset({
+        product_name: productData.product_name || "",
+        category_id: String(productData.category_id) || "",
+        current_price: String(productData.current_price) || "",
+        net_content: productData.net_content || "",
+        brand_id: String(productData.brand_id) || "",
+        unit_id: String(productData.unit_id) || "",
+        dosage_form: productData.dosage_form || "",
+        dosage_strength: productData.dosage_strength || "",
+      });
+
+      console.log("Form reset with product data:", productData);
+    }
+  }, [productData]);
+  //For the combobox
+
   //Fetch  Brand for combobox
 
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [inputBrand, setInputBrand] = useState("");
+  const [isBrandLoading, setIsBrandLoading] = useState(false)
+  const [brandOpen, setBrandOpen] = useState(false);
+  const [brandError, setBrandError] = useState<string | null>(null)
 
+  const fetchBrand = async () => { // ✅ Move fetchBrand outside
+    try {
+      const brandRes = await fetch("http://127.0.0.1:8000/pharmacy/brands/");
+      const brandData: Brand[] = await brandRes.json();
+      setBrands(brandData);
+    } catch (error) {
+      console.error("Error fetching brand data", error);
+    }
+  };
+  
   useEffect(() => {
-    const fetchBrand = async () => {
-      try {
-        const brandRes = await fetch("http://127.0.0.1:8000/pharmacy/brands/");
-        const brandData: Brand[] = await brandRes.json();
-
-        setBrands(brandData);
-      } catch (error) {
-        console.error("Error fetching brand data", error);
-      }
-    };
-    fetchBrand();
+    fetchBrand(); 
   }, []);
 
-  //For the combobox
+  
+
+  const addNewBrand = async (brandName: string) => {
+    const trimmedBrandName = brandName.trim();
+
+    if (
+      trimmedBrandName === "" ||
+      brands.some((brand) => brand.brand_name.toLowerCase() === trimmedBrandName.toLowerCase())
+    ) {
+      return
+    } 
+    setIsBrandLoading(true)
+    setBrandError(null)
+    {
+      try {
+        const response = await axios.post(
+          "http://127.0.0.1:8000/pharmacy/brands/",
+          {
+            brand_name: trimmedBrandName, 
+          }
+        );
+
+        if (response.status === 201) {
+          const newBrand: Brand = response.data; 
+          fetchBrand(); 
+          setInputBrand("");
+          setBrands((prevBrands) => [...prevBrands, newBrand]); 
+          setInputBrand(""); 
+        }
+      } catch (error) {
+        console.error("❌ Error adding brand:", error);
+      }
+    }
+  };
+
+  const handleBrandKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" && inputBrand) {
+      e.preventDefault();
+      fetchBrand();
+      addNewBrand(inputBrand);
+    }
+  };
+
   //Fetch Category for combobox
 
   const [cats, setCat] = useState<Category[]>([]);
@@ -203,13 +261,15 @@ export default function EditProductForm({
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      const response = await axios.put(`http://127.0.0.1:8000/pharmacy/products/${product_id}/`, values
+      const response = await axios.put(
+        `http://127.0.0.1:8000/pharmacy/products/${product_id}/`,
+        values
       );
       onSuccess(response);
       console.log(response.data);
     } catch (error) {
       console.log("❌ Error adding new product:", error);
-  
+
       if (axios.isAxiosError(error)) {
         console.error("⚠️ Axios Error Response:", error.response?.data);
       }
@@ -328,8 +388,12 @@ export default function EditProductForm({
                 <PopoverContent className="w-[200px] p-0">
                   <Command>
                     <CommandInput
-                      placeholder="Search role..."
+                      placeholder="Search brand..."
                       className="h-9"
+                      value={inputBrand}
+                      onValueChange={setInputBrand}
+                      onKeyDown={handleBrandKeyDown}
+
                     />
                     <CommandList>
                       <CommandEmpty>No roles found.</CommandEmpty>
@@ -339,12 +403,8 @@ export default function EditProductForm({
                             key={brand.brand_id}
                             value={brand.brand_name}
                             onSelect={() => {
-                              field.onChange(brand.brand_id.toString());
+                              field.onChange(brand.brand_id);
                               setBrandOpen(false);
-                              console.log(
-                                "🔄 Updated Form Value:",
-                                form.getValues("measurement")
-                              );
                             }}
                           >
                             {brand.brand_name}
