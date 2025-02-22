@@ -76,11 +76,6 @@ interface AddFormProps {
 }
 
 export default function AddProductForm({ onSuccess }: AddFormProps) {
-  const [measureOpen, setMeasureOpen] = useState(false);
-  const [brandOpen, setBrandOpen] = useState(false);
-  const [catOpen, setCatOpen] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-
   const medicineForm = useForm<z.infer<typeof medFormSchema>>({
     resolver: zodResolver(medFormSchema),
     defaultValues: {
@@ -106,61 +101,189 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
     },
   });
 
+  //For the combobox
+
   //Fetch  Brand for combobox
 
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [brandOpen, setBrandOpen] = useState(false);
+  const [inputBrand, setInputBrand] = useState("");
+
+  const fetchBrand = async () => {
+    // ✅ Move fetchBrand outside
+    try {
+      const brandRes = await fetch("http://127.0.0.1:8000/pharmacy/brands/");
+      const brandData: Brand[] = await brandRes.json();
+      setBrands(brandData);
+    } catch (error) {
+      console.error("Error fetching brand data", error);
+    }
+  };
 
   useEffect(() => {
-    const fetchBrand = async () => {
-      try {
-        const brandRes = await fetch("http://127.0.0.1:8000/pharmacy/brands/");
-        const brandData: Brand[] = await brandRes.json();
-
-        setBrands(brandData);
-      } catch (error) {
-        console.error("Error fetching brand data", error);
-      }
-    };
     fetchBrand();
   }, []);
 
+  const addNewBrand = async (brandName: string) => {
+    const trimmedBrandName = brandName.trim();
+
+    if (
+      trimmedBrandName === "" ||
+      brands.some(
+        (brand) =>
+          brand.brand_name.toLowerCase() === trimmedBrandName.toLowerCase()
+      )
+    ) {
+      return;
+    }
+    {
+      try {
+        const response = await axios.post(
+          "http://127.0.0.1:8000/pharmacy/brands/",
+          {
+            brand_name: trimmedBrandName,
+          }
+        );
+
+        if (response.status === 201) {
+          await fetchBrand();
+          setInputBrand(brandName);
+        }
+      } catch (error) {
+        console.error("❌ Error adding brand:", error);
+      }
+    }
+  };
+
   //Fetch Category for combobox
 
-  const [cats, setCat] = useState<Categeory[]>([]);
+  const [cats, setCat] = useState<Category[]>([]);
+  const [catOpen, setCatOpen] = useState(false);
+  const [inputCat, setInputCat] = useState("");
+
+  const fetchCategory = async () => {
+    try {
+      const measurementRes = await fetch(
+        "http://127.0.0.1:8000/pharmacy/product-categories/"
+      );
+      const catData: Category[] = await measurementRes.json();
+
+      setCat(catData);
+    } catch (error) {
+      console.error("Error fetching measurement data:", error);
+    }
+  };
 
   useEffect(() => {
-    const fetchCategory = async () => {
-      try {
-        const measurementRes = await fetch(
-          "http://127.0.0.1:8000/pharmacy/product-categories/"
-        );
-        const catData: Categeory[] = await measurementRes.json();
-
-        setCat(catData);
-      } catch (error) {
-        console.error("Error fetching measurement data:", error);
-      }
-    };
     fetchCategory();
   }, []);
+
+  const addNewCat = async (catName: string) => {
+    const trimmedCatName = catName.trim();
+
+    if (
+      trimmedCatName === "" ||
+      cats.some(
+        (category) =>
+          category.category_name.toLowerCase() === trimmedCatName.toLowerCase()
+      )
+    ) {
+      return;
+    }
+    {
+      try {
+        const response = await axios.post(
+          "http://127.0.0.1:8000/pharmacy/product-categories/",
+          {
+            category_name: trimmedCatName,
+          }
+        );
+
+        if (response.status === 201) {
+          await fetchCategory();
+          setInputCat(catName);
+        }
+      } catch (error) {
+        console.error("❌ Error adding category:", error);
+      }
+    }
+  };
 
   //Fetch Unit of Measurement combobox
 
   const [unit, setUnit] = useState<Unit[]>([]);
+  const [measureOpen, setMeasureOpen] = useState(false);
+  const [inputUnit, setInputUnit] = useState("");
+
+  const fetchUnit = async () => {
+    try {
+      const unitRes = await fetch("http://127.0.0.1:8000/pharmacy/unit/");
+      const unitData: Unit[] = await unitRes.json();
+
+      setUnit(unitData);
+    } catch (error) {
+      console.error("Error fetching measurement data:", error);
+    }
+  };
 
   useEffect(() => {
-    const fetchUnit = async () => {
-      try {
-        const unitRes = await fetch("http://127.0.0.1:8000/pharmacy/unit/");
-        const unitData: Unit[] = await unitRes.json();
-
-        setUnit(unitData);
-      } catch (error) {
-        console.error("Error fetching measurement data:", error);
-      }
-    };
     fetchUnit();
   }, []);
+
+  const addNewUnit = async (unitName: string) => {
+    const trimmedUnitName = unitName.trim();
+
+    if (
+      trimmedUnitName === "" ||
+      unit.some(
+        (uni) => uni.unit.toLowerCase() === trimmedUnitName.toLowerCase()
+      )
+    ) {
+      return;
+    }
+    {
+      try {
+        const response = await axios.post(
+          "http://127.0.0.1:8000/pharmacy/unit/",
+          {
+            unit: trimmedUnitName,
+          }
+        );
+
+        if (response.status === 201) {
+          await fetchUnit();
+          setInputUnit(unitName);
+        }
+      } catch (error) {
+        console.error("❌ Error adding unit:", error);
+      }
+    }
+  };
+
+  const handleBrandKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" && inputBrand) {
+      e.preventDefault();
+      addNewBrand(inputBrand);
+      fetchBrand();
+    }
+  };
+  
+  const handleCategoryKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" && inputCat) {
+      e.preventDefault();
+      addNewCat(inputCat);
+      fetchCategory();
+    }
+  };
+  
+  const handleUnitKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" && inputUnit) {
+      e.preventDefault();
+      addNewUnit(inputUnit);
+      fetchUnit();
+    }
+  };
+  
 
   const onSubmit = async (values: z.infer<typeof medFormSchema>) => {
     try {
@@ -250,12 +373,15 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                     </PopoverTrigger>
                     <PopoverContent className="w-[200px] p-0">
                       <Command>
-                        <CommandInput
-                          placeholder="Search role..."
-                          className="h-9"
-                        />
+                      <CommandInput
+                      placeholder="Search category..."
+                      className="h-9"
+                      value={inputCat}
+                      onValueChange={setInputCat}
+                      onKeyDown={handleCategoryKeyDown}
+                    />
                         <CommandList>
-                          <CommandEmpty>No category found.</CommandEmpty>
+                          <CommandEmpty>Press ENTER to add New Category</CommandEmpty>
                           <CommandGroup>
                             {cats.map((cat) => (
                               <CommandItem
@@ -292,6 +418,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel className="">Brand Name</FormLabel>
+                  <FormMessage />
                   <Popover open={brandOpen} onOpenChange={setBrandOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -303,8 +430,11 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          {brands.find((brand) => brand.brand_id == field.value)
-                            ?.brand_name || "Select brand"}
+                          {
+                            brands.find(
+                              (brand) => brand.brand_id == field.value
+                            )?.brand_name || "Select Brand"
+                          }
                           <ChevronsUpDown className="opacity-50" />
                         </Button>
                       </FormControl>
@@ -312,11 +442,16 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                     <PopoverContent className="w-[200px] p-0">
                       <Command>
                         <CommandInput
-                          placeholder="Search role..."
+                          placeholder="Search brand..."
                           className="h-9"
+                          value={inputBrand}
+                          onValueChange={setInputBrand}
+                          onKeyDown={handleBrandKeyDown}
                         />
-                        <CommandList>
-                          <CommandEmpty>No roles found.</CommandEmpty>
+                        <CommandList className="max-h-60 overflow-y-auto">
+                          <CommandEmpty>
+                            Press ENTER to add New Brand
+                          </CommandEmpty>
                           <CommandGroup>
                             {brands.map((brand) => (
                               <CommandItem
@@ -428,12 +563,15 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                     </PopoverTrigger>
                     <PopoverContent className="w-[200px] p-0">
                       <Command>
-                        <CommandInput
-                          placeholder="Search brand..."
-                          className="h-9"
-                        />
+                      <CommandInput
+                      placeholder="Search brand..."
+                      className="h-9"
+                      value={inputBrand}
+                      onValueChange={setInputBrand}
+                      onKeyDown={handleBrandKeyDown}
+                    />
                         <CommandList>
-                          <CommandEmpty>No brand found.</CommandEmpty>
+                          <CommandEmpty>Press ENTER to add New Brand</CommandEmpty>
                           <CommandGroup>
                             {unit.map((units) => (
                               <CommandItem
@@ -516,10 +654,13 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                     </PopoverTrigger>
                     <PopoverContent className="w-[200px] p-0">
                       <Command>
-                        <CommandInput
-                          placeholder="Search role..."
-                          className="h-9"
-                        />
+                      <CommandInput
+                      placeholder="Search category..."
+                      className="h-9"
+                      value={inputCat}
+                      onValueChange={setInputCat}
+                      onKeyDown={handleCategoryKeyDown}
+                    />
                         <CommandList>
                           <CommandEmpty>No roles found.</CommandEmpty>
                           <CommandGroup>
@@ -558,6 +699,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel className="">Brand Name</FormLabel>
+                  <FormMessage />
                   <Popover open={brandOpen} onOpenChange={setBrandOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -569,8 +711,11 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          {brands.find((brand) => brand.brand_id == field.value)
-                            ?.brand_name || "Select Brand"}
+                          {
+                            brands.find(
+                              (brand) => brand.brand_id == field.value
+                            )?.brand_name || "Select Brand"
+                          }
                           <ChevronsUpDown className="opacity-50" />
                         </Button>
                       </FormControl>
@@ -580,9 +725,14 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                         <CommandInput
                           placeholder="Search brand..."
                           className="h-9"
+                          value={inputBrand}
+                          onValueChange={setInputBrand}
+                          onKeyDown={handleBrandKeyDown}
                         />
-                        <CommandList>
-                          <CommandEmpty>No brand found.</CommandEmpty>
+                        <CommandList className="max-h-60 overflow-y-auto">
+                          <CommandEmpty>
+                            Press ENTER to add New Brand
+                          </CommandEmpty>
                           <CommandGroup>
                             {brands.map((brand) => (
                               <CommandItem
@@ -666,12 +816,15 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                     </PopoverTrigger>
                     <PopoverContent className="w-[200px] p-0">
                       <Command>
-                        <CommandInput
-                          placeholder="Search brand..."
-                          className="h-9"
-                        />
+                      <CommandInput
+                      placeholder="Search unit..."
+                      className="h-9"
+                      value={inputUnit}
+                      onValueChange={setInputUnit}
+                      onKeyDown={handleUnitKeyDown}
+                    />
                         <CommandList>
-                          <CommandEmpty>No brand found.</CommandEmpty>
+                          <CommandEmpty>Press ENTER to Add New Unit</CommandEmpty>
                           <CommandGroup>
                             {unit.map((units) => (
                               <CommandItem
