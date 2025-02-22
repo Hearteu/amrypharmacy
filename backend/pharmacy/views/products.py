@@ -67,13 +67,13 @@ class Products(APIView):
             drug_info = product.get("Drugs", {})
 
             # Check if it's a drug (exists in Drugs table and has data)
+            
             if isinstance(drug_info, dict) and drug_info:
                 dosage_strength = drug_info.get("dosage_strength", "").strip()
                 dosage_form = drug_info.get("dosage_form", "").strip()
-                full_name = f"{product['product_name']} {dosage_strength} {dosage_form} {brand_name}"
+                full_name = f"{product['product_name']} {dosage_strength} {dosage_form} ({brand_name})"
             else:
                 full_name = f"{product['product_name']} {product['net_content']} per {unit_name} ({brand_name})"
-
             formatted_products.append({
                 "product_id": product.get("product_id"),
                 "full_product_name": full_name,
