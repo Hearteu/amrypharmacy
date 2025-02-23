@@ -378,7 +378,7 @@ export default function EditProductForm({
                       )}
                     >
                       {
-                        cats.find((cat) => cat.category_id == field.value)
+                        cats.find((cat) => cat.category_id.toString() == field.value)
                           ?.category_name
                       }
                       <ChevronsUpDown className="opacity-50" />
@@ -404,10 +404,6 @@ export default function EditProductForm({
                             onSelect={() => {
                               field.onChange(cat.category_id.toString());
                               setCatOpen(false);
-                              console.log(
-                                "🔄 Updated Form Value:",
-                                form.getValues("measurement")
-                              );
                             }}
                           >
                             {cat.category_name}
@@ -449,7 +445,7 @@ export default function EditProductForm({
                       )}
                     >
                       {
-                        brands.find((brand) => brand.brand_id == field.value)
+                        brands.find((brand) => brand.brand_id.toString() == field.value)
                           ?.brand_name
                       }
                       <ChevronsUpDown className="opacity-50" />
@@ -570,7 +566,7 @@ export default function EditProductForm({
                         !field.value && "text-muted-foreground"
                       )}
                     >
-                      {unit.find((units) => units.unit_id == field.value)
+                      {unit.find((units) => units.unit_id.toString() == field.value)
                         ?.unit || "Select Unit"}
                       <ChevronsUpDown className="opacity-50" />
                     </Button>

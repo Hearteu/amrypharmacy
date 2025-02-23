@@ -76,11 +76,8 @@ export default function ProducList() {
 
   return (
     <>
-      {loading ? (
-        <p className="text-center text-gray-500">Loading...</p>
-      ) : (
-        <>
-          <div className="w-full grid justify-items-end pt-4 pr-4">
+    <div className="w-full flex flex-row items-center justify-between pt-4 px-4">
+      <h1 className="font-bold">Products List</h1>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline">Add User</Button>
@@ -99,6 +96,11 @@ export default function ProducList() {
               </DialogContent>
             </Dialog>
           </div>
+      {loading ? (
+        <p className="text-center text-gray-500">Loading...</p>
+      ) : (
+        <>
+          
           <DataTable columns={tableColumns} data={data} />
         </>
       )}

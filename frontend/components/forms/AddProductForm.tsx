@@ -1,16 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -66,7 +58,7 @@ interface Brand {
   brand_name: string;
 }
 
-interface Categeory {
+interface Category {
   category_id: number;
   category_name: string;
 }
@@ -292,7 +284,6 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
         values
       );
       onSuccess(response.data);
-      setDialogOpen(false);
       console.log(response.data);
     } catch (error) {
       console.log("Error adding new product:", error);
@@ -311,7 +302,6 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
         values
       );
       onSuccess(response.data);
-      setDialogOpen(false);
       console.log(response.data);
     } catch (error) {
       console.log("Error adding new product:", error);
@@ -365,7 +355,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          {cats.find((cat) => cat.category_id == field.value)
+                          {cats.find((cat) => cat.category_id.toString() == field.value)
                             ?.category_name || "Select Category"}
                           <ChevronsUpDown className="opacity-50" />
                         </Button>
@@ -432,7 +422,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                         >
                           {
                             brands.find(
-                              (brand) => brand.brand_id == field.value
+                              (brand) => brand.brand_id.toString() == field.value
                             )?.brand_name || "Select Brand"
                           }
                           <ChevronsUpDown className="opacity-50" />
@@ -555,7 +545,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          {unit.find((units) => units.unit_id == field.value)
+                          {unit.find((units) => units.unit_id.toString() == field.value)
                             ?.unit || "Select Unit"}
                           <ChevronsUpDown className="opacity-50" />
                         </Button>
@@ -646,7 +636,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          {cats.find((cat) => cat.category_id == field.value)
+                          {cats.find((cat) => cat.category_id.toString() == field.value)
                             ?.category_name || "Select Category"}
                           <ChevronsUpDown className="opacity-50" />
                         </Button>
@@ -713,7 +703,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                         >
                           {
                             brands.find(
-                              (brand) => brand.brand_id == field.value
+                              (brand) => brand.brand_id.toString() == field.value
                             )?.brand_name || "Select Brand"
                           }
                           <ChevronsUpDown className="opacity-50" />
@@ -808,7 +798,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          {unit.find((units) => units.unit_id == field.value)
+                          {unit.find((units) => units.unit_id.toString() == field.value)
                             ?.unit || "Select Unit"}
                           <ChevronsUpDown className="opacity-50" />
                         </Button>
