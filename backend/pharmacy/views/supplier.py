@@ -110,6 +110,7 @@ class Supplier(APIView):
             person_id = supplier_response.data[0]["person_id"]
 
             # If only status_id is provided, update only that field
+            print(len(data))
             if "status_id" in data and len(data) == 1:
                 supabase.table("Supplier").update({"status_id": data["status_id"]}).eq("supplier_id", supplier_id).execute()
                 return Response({"message": "Supplier status updated successfully"}, status=200)
