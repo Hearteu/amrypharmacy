@@ -100,13 +100,6 @@ const deleteItem = async ({
   }
 };
 
-const handleDelete = () => {
-  deleteItem({
-    product_id,
-    onSuccess: () => console.log("Product deleted and UI updated"),
-  });
-};
-
 export const columns: (onSuccess: () => void) => ColumnDef<Products>[] = (
   onSuccess
 ) => [
