@@ -33,8 +33,8 @@ class Supplier(APIView):
                         "email": item["Person"]["email"],
                         "address": item["Person"]["address"],
                         "vat_num": item["vat_num"],
-                        # "status": item["Status"]["status"],  # Returning status name for list
-                        "status_id": item["status_id"],  # Returning status_id for list
+                        "status": item["Status"]["status"],  # Returning status name for list
+                        # "status_id": item["status_id"],  # Returning status_id for list
                     }
                     for item in response.data
                 ]
@@ -51,7 +51,7 @@ class Supplier(APIView):
                 "email": item["Person"]["email"],
                 "address": item["Person"]["address"],
                 "vat_num": item["vat_num"],
-                "status_id": item["status_id"],  # Returning status_id for specific supplier
+                "status": item["Status"]["status"],
             }
             return Response(supplier, status=200)
 
@@ -109,11 +109,6 @@ class Supplier(APIView):
 
             person_id = supplier_response.data[0]["person_id"]
 
-            # If only status_id is provided, update only that field
-            print(len(data))
-            if "status_id" in data and len(data) == 1:
-                supabase.table("Supplier").update({"status_id": data["status_id"]}).eq("supplier_id", supplier_id).execute()
-                return Response({"message": "Supplier status updated successfully"}, status=200)
 
             # Update Person table
             person_update = {
@@ -129,6 +124,7 @@ class Supplier(APIView):
             supplier_update = {
                 "supplier_name": data.get("supplier_name"),
                 "vat_num": data.get("vat_num"),
+                "status_id": data.get("status_id")
             }
             supabase.table("Supplier").update(supplier_update).eq("supplier_id", supplier_id).execute()
 
