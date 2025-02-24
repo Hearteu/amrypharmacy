@@ -51,7 +51,7 @@ class Supplier(APIView):
                 "email": item["Person"]["email"],
                 "address": item["Person"]["address"],
                 "vat_num": item["vat_num"],
-                "status": item["Status"]["status"],
+                "status_id": item["status_id"],
             }
             return Response(supplier, status=200)
 
