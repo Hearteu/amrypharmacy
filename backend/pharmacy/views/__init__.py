@@ -15,6 +15,7 @@ from .product_category import ProductCategory
 from .products import Products
 from .purchase_order import PurchaseOrder
 from .receipt import Receipt
+from .status import Status
 from .stock_transfer import StockTransfer
 from .supplier import Supplier
 from .unit import Unit
