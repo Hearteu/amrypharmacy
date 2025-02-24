@@ -100,11 +100,17 @@ export default function EditUserForm({
   const fetchStatus = async () => {
     try {
         const statusRes = await fetch("http://127.0.0.1:8000/pharmacy/status/");
-        const brandData: Brand[] = await brandRes.json();
-        setBrands(brandData);
+        const statusData: Status[] = await statusRes.json();
+        setStatus(statusData);
       } catch (error) {
         console.error("Error fetching brand data", error);
       }
   }
+
+  useEffect(() => {
+    fetchStatus();
+  }, [])
+
+  
   return <></>;
 }
