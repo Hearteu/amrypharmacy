@@ -6,15 +6,18 @@ import { ColumnDef } from "@tanstack/react-table"
 
 import { ArrowUpDown } from "lucide-react"
  
-interface Supplier{
-    supplier_id: number;
-    supplier_name: string;
-    address: string;
-    contact_no: number;
-    email: string;
+interface Suppliers{
+  supplier_id: number;
+  supplier_name: string;
+  contact_person: string;
+  contact: string;
+  address: string;
+  email: string;
+  vat_num: string;
+  status_id: number;
 }
 
-export const columns: ColumnDef<Supplier>[] = [
+export const columns: (onSuccess: () => void) => ColumnDef<Suppliers>[] = (onSuccess) => [
     {
         id: "select",
         header: ({ table }) => (
@@ -50,6 +53,10 @@ export const columns: ColumnDef<Supplier>[] = [
         ),
       },
       {
+        accessorKey: "contact_person",
+        header: "Contact Person",
+      },
+      {
         accessorKey: "address",
         header: "Address",
       },
@@ -61,4 +68,22 @@ export const columns: ColumnDef<Supplier>[] = [
         accessorKey: "email",
         header: "Email",
       },
+      {
+        accessorKey: "vat_num",
+        header: "Vat Number",
+      },
+      {
+        accessorKey: "status_id",
+        header: "Status",
+      },
+      {
+        id: "actions",
+        cell: ({ row }) => {
+          const supplier = row.original;
+          return <EditUserDialog user_id={supplier.user_id} onSuccess={(data) => {
+            console.log("Data", data)
+            onSuccess()
+          }} />;
+        },
+      }
 ]

@@ -70,37 +70,36 @@ export default function ProducList() {
 
   useEffect(() => {
     refreshData(); // Fetch initial data
-  }, []);
+  });
 
   if (error) return <p>{error}</p>;
 
   return (
     <>
-    <div className="w-full flex flex-row items-center justify-between pt-4 px-4">
-      <h1 className="font-bold">Products List</h1>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">Add User</Button>
-              </DialogTrigger>
-              <DialogContent className="w-auto">
-                <DialogHeader>
-                  <DialogTitle>Add New Product</DialogTitle>
-                </DialogHeader>
-                <AddProductForm
-                  onSuccess={(data) => {
-                    console.log("Columns", data);
-                    setOpen(false);
-                    refreshData();
-                  }}
-                />
-              </DialogContent>
-            </Dialog>
-          </div>
+      <div className="w-full flex flex-row items-center justify-between pt-4 px-4">
+        <h1 className="font-bold">Products List</h1>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline">Add User</Button>
+          </DialogTrigger>
+          <DialogContent className="w-auto">
+            <DialogHeader>
+              <DialogTitle>Add New Product</DialogTitle>
+            </DialogHeader>
+            <AddProductForm
+              onSuccess={(data) => {
+                console.log("Columns", data);
+                setOpen(false);
+                refreshData();
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
       {loading ? (
         <p className="text-center text-gray-500">Loading...</p>
       ) : (
         <>
-          
           <DataTable columns={tableColumns} data={data} />
         </>
       )}
