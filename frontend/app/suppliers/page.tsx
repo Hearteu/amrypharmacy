@@ -21,7 +21,7 @@ interface Suppliers {
   address: string;
   email: string;
   vat_num: string;
-  status_id: number;
+  status: string;
 }
 
 export default function SupplierList() {
@@ -48,7 +48,7 @@ export default function SupplierList() {
         address: supplier.address,
         email: supplier.email,
         vat_num: supplier.vat_num,
-        status_id: supplier.status_id,
+        status: supplier.status,
       }));
 
       return supplierData;
@@ -70,7 +70,7 @@ export default function SupplierList() {
 
   useEffect(() => {
     refreshData();
-  });
+  },[]);
     const tableColumns = columns(refreshData)
   
 
@@ -84,17 +84,19 @@ export default function SupplierList() {
               <DialogTrigger asChild>
                 <Button variant="outline">Add Suppliers</Button>
               </DialogTrigger>
-              <DialogContent className="w-auto">
+              <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>Add New Product</DialogTitle>
                 </DialogHeader>
-                {/* <AddSupplierForm
+
+                <AddSupplierForm 
                   onSuccess={(data) => {
                     console.log("Columns", data);
                     setOpen(false);
                     refreshData();
                   }}
-                ></AddSupplierForm> */}
+                ></AddSupplierForm>
+
               </DialogContent>
             </Dialog>
           </div>
