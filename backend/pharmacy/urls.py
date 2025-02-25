@@ -43,9 +43,12 @@ urlpatterns = [
     path(f"{name}/<int:unit_id>/", view.as_view(), name=f"edit-{name}-list") if name == "unit" else
     path(f"{name}/<int:category_id>/", view.as_view(), name=f"edit-{name}-list") if name == "product-categories" else
     path(f"{name}/<int:status_id>/", view.as_view(), name=f"edit-{name}-list") if name == "status" else
-    path(f"{name}/<int:supplier_id>/", view.as_view(), name=f"edit-{name}-list") if name == "supplier-items" else
+    path(f"{name}/<int:supplier_id>/", view.as_view(), name=f"get-{name}-list") if name == "supplier-items" else
     path(f"{name}/<int:{name[:-1].replace('-', '_')}_id>/", view.as_view(), name=f"edit-{name}-list")
     for name, view in resources
+] + [
+    # Explicitly define PUT route for supplier-items
+    path("supplier-items/edit/<int:supplier_item_id>/", SupplierItem.as_view(), name="edit-supplier-item"),
 ] + [
     path("login/", UserLoginView.as_view(), name="login"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),

@@ -17,22 +17,22 @@ class SupplierItem(APIView):
             )
 
             if supplier_id is not None:
-                query = query.eq("Supplier.supplier_id", supplier_id)
+                query = query.eq("supplier_id", supplier_id)
 
             response = query.execute()
 
-            if not response.data:
+            if not response.data or not isinstance(response.data, list):
                 return Response({"error": "No supplier items found"}, status=404)
 
-            # Process response for all items of the specific supplier
+            # Process response safely
             supplier_items = [
                 {
-                    "supplier_item_id": item["supplier_item_id"],
-                    "supplier_id": item["Supplier"]["supplier_id"],
-                    "supplier_name": item["Supplier"]["supplier_name"],
-                    "product_id": item["Products"]["product_id"],
-                    "product_name": item["Products"]["product_name"],
-                    "supplier_price": item["supplier_price"],
+                    "supplier_item_id": item.get("supplier_item_id"),
+                    "supplier_id": item.get("Supplier", {}).get("supplier_id"),
+                    "supplier_name": item.get("Supplier", {}).get("supplier_name"),
+                    "product_id": item.get("Products", {}).get("product_id"),
+                    "product_name": item.get("Products", {}).get("product_name"),
+                    "supplier_price": item.get("supplier_price"),
                 }
                 for item in response.data
             ]
@@ -41,55 +41,47 @@ class SupplierItem(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=500)
 
-
     def post(self, request):
         try:
             data = request.data
-
-            # Extract data
             supplier_id = data.get("supplier_id")
             product_id = data.get("product_id")
             supplier_price = data.get("supplier_price")
 
-            # Insert into Supplier_Item table
             response = supabase.table("Supplier_Item").insert({
                 "supplier_id": supplier_id,
                 "product_id": product_id,
                 "supplier_price": supplier_price
             }).execute()
 
-            if not response.data:
+            if not response.data or not isinstance(response.data, list):
                 return Response({"error": "Failed to add supplier item"}, status=400)
 
-            return Response({"message": "Supplier item added successfully", "supplier_item": response.data[0]}, status=201)
+            return Response({
+                "message": "Supplier item added successfully",
+                "supplier_item": response.data[0]
+            }, status=201)
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
 
-
-        
     def put(self, request, supplier_item_id=None):
         try:
-            data = request.data
-
             if supplier_item_id is None:
                 return Response({"error": "Supplier Item ID is required"}, status=400)
 
-            # Check if supplier item exists
+            data = request.data
             supplier_item_response = supabase.table("Supplier_Item").select("*").eq("supplier_item_id", supplier_item_id).execute()
 
-            if not supplier_item_response.data:
+            if not supplier_item_response.data or not isinstance(supplier_item_response.data, list):
                 return Response({"error": "Supplier item not found"}, status=404)
 
-            # Update Supplier_Item table
             update_data = {
                 "supplier_id": data.get("supplier_id"),
                 "product_id": data.get("product_id"),
                 "supplier_price": data.get("supplier_price"),
             }
-
-            # Remove None values (fields not included in the request)
-            update_data = {key: value for key, value in update_data.items() if value is not None}
+            update_data = {k: v for k, v in update_data.items() if v is not None}
 
             supabase.table("Supplier_Item").update(update_data).eq("supplier_item_id", supplier_item_id).execute()
 
@@ -98,26 +90,23 @@ class SupplierItem(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=500)
 
-
-        
     def delete(self, request, supplier_item_id=None):
         try:
             if supplier_item_id is None:
                 return Response({"error": "Supplier Item ID is required"}, status=400)
 
-            # Check if supplier item exists
             supplier_item_response = supabase.table("Supplier_Item").select("supplier_item_id").eq("supplier_item_id", supplier_item_id).execute()
 
-            if not supplier_item_response.data:
+            if not supplier_item_response.data or not isinstance(supplier_item_response.data, list):
                 return Response({"error": "Supplier item not found"}, status=404)
 
-            # Delete the supplier item
             supabase.table("Supplier_Item").delete().eq("supplier_item_id", supplier_item_id).execute()
 
             return Response({"message": "Supplier item deleted successfully"}, status=200)
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
 
     
     # SOFT DELETE
