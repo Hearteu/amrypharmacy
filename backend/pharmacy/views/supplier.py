@@ -81,7 +81,7 @@ class Supplier(APIView):
             supplier_response = supabase.table("Supplier").insert({
                 "supplier_name": data.get("supplier_name"),
                 "vat_num": data.get("vat_num"),
-                "status_id": data.get("status_id"),
+                "status_id": 1,
                 "person_id": person_id
             }).execute()
 

@@ -1,14 +1,21 @@
 "use client";
 
-<<<<<<< HEAD
-import axios, { AxiosResponse } from "axios";
-import { useEffect, useState } from "react";
-=======
+import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosResponse } from "axios";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { Button } from "../ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "../ui/command";
 import {
   Form,
   FormControl,
@@ -19,29 +26,12 @@ import {
 } from "../ui/form";
 import { Input } from "../ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { Button } from "../ui/button";
-import { Check, ChevronsUpDown } from "lucide-react";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "../ui/command";
-import { cn } from "@/lib/utils";
->>>>>>> origin/test-branch
 
 interface Suppliers {
   supplier_id: number;
   supplier_name: string;
-<<<<<<< HEAD
-  contact_person_first_name: string;
-  contact_person_last_name: string;
-=======
   first_name: string;
   last_name: string;
->>>>>>> origin/test-branch
   contact: string;
   email: string;
   address: string;
@@ -59,9 +49,6 @@ interface EditSupplierFormProps {
   onSuccess: (data: AxiosResponse) => void;
 }
 
-<<<<<<< HEAD
-export default function EditUserForm({
-=======
 const formSchema = z.object({
   supplier_name: z
     .string()
@@ -84,27 +71,18 @@ const formSchema = z.object({
 });
 
 export default function EditSupplierForm({
->>>>>>> origin/test-branch
   supplier_id,
   onSuccess,
 }: EditSupplierFormProps) {
   const [supplierData, setSupplierData] = useState<Suppliers | null>(null);
-<<<<<<< HEAD
-=======
   const [statusOpen, setStatusOpen] = useState(false);
->>>>>>> origin/test-branch
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       supplier_name: "",
-<<<<<<< HEAD
-      contact_person_first_name: "",
-      contact_person_last_name: "",
-=======
       first_name: "",
       last_name: "",
->>>>>>> origin/test-branch
       contact: "",
       email: "",
       address: "",
@@ -149,15 +127,6 @@ export default function EditSupplierForm({
     if (supplierData) {
       form.reset({
         supplier_name: supplierData.supplier_name || "",
-<<<<<<< HEAD
-        contact_person_first_name: supplierData.contact_person_first_name || "",
-        contact_person_last_name: supplierData.contact_person_last_name || "",
-        contact: supplierData.contact || "",
-        email: supplierData.email || "",
-        address: supplierData.address || "",
-        vat_num: supplierData.vat_num || "",
-        status_id: supplierData.status_id || "",
-=======
         first_name: supplierData.first_name || "",
         last_name: supplierData.last_name || "",
         contact: String(supplierData.contact) || "",
@@ -165,7 +134,6 @@ export default function EditSupplierForm({
         address: supplierData.address || "",
         vat_num: supplierData.vat_num || "",
         status_id: String(supplierData.status_id) || "",
->>>>>>> origin/test-branch
       });
 
       console.log("Form reset with supplier data:", supplierData);
@@ -173,26 +141,6 @@ export default function EditSupplierForm({
   }, [supplierData]);
 
   //Combo box for Status
-<<<<<<< HEAD
-  const [status, setStatus] = useState<Status[]>({});
-
-  const fetchStatus = async () => {
-    try {
-        const statusRes = await fetch("http://127.0.0.1:8000/pharmacy/status/");
-        const statusData: Status[] = await statusRes.json();
-        setStatus(statusData);
-      } catch (error) {
-        console.error("Error fetching brand data", error);
-      }
-  }
-
-  useEffect(() => {
-    fetchStatus();
-  }, [])
-
-  
-  return <></>;
-=======
   const [status, setStatus] = useState<Status[]>([]);
 
   const fetchStatus = async () => {
@@ -409,5 +357,4 @@ export default function EditSupplierForm({
       </Form>
     </>
   );
->>>>>>> origin/test-branch
 }

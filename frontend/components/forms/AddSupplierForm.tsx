@@ -1,7 +1,10 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosResponse } from "axios";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { Button } from "../ui/button";
 import {
   Form,
   FormControl,
@@ -10,19 +13,16 @@ import {
   FormLabel,
   FormMessage,
 } from "../ui/form";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "../ui/input";
-import { Button } from "../ui/button";
 
 const formSchema = z.object({
   supplier_name: z
     .string()
     .min(2, { message: "Supplier name must be at least 2 characters." }),
-  contact_person_first_name: z
+  first_name: z
     .string()
     .min(2, { message: "First name must be at least 2 characters." }),
-  contact_person_last_name: z
+  last_name: z
     .string()
     .min(2, { message: "Last name must be at least 2 characters." }),
   address: z
@@ -44,8 +44,8 @@ export default function AddSupplierForm({ onSuccess }: AddSupplierFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       supplier_name: "",
-      contact_person_first_name: "",
-      contact_person_last_name: "",
+      first_name: "",
+      last_name: "",
       address: "",
       contact: "",
       email: "",
@@ -59,10 +59,7 @@ export default function AddSupplierForm({ onSuccess }: AddSupplierFormProps) {
         values
       );
       console.log("Supplier added", response);
-<<<<<<< HEAD
-=======
       onSuccess(response);
->>>>>>> origin/test-branch
     } catch (error) {
       console.error(error);
 
@@ -74,10 +71,6 @@ export default function AddSupplierForm({ onSuccess }: AddSupplierFormProps) {
 
   return (
     <>
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/test-branch
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
@@ -96,7 +89,7 @@ export default function AddSupplierForm({ onSuccess }: AddSupplierFormProps) {
 
           <FormField
             control={form.control}
-            name="contact_person_first_name"
+            name="first_name"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Contact Person First Name:</FormLabel>
@@ -113,7 +106,7 @@ export default function AddSupplierForm({ onSuccess }: AddSupplierFormProps) {
 
           <FormField
             control={form.control}
-            name="contact_person_last_name"
+            name="last_name"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Contact Person Last Name:</FormLabel>
@@ -189,12 +182,6 @@ export default function AddSupplierForm({ onSuccess }: AddSupplierFormProps) {
           </div>
         </form>
       </Form>
-<<<<<<< HEAD
-    </>
-  );
-}
-=======
       </>
   );
 }
->>>>>>> origin/test-branch
