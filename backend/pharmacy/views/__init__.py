@@ -18,6 +18,7 @@ from .receipt import Receipt
 from .status import Status
 from .stock_transfer import StockTransfer
 from .supplier import Supplier
+from .supplier_item import SupplierItem
 from .unit import Unit
 from .user_role import UserRole
 from .user_views import UserList, UserLoginView

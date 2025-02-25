@@ -5,7 +5,7 @@ from .views import (Branch, Brand, Customers, CustomerType, DisposedItems,
                     Drugs, DswdOrder, Expiration, Inventory, Order, PersonList,
                     Prescription, PriceHistory, ProductCategory, Products,
                     PurchaseOrder, Receipt, Status, StockTransfer, Supplier,
-                    Unit, UserList, UserLoginView, UserRole)
+                    SupplierItem, Unit, UserList, UserLoginView, UserRole)
 
 # Define resources with their corresponding view classes
 resources = [
@@ -31,7 +31,8 @@ resources = [
     ("unit", Unit),
     ("price-histories", PriceHistory),
     ("drugs", Drugs),
-    ("status", Status)
+    ("status", Status),
+    ("supplier-items", SupplierItem)
 ]
 
 # Generate urlpatterns dynamically
