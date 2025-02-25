@@ -12,12 +12,12 @@ class SupplierItem(APIView):
         try:
             query = supabase.table("Supplier_Item").select(
                 "supplier_item_id, supplier_price, "
-                "supplier_id, supplier_id (supplier_name), "
-                "product_id, product_id (product_name)"
+                "Supplier (supplier_id, supplier_name), "
+                "Products (product_id, product_name)"
             )
 
             if supplier_id is not None:
-                query = query.eq("supplier_id", supplier_id)
+                query = query.eq("Supplier.supplier_id", supplier_id)
 
             response = query.execute()
 
@@ -28,10 +28,10 @@ class SupplierItem(APIView):
             supplier_items = [
                 {
                     "supplier_item_id": item["supplier_item_id"],
-                    "supplier_id": item["supplier_id"],  # Keeping supplier_id for reference
-                    "supplier_name": item["supplier_id"]["supplier_name"],
-                    "product_id": item["product_id"],  # Keeping product_id for reference
-                    "product_name": item["product_id"]["product_name"],
+                    "supplier_id": item["Supplier"]["supplier_id"],
+                    "supplier_name": item["Supplier"]["supplier_name"],
+                    "product_id": item["Products"]["product_id"],
+                    "product_name": item["Products"]["product_name"],
                     "supplier_price": item["supplier_price"],
                 }
                 for item in response.data

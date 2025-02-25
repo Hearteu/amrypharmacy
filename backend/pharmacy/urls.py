@@ -43,6 +43,7 @@ urlpatterns = [
     path(f"{name}/<int:unit_id>/", view.as_view(), name=f"edit-{name}-list") if name == "unit" else
     path(f"{name}/<int:category_id>/", view.as_view(), name=f"edit-{name}-list") if name == "product-categories" else
     path(f"{name}/<int:status_id>/", view.as_view(), name=f"edit-{name}-list") if name == "status" else
+    path(f"{name}/<int:supplier_id>/", view.as_view(), name=f"edit-{name}-list") if name == "supplier-items" else
     path(f"{name}/<int:{name[:-1].replace('-', '_')}_id>/", view.as_view(), name=f"edit-{name}-list")
     for name, view in resources
 ] + [
