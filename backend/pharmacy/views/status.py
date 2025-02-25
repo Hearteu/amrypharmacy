@@ -56,4 +56,8 @@ class Status(APIView):
             else:
                 return Response({"error": "Status not found or deletion failed"}, status=400)
         except Exception as e:
+<<<<<<< HEAD
             return Response({"error": str(e)}, status=400)
+=======
+            return Response({"error": str(e)}, status=400)
+>>>>>>> origin/test-branch

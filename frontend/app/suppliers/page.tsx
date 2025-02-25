@@ -21,7 +21,11 @@ interface Suppliers {
   address: string;
   email: string;
   vat_num: string;
+<<<<<<< HEAD
   status_id: number;
+=======
+  status: string;
+>>>>>>> origin/test-branch
 }
 
 export default function SupplierList() {
@@ -48,7 +52,11 @@ export default function SupplierList() {
         address: supplier.address,
         email: supplier.email,
         vat_num: supplier.vat_num,
+<<<<<<< HEAD
         status_id: supplier.status_id,
+=======
+        status: supplier.status,
+>>>>>>> origin/test-branch
       }));
 
       return supplierData;
@@ -70,7 +78,11 @@ export default function SupplierList() {
 
   useEffect(() => {
     refreshData();
+<<<<<<< HEAD
   });
+=======
+  },[]);
+>>>>>>> origin/test-branch
     const tableColumns = columns(refreshData)
   
 
@@ -84,21 +96,38 @@ export default function SupplierList() {
               <DialogTrigger asChild>
                 <Button variant="outline">Add Suppliers</Button>
               </DialogTrigger>
+<<<<<<< HEAD
               <DialogContent className="w-auto">
                 <DialogHeader>
                   <DialogTitle>Add New Product</DialogTitle>
                 </DialogHeader>
                 <AddSupplierForm
+=======
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Product</DialogTitle>
+                </DialogHeader>
+
+                <AddSupplierForm 
+>>>>>>> origin/test-branch
                   onSuccess={(data) => {
                     console.log("Columns", data);
                     setOpen(false);
                     refreshData();
                   }}
                 ></AddSupplierForm>
+<<<<<<< HEAD
               </DialogContent>
             </Dialog>
           </div>
           <DataTable columns={columns} data={supplierData} />
+=======
+
+              </DialogContent>
+            </Dialog>
+          </div>
+          <DataTable columns={tableColumns} data={supplierData} />
+>>>>>>> origin/test-branch
         </div>
       </div>
     </>

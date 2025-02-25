@@ -59,6 +59,10 @@ export default function AddSupplierForm({ onSuccess }: AddSupplierFormProps) {
         values
       );
       console.log("Supplier added", response);
+<<<<<<< HEAD
+=======
+      onSuccess(response);
+>>>>>>> origin/test-branch
     } catch (error) {
       console.error(error);
 
@@ -70,6 +74,10 @@ export default function AddSupplierForm({ onSuccess }: AddSupplierFormProps) {
 
   return (
     <>
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/test-branch
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
@@ -181,6 +189,12 @@ export default function AddSupplierForm({ onSuccess }: AddSupplierFormProps) {
           </div>
         </form>
       </Form>
+<<<<<<< HEAD
     </>
   );
 }
+=======
+      </>
+  );
+}
+>>>>>>> origin/test-branch
