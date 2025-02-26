@@ -15,29 +15,23 @@ import {
 } from "@/components/ui/dialog";
 import { ArrowUpDown } from "lucide-react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
-interface Suppliers {
-  supplier_id: number;
-  supplier_name: string;
-  contact_person: string;
-  contact: string;
-  address: string;
-  email: string;
-  vat_num: string;
-  status: string;
+interface AssignedItems {
+    supplier_item_id: number;
+    product_name: string
+    supplier_price: string;
 }
 
-interface EditProductDialogProps {
-  supplier_id: number;
+interface EditAssignedItemsProps {
+  supplier_item_id: number;
   onSuccess: () => void;
 }
 
 
 const EditSupplierDialog = ({
-  supplier_id,
-  onSuccess,
-}: EditProductDialogProps) => {
+    supplier_item_id,
+    onSuccess,
+}: EditAssignedItemsProps) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -53,32 +47,20 @@ const EditSupplierDialog = ({
               Update the supplier&apos;s information
             </DialogDescription>
           </DialogHeader>
-          <EditSupplierForm
-            supplier_id={supplier_id}
+          {/* <EditSupplierForm
+            supplier_item_id={supplier_item_id}
             onSuccess={(data) => {
               onSuccess();
               console.log("From the columns component", data);
             }}
-          />
+          /> */}
         </DialogContent>
       </Dialog>
     </>
   );
 };
 
-const AssignItemButton = ({ supplierId }: { supplierId: string }) => {
-  const router = useRouter(); // ✅ Use Next.js router instead of useNavigate()
-
-  return (
-    <>
-<Button onClick={() => router.push(`/assigned-items/${supplierId}`)}>
-Assign an Item
-      </Button>
-    </>
-  );
-};
-
-export const columns: (onSuccess: () => void) => ColumnDef<Suppliers>[] = (
+export const columns: (onSuccess: () => void) => ColumnDef<AssignedItems>[] = (
   onSuccess
 ) => [
   {
@@ -104,7 +86,7 @@ export const columns: (onSuccess: () => void) => ColumnDef<Suppliers>[] = (
     enableHiding: false,
   },
   {
-    accessorKey: "supplier_name",
+    accessorKey: "product_name",
     header: ({ column }) => (
       <Button
         variant="ghost"
@@ -116,43 +98,18 @@ export const columns: (onSuccess: () => void) => ColumnDef<Suppliers>[] = (
     ),
   },
   {
-    accessorKey: "contact_person",
-    header: "Contact Person",
-  },
-  {
-    accessorKey: "address",
-    header: "Address",
-  },
-  {
-    accessorKey: "contact",
-    header: "Contact No.",
-  },
-  {
-    accessorKey: "email",
-    header: "Email",
-  },
-  {
-    accessorKey: "vat_num",
-    header: "Vat Number",
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
+    accessorKey: "supplier_price",
+    header: "Supplier Price",
   },
   {
     id: "actions",
     cell: ({ row }) => {
-      const supplier = row.original;
+      const supplier_item = row.original;
       return (
         <>
           <div className="flex gap-2">
-            <EditSupplierDialog
-              supplier_id={supplier.supplier_id}
-              onSuccess={() => {
-                onSuccess();
-              }}
-            ></EditSupplierDialog>
-            <AssignItemButton supplierId={supplier.supplier_id.toString()} />;
+            
+            
           </div>
         </>
       );
