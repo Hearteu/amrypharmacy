@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { ArrowUpDown } from "lucide-react";
 import { useState } from "react";
+import EditSupplierPriceForm from "@/components/forms/EditSupplierPriceForm";
 
 interface AssignedItems {
     supplier_item_id: number;
@@ -28,7 +29,7 @@ interface EditAssignedItemsProps {
 }
 
 
-const EditSupplierDialog = ({
+const EditSupplierPriceDialog = ({
     supplier_item_id,
     onSuccess,
 }: EditAssignedItemsProps) => {
@@ -38,7 +39,7 @@ const EditSupplierDialog = ({
     <>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button>Edit</Button>
+          <Button>Edit Price</Button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
@@ -47,13 +48,13 @@ const EditSupplierDialog = ({
               Update the supplier&apos;s information
             </DialogDescription>
           </DialogHeader>
-          {/* <EditSupplierForm
+          <EditSupplierPriceForm
             supplier_item_id={supplier_item_id}
             onSuccess={(data) => {
               onSuccess();
               console.log("From the columns component", data);
             }}
-          /> */}
+          ></EditSupplierPriceForm>
         </DialogContent>
       </Dialog>
     </>
@@ -108,7 +109,12 @@ export const columns: (onSuccess: () => void) => ColumnDef<AssignedItems>[] = (
       return (
         <>
           <div className="flex gap-2">
-            
+            <EditSupplierPriceDialog 
+            supplier_item_id={supplier_item.supplier_item_id}
+            onSuccess={() => {
+                onSuccess();
+              }}
+            ></EditSupplierPriceDialog>
             
           </div>
         </>
