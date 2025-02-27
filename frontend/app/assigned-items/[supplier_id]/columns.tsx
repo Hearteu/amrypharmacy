@@ -1,6 +1,5 @@
 "use client";
 
-import EditSupplierForm from "@/components/forms/EditSupplierForm";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ColumnDef } from "@tanstack/react-table";
@@ -28,7 +27,7 @@ interface EditAssignedItemsProps {
   onSuccess: () => void;
 }
 
-
+ 
 const EditSupplierPriceDialog = ({
     supplier_item_id,
     onSuccess,

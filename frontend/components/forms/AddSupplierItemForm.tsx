@@ -114,7 +114,7 @@ export default function AddSupplierItemForm({
           <FormField
             control={form.control}
             name="supplier_id"
-            render={({ field }) => (
+            render={({ }) => (
               <FormItem>
                 <FormLabel>Supplier</FormLabel>
                 <FormControl>
