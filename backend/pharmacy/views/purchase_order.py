@@ -1,5 +1,8 @@
 # views.py
 
+import re
+from datetime import datetime
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -14,11 +17,12 @@ class PurchaseOrder(APIView):
         """Retrieve all purchase orders or a single purchase order by ID with lineItems"""
         try:
             query = supabase.table("Purchase_Order").select(
-                "purchase_order_id, order_date, expected_delivery_date, "
+                "purchase_order_id, custom_po_id, order_date, expected_delivery_date, "
                 "purchase_order_status_id, notes, "
-                "Purchase_Order_Item (purchase_order_item_id, supplier_item_id, ordered_quantity, purchase_order_item_status_id, "
+                "Purchase_Order_Item (purchase_order_item_id, custom_poi_id, supplier_item_id, ordered_quantity, purchase_order_item_status_id, "
                 "Purchase_Order_Item_Status (purchase_order_item_status_id, po_item_status), "
-                "Supplier_Item (product_id, supplier_price, Products (product_id, product_name, unit_id, Drugs (dosage_form, dosage_strength)), "
+                "Supplier_Item (product_id, supplier_price, Products (product_id, product_name, unit_id, "
+                "Drugs (dosage_form, dosage_strength)), "
                 "Supplier (supplier_id, supplier_name)))"
             )
 
@@ -35,13 +39,14 @@ class PurchaseOrder(APIView):
             formatted_orders = []
             for order in purchase_orders:
                 # Get supplier details from the first lineItem (assuming all items belong to the same supplier)
-                first_item = order.get("Purchase_Order_Item", [{}])[0]
-                supplier = first_item.get("Supplier_Item", {}).get("Supplier", {})
+                purchase_order_items = order.get("Purchase_Order_Item", [])
+                supplier = purchase_order_items[0].get("Supplier_Item", {}).get("Supplier", {}) if purchase_order_items else {}
 
                 formatted_order = {
-                    "purchase_order_id": order["purchase_order_id"],
-                    "supplier_id": supplier.get("supplier_id"),  
-                    "supplier_name": supplier.get("supplier_name"),  
+                    "purchase_order_id": order["purchase_order_id"],  # Keep original ID
+                    "custom_po_id": order.get("custom_po_id", ""),  # Include the formatted ID
+                    "supplier_id": supplier.get("supplier_id"),
+                    "supplier_name": supplier.get("supplier_name"),
                     "order_date": order["order_date"],
                     "expected_delivery_date": order["expected_delivery_date"],
                     "purchase_order_status_id": order["purchase_order_status_id"],
@@ -49,31 +54,150 @@ class PurchaseOrder(APIView):
                     "lineItems": []
                 }
 
-                if "Purchase_Order_Item" in order and isinstance(order["Purchase_Order_Item"], list):
-                    for item in order["Purchase_Order_Item"]:
-                        supplier_item = item.get("Supplier_Item", {})  
-                        product = supplier_item.get("Products", {})  # FIX: Changed `Product` to `Products`
-                        drugs = product.get("Drugs", {})  
+                for item in purchase_order_items:
+                    supplier_item = item.get("Supplier_Item", {})
+                    product = supplier_item.get("Products", {})
+                    drugs = product.get("Drugs", {})
 
-                        # If the product is a drug, append its dosage details to the product name
-                        dosage_info = f" {drugs['dosage_form']} {drugs['dosage_strength']}" if drugs else ""
-                        product_name = f"{product.get('product_name', '')}{dosage_info}"
+                    # If the product is a drug, append its dosage details to the product name
+                    dosage_info = f" {drugs['dosage_form']} {drugs['dosage_strength']}" if drugs else ""
+                    product_name = f"{product.get('product_name', '')}{dosage_info}"
 
-                        formatted_order["lineItems"].append({
-                            "product_id": product.get("product_id"),  # FIX: From `Products`
-                            "product_name": product_name,
-                            "unit_id": product.get("unit_id"),  # FIX: From `Products`
-                            "ordered_quantity": item["ordered_quantity"],
-                            "supplier_price": supplier_item.get("supplier_price"),
-                            "purchase_order_item_status_id": item.get("purchase_order_item_status_id"),
-                            "po_item_status": item.get("Purchase_Order_Item_Status", {}).get("po_item_status", "Unknown")  
-                        })
+                    formatted_order["lineItems"].append({
+                        "purchase_order_item_id": item["purchase_order_item_id"],
+                        "custom_poi_id": item.get("custom_poi_id", ""),  # ✅ Include custom_poi_id
+                        "product_id": product.get("product_id"),
+                        "product_name": product_name,
+                        "unit_id": product.get("unit_id"),
+                        "ordered_quantity": item["ordered_quantity"],
+                        "supplier_price": supplier_item.get("supplier_price"),
+                        "purchase_order_item_status_id": item.get("purchase_order_item_status_id"),
+                        "po_item_status": item.get("Purchase_Order_Item_Status", {}).get("po_item_status", "Unknown")
+                    })
 
                 formatted_orders.append(formatted_order)
 
             return Response(formatted_orders if purchase_order_id is None else formatted_orders[0], status=200)
 
         except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
+
+    def post(self, request):
+        """Create a new Purchase Order with line items"""
+        try:
+            data = request.data
+            print(f"🟢 Received request data: {data}")  # Debugging input
+
+            # Get the current year
+            current_year = datetime.now().year
+
+            # Fetch the latest custom_po_id for the current year
+            latest_order_query = supabase.table("Purchase_Order").select("custom_po_id") \
+                .like("custom_po_id", f"PO-{current_year}-%") \
+                .order("custom_po_id", desc=True) \
+                .limit(1) \
+                .execute()
+
+            # Determine the next sequence number for purchase_order_id
+            if latest_order_query.data:
+                latest_order_id = latest_order_query.data[0]["custom_po_id"]
+                last_number = int(latest_order_id.split("-")[-1])  # Extract last number
+                next_number = f"{last_number + 1:03d}"  # Increment and format as 3 digits
+            else:
+                next_number = "001"  # Start with 001 if no previous orders exist
+
+            # Generate the new custom_po_id
+            custom_po_id = f"PO-{current_year}-{next_number}"
+            purchase_order_suffix = custom_po_id.split("-")[-1]
+
+            order_date = datetime.fromisoformat(data["order_date"]).strftime("%Y-%m-%d")
+            expected_delivery_date = datetime.fromisoformat(data["expected_delivery_date"]).strftime("%Y-%m-%d")
+
+            # ✅ Insert into Purchase_Order **WITHOUT supplier_id**
+            order_insert = supabase.table("Purchase_Order").insert({
+                "custom_po_id": custom_po_id,
+                "order_date": order_date,
+                "expected_delivery_date": expected_delivery_date,
+                "purchase_order_status_id": 1,
+                "notes": data.get("notes", None)
+            }).execute()
+
+            if hasattr(order_insert, "error") and order_insert.error:
+                print(f"❌ Error inserting Purchase Order: {order_insert.error}")
+                return Response({"error": str(order_insert.error)}, status=500)
+
+
+            purchase_order_id = order_insert.data[0]["purchase_order_id"]
+            print(f"🟢 Purchase Order Created: ID={purchase_order_id}, Custom PO ID={custom_po_id}")  # Debugging
+
+            supplier_id = data["supplier_id"]  # ✅ Just for querying Supplier_Item
+            print(f"🟢 Supplier ID: {supplier_id}")  # Debugging
+
+            # ✅ Insert line items
+            purchase_order_items = []
+            for item in data["lineItems"]:
+                print(f"🔹 Processing Line Item: {item}")  # Debugging
+
+                supplier_item_query = supabase.table("Supplier_Item").select(
+                    "supplier_item_id, supplier_price"
+                ).eq("product_id", item["product_id"]).eq("supplier_id", supplier_id).single().execute()
+
+                if hasattr(supplier_item_query, "error") and supplier_item_query.error:
+                    print(f"❌ Error fetching Supplier_Item: {supplier_item_query.error}")  # Debugging
+                    continue
+
+                if not supplier_item_query.data:
+                    print(f"⚠️ No Supplier_Item found for product_id {item['product_id']} and supplier_id {supplier_id}")
+                    continue
+
+
+                supplier_item = supplier_item_query.data
+                print(f"🟢 Found Supplier_Item: {supplier_item}")  # Debugging
+
+                latest_item_query = supabase.table("Purchase_Order_Item").select("custom_poi_id") \
+                    .like("custom_poi_id", f"POI-{purchase_order_suffix}-%") \
+                    .order("custom_poi_id", desc=True) \
+                    .limit(1) \
+                    .execute()
+
+                if latest_item_query.data:
+                    latest_poi_id = latest_item_query.data[0]["custom_poi_id"]
+                    last_poi_match = re.search(r"-(\d+)$", latest_poi_id)
+                    last_poi_number = int(last_poi_match.group(1)) if last_poi_match else 0
+                    next_poi_number = f"{last_poi_number + 1:02d}"
+                else:
+                    next_poi_number = "01"
+
+                custom_poi_id = f"POI-{purchase_order_suffix}-{next_poi_number}"
+
+                purchase_order_items.append({
+                    "custom_poi_id": custom_poi_id,
+                    "purchase_order_id": purchase_order_id,
+                    "supplier_item_id": supplier_item["supplier_item_id"],
+                    "ordered_quantity": item["ordered_quantity"],
+                    "unit_id": item["unit_id"],
+                    "purchase_order_item_status_id": 1,
+                })
+
+            print(f"🟢 Total Line Items to Insert: {len(purchase_order_items)}")  # Debugging
+
+            if purchase_order_items:
+                item_insert = supabase.table("Purchase_Order_Item").insert(purchase_order_items).execute()
+
+                # Check if item_insert has errors properly
+                if hasattr(item_insert, "get") and item_insert.get("error"):
+                    print(f"❌ Error inserting Purchase Order Items: {item_insert.get('error')}")
+                    return Response({"error": str(item_insert.get('error'))}, status=500)
+
+                # ✅ Debugging success
+                print(f"🟢 Successfully inserted {len(purchase_order_items)} items into Purchase_Order_Item.")
+
+                return Response({"message": "Purchase Order created successfully", "custom_po_id": custom_po_id}, status=201)
+
+
+        except Exception as e:
+            print(f"❌ Exception: {str(e)}")  # Debugging
             return Response({"error": str(e)}, status=500)
 
 

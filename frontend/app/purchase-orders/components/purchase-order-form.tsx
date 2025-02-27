@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { CalendarIcon, Plus, Trash2 } from "lucide-react";
-import { useRouter } from "next/router";
+import router from "next/router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -160,16 +160,22 @@ export default function PurchaseOrderForm({
   async function onSubmit(data: FormValues) {
     setIsSubmitting(true);
     console.log("Submitted Data:", data);
-
-    // Replace with actual API call
+  
+    // Convert dates to YYYY-MM-DD format
+    const formattedData = {
+      ...data,
+      order_date: format(data.order_date, "yyyy-MM-dd"),
+      expected_delivery_date: format(data.expected_delivery_date, "yyyy-MM-dd"),
+    };
+  
     try {
       await fetch("http://127.0.0.1:8000/pharmacy/purchase-orders/", {
         method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(formattedData),
       });
-
-      //   router.push("/purchase-orders");
+      console.log(JSON.stringify(formattedData));
+      // router.push("/purchase-orders");
     } catch (error) {
       console.error("Error submitting form:", error);
     } finally {
@@ -442,51 +448,51 @@ export default function PurchaseOrderForm({
 
                   <div className="col-span-3">
                   <FormField
-                      control={form.control}
-                      name={`lineItems.${index}.unit_id`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Unit</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  role="combobox"
-                                  className={cn("justify-between w-full", !field.value && "text-muted-foreground")}
-                                >
-                                  {field.value
-                                    ? units.find((unit) => unit.unit_id.toString() === field.value)?.unit
-                                    : "Select unit"}
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="p-0">
-                              <Command>
-                                <CommandInput placeholder="Search products..." />
-                                <CommandList>
-                                  <CommandEmpty>No unit found.</CommandEmpty>
-                                  <CommandGroup>
-                                    {units.map((unit) => (
-                                      <CommandItem
-                                        key={unit.unit_id}
-                                        value={unit.unit}
-                                        onSelect={() => {
-                                          selectProduct(index, unit.unit_id.toString())
-                                        }}
-                                      >
-                                        {unit.unit}
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                </CommandList>
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    control={form.control}
+                    name={`lineItems.${index}.unit_id`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Unit</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={cn("justify-between w-full", !field.value && "text-muted-foreground")}
+                              >
+                                {field.value
+                                  ? units.find((unit) => unit.unit_id.toString() === field.value)?.unit
+                                  : "Select unit"}
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="p-0">
+                            <Command>
+                              <CommandInput placeholder="Search units..." />
+                              <CommandList>
+                                <CommandEmpty>No unit found.</CommandEmpty>
+                                <CommandGroup>
+                                  {units.map((unit) => (
+                                    <CommandItem
+                                      key={unit.unit_id}
+                                      value={unit.unit}
+                                      onSelect={() => {
+                                        form.setValue(`lineItems.${index}.unit_id`, unit.unit_id.toString());
+                                      }}
+                                    >
+                                      {unit.unit}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   </div>
 
                   <div className="col-span-1">
