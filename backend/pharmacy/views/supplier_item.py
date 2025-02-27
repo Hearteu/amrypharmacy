@@ -13,7 +13,7 @@ class SupplierItem(APIView):
             query = supabase.table("Supplier_Item").select(
                 "supplier_item_id, supplier_price, "
                 "Supplier (supplier_id, supplier_name), "
-                "Products (product_id, product_name)"
+                "Products (product_id, product_name, unit_id, Drugs (dosage_form, dosage_strength))"
             )
 
             if supplier_id is not None:
@@ -25,21 +25,36 @@ class SupplierItem(APIView):
                 return Response({"error": "No supplier items found"}, status=404)
 
             # Process response safely
-            supplier_items = [
-                {
+            supplier_items = []
+            for item in response.data:
+                product_name = item.get("Products", {}).get("product_name", "")
+
+                # Check if the product has drug details
+                if item.get("Products") and item["Products"].get("Drugs"):
+                    dosage_form = item["Products"]["Drugs"].get("dosage_form", "")
+                    dosage_strength = item["Products"]["Drugs"].get("dosage_strength", "")
+
+                    # Concatenate dosage_form and dosage_strength if they exist
+                    if dosage_form or dosage_strength:
+                        product_name += f" {dosage_form} {dosage_strength}"
+
+                supplier_item = {
                     "supplier_item_id": item.get("supplier_item_id"),
                     "supplier_id": item.get("Supplier", {}).get("supplier_id"),
                     "supplier_name": item.get("Supplier", {}).get("supplier_name"),
                     "product_id": item.get("Products", {}).get("product_id"),
-                    "product_name": item.get("Products", {}).get("product_name"),
+                    "product_name": product_name,  # Updated with concatenated values
+                    "unit_id": item.get("Products", {}).get("unit_id"),
                     "supplier_price": item.get("supplier_price"),
                 }
-                for item in response.data
-            ]
+
+                supplier_items.append(supplier_item)
+
             return Response(supplier_items, status=200)
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
 
     def post(self, request):
         try:
