@@ -4,8 +4,10 @@ from rest_framework_simplejwt.views import TokenRefreshView  # type: ignore
 from .views import (Branch, Brand, Customers, CustomerType, DisposedItems,
                     Drugs, DswdOrder, Expiration, Inventory, Order, PersonList,
                     Prescription, PriceHistory, ProductCategory, Products,
-                    PurchaseOrder, Receipt, Status, StockTransfer, Supplier,
-                    SupplierItem, Unit, UserList, UserLoginView, UserRole)
+                    Purchase_Order_Item_Status, PurchaseOrder,
+                    PurchaseOrderStatus, Receipt, Status, StockTransfer,
+                    Supplier, SupplierItem, Unit, UserList, UserLoginView,
+                    UserRole)
 
 # Define resources with their corresponding view classes
 resources = [
@@ -32,7 +34,9 @@ resources = [
     ("price-histories", PriceHistory),
     ("drugs", Drugs),
     ("status", Status),
-    ("supplier-items", SupplierItem)
+    ("supplier-items", SupplierItem),
+    ("purchase-order-status", PurchaseOrderStatus),
+    ("purchase-order-item-status", Purchase_Order_Item_Status),
 ]
 
 # Generate urlpatterns dynamically
@@ -44,6 +48,8 @@ urlpatterns = [
     path(f"{name}/<int:category_id>/", view.as_view(), name=f"edit-{name}-list") if name == "product-categories" else
     path(f"{name}/<int:status_id>/", view.as_view(), name=f"edit-{name}-list") if name == "status" else
     path(f"{name}/<int:supplier_id>/", view.as_view(), name=f"get-{name}-list") if name == "supplier-items" else
+    path(f"{name}/<int:purchase_order_status_id>/", view.as_view(), name=f"get-{name}-list") if name == "purchase-order-status" else
+    path(f"{name}/<int:purchase_order_item_status_id>/", view.as_view(), name=f"get-{name}-list") if name == "purchase-order-item-status" else
     path(f"{name}/<int:{name[:-1].replace('-', '_')}_id>/", view.as_view(), name=f"edit-{name}-list")
     for name, view in resources
 ] + [
