@@ -74,14 +74,16 @@ export default function AssignedItemsPage({
   return (
     <>
       <div className="p-4">
-      <div className="flex flex-row justify-between">
-      <h2 className="text-2xl font-semibold text-gray-700">
-        Items Provided by Supplier:{" "}
-        {supplierItemData[0]?.supplier_name || "Loading..."}
-
-        
-      </h2>
-      <Dialog open={open} onOpenChange={setOpen}>
+        <div className="container mx-auto py-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                Items Provided by Supplier:{" "}
+                {supplierItemData[0]?.supplier_name || "Loading..."}
+              </h1>
+              <p className="text-muted-foreground">Assign items to this supplier and manage their product offerings.</p>
+            </div>
+            <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline">Assign an Item</Button>
               </DialogTrigger>
@@ -90,19 +92,26 @@ export default function AssignedItemsPage({
                   <DialogTitle>Add New Product</DialogTitle>
                 </DialogHeader>
 
-               <AddSupplierItemForm 
-               supplier_id={parseInt(params.supplier_id)}
-               onSuccess={(data) => {
-                console.log("Columns", data);
-                setOpen(false);
-                refreshData();
-              }}></AddSupplierItemForm>
-
+                <AddSupplierItemForm
+                  supplier_id={parseInt(params.supplier_id)}
+                  onSuccess={(data) => {
+                    console.log("Columns", data);
+                    setOpen(false);
+                    refreshData();
+                  }}
+                ></AddSupplierItemForm>
               </DialogContent>
             </Dialog>
-            </div>
-      <DataTable columns={tableColumns} data={supplierItemData} />
+          </div>
+          {loading ? (
+            <p className="text-center text-gray-500">Loading...</p>
+          ) : (
+            <>
+              <DataTable columns={tableColumns} data={supplierItemData} />
+            </>
+          )}
         </div>
+      </div>
     </>
   );
 }

@@ -67,7 +67,7 @@ export function DataTable<TData, TValue>({
   return (
     <div>
       {/* Search */}
-      <div className="flex items-center pt-4 mx-4">
+      <div className="flex items-center">
         <Input
           placeholder="Search Product..."
           value={(table.getColumn("full_product_name")?.getFilterValue() as string) ?? ""}
@@ -79,7 +79,7 @@ export function DataTable<TData, TValue>({
         <DataTableViewOptions table={table}/>
       </div>
       {/* Table */}
-      <div className="rounded-md border m-4">
+      <div className="rounded-md border my-4">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

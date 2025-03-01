@@ -13,6 +13,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import AddProductForm from "@/components/forms/AddProductForm";
+import { PlusCircle } from "lucide-react";
 
 interface Products {
   product_id: number;
@@ -76,33 +77,47 @@ export default function ProducList() {
 
   return (
     <>
-      <div className="w-full flex flex-row items-center justify-between pt-4 px-4">
-        <h1 className="font-bold">Products List</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline">Add User</Button>
-          </DialogTrigger>
-          <DialogContent className="w-auto">
-            <DialogHeader>
-              <DialogTitle>Add New Product</DialogTitle>
-            </DialogHeader>
-            <AddProductForm
-              onSuccess={(data) => {
-                console.log("Columns", data);
-                setOpen(false);
-                refreshData();
-              }}
-            />
-          </DialogContent>
-        </Dialog>
+      <div className="p-4">
+        <div className="container mx-auto py-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                Product List
+              </h1>
+              <p className="text-muted-foreground">
+                View, manage, edit, and delete products in your inventory.
+              </p>
+            </div>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary text-white hover:bg-primary/90">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add New Product
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="w-auto">
+                <DialogHeader>
+                  <DialogTitle>Add New Product</DialogTitle>
+                </DialogHeader>
+                <AddProductForm
+                  onSuccess={(data) => {
+                    console.log("Columns", data);
+                    setOpen(false);
+                    refreshData();
+                  }}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
+          {loading ? (
+            <p className="text-center text-gray-500">Loading...</p>
+          ) : (
+            <>
+              <DataTable columns={tableColumns} data={data} />
+            </>
+          )}
+        </div>
       </div>
-      {loading ? (
-        <p className="text-center text-gray-500">Loading...</p>
-      ) : (
-        <>
-          <DataTable columns={tableColumns} data={data} />
-        </>
-      )}
     </>
   );
 }

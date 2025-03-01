@@ -12,6 +12,7 @@ import {
 import { useEffect, useState } from "react";
 import { columns } from "./columns";
 import { DataTable } from "./data-table";
+import { PlusCircle } from "lucide-react";
 
 interface Suppliers {
   supplier_id: number;
@@ -72,37 +73,52 @@ export default function SupplierList() {
 
   useEffect(() => {
     refreshData();
-  },[]);
-    const tableColumns = columns(refreshData)
-  
+  }, []);
+  const tableColumns = columns(refreshData);
 
   return (
     <>
       <div className="p-4">
-        <div id="" className="min-h-screen w-full pt-8 pr-4">
-          <div className="flex flex-row justify-between">
-            <h2 className="text-xl font-semibold p-4">Suppliers</h2>
+        <div className="container mx-auto py-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                Supplier List
+              </h1>
+              <p className="text-muted-foreground">
+                Keep track of your suppliers and manage their information
+                efficiently.
+              </p>
+            </div>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline">Add Suppliers</Button>
+                <Button className="bg-primary text-white hover:bg-primary/90">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add New Supplier
+                </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>Add New Product</DialogTitle>
                 </DialogHeader>
 
-                <AddSupplierForm 
+                <AddSupplierForm
                   onSuccess={(data) => {
                     console.log("Columns", data);
                     setOpen(false);
                     refreshData();
                   }}
                 ></AddSupplierForm>
-
               </DialogContent>
             </Dialog>
           </div>
-          <DataTable columns={tableColumns} data={supplierData} />
+          {loading ? (
+            <p className="text-center text-gray-500">Loading...</p>
+          ) : (
+            <>
+              <DataTable columns={tableColumns} data={supplierData} />
+            </>
+          )}
         </div>
       </div>
     </>

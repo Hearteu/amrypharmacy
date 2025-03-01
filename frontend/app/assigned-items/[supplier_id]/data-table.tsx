@@ -68,7 +68,7 @@ export function DataTable<TData, TValue>({
     <>
       <div>
         {/* Search */}
-        <div className="flex items-center pt-4">
+        <div className="flex items-center">
           <Input
             placeholder="Search Supplier..."
             value={
