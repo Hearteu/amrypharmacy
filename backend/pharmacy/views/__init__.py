@@ -15,7 +15,7 @@ from .product_category import ProductCategory
 from .products import Products
 from .purchase_order import PurchaseOrder
 from .purchase_order_item_status import Purchase_Order_Item_Status
-from .purchase_order_status import PurchaseOrderStatus
+from .purchase_order_status import Purchase_Order_Status
 from .receipt import Receipt
 from .status import Status
 from .stock_transfer import StockTransfer

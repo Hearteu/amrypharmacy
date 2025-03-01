@@ -1,8 +1,5 @@
 # views.py
 
-import re
-from datetime import datetime
-
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -12,23 +9,25 @@ supabase = get_supabase_client()
 
 #Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
 
-class PurchaseOrderStatus(APIView):
+class Purchase_Order_Status(APIView):
     def get(self, request, purchase_order_status_id=None):
         try:
             query = supabase.table('Purchase_Order_Status').select('*')
+
             if purchase_order_status_id is not None:
                 query = query.eq('purchase_order_status_id', purchase_order_status_id)
-            
+
             response = query.execute()
 
             if not response.data:
                 return Response({"error": "No Purchase_Order_Status found"}, status=404)
 
-            return Response(response.data, status=200)
+            return Response(response.data[0] if purchase_order_status_id else response.data, status=200)
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
-        
+
+
     def post(self, request):
         data = request.data
         try:

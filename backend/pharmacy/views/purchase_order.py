@@ -17,13 +17,12 @@ class PurchaseOrder(APIView):
         """Retrieve all purchase orders or a single purchase order by ID with lineItems"""
         try:
             query = supabase.table("Purchase_Order").select(
-                "purchase_order_id, custom_po_id, order_date, expected_delivery_date, "
-                "purchase_order_status_id, notes, "
-                "Purchase_Order_Item (purchase_order_item_id, custom_poi_id, supplier_item_id, ordered_quantity, purchase_order_item_status_id, "
-                "Purchase_Order_Item_Status (purchase_order_item_status_id, po_item_status), "
-                "Supplier_Item (product_id, supplier_price, Products (product_id, product_name, unit_id, "
-                "Drugs (dosage_form, dosage_strength)), "
-                "Supplier (supplier_id, supplier_name)))"
+                "purchase_order_id, po_id, order_date, expected_delivery_date, purchase_order_status_id, notes, "
+                "Purchase_Order_Item (purchase_order_item_id, poi_id, ordered_quantity, purchase_order_item_status_id, "
+                "Purchase_Order_Item_Status (po_item_status), "
+                "Supplier_Item (supplier_item_id, supplier_price, "
+                "Products (product_name, Drugs (dosage_form, dosage_strength)), "
+                "Supplier (supplier_name, Person (first_name, last_name, contact, email, address))))"
             )
 
             if purchase_order_id is not None:
@@ -35,52 +34,68 @@ class PurchaseOrder(APIView):
                 return Response({"error": "No purchase orders found"}, status=404)
 
             purchase_orders = [response.data] if isinstance(response.data, dict) else response.data
-
             formatted_orders = []
+
             for order in purchase_orders:
-                # Get supplier details from the first lineItem (assuming all items belong to the same supplier)
                 purchase_order_items = order.get("Purchase_Order_Item", [])
-                supplier = purchase_order_items[0].get("Supplier_Item", {}).get("Supplier", {}) if purchase_order_items else {}
+
+                # Extract supplier details from the first line item (assuming all items belong to the same supplier)
+                supplier_item = purchase_order_items[0].get("Supplier_Item", {}) if purchase_order_items else {}
+                supplier_data = supplier_item.get("Supplier", {})
+                person_data = supplier_data.get("Person", {})
 
                 formatted_order = {
-                    "purchase_order_id": order["purchase_order_id"],  # Keep original ID
-                    "custom_po_id": order.get("custom_po_id", ""),  # Include the formatted ID
-                    "supplier_id": supplier.get("supplier_id"),
-                    "supplier_name": supplier.get("supplier_name"),
+                    "purchase_order_id": order["purchase_order_id"],
+                    "po_id": order["po_id"],
+                    "supplier": {
+                        "name": supplier_data.get("supplier_name", "Unknown Supplier"),
+                        "contact": f"{person_data.get('first_name', '')} {person_data.get('last_name', '')}".strip(),
+                        "email": person_data.get("email", "N/A"),
+                        "phone": person_data.get("contact", "N/A"),
+                        "address": person_data.get("address", "N/A"),
+                    },
                     "order_date": order["order_date"],
-                    "expected_delivery_date": order["expected_delivery_date"],
-                    "purchase_order_status_id": order["purchase_order_status_id"],
+                    "expected_date": order["expected_delivery_date"],
+                    "po_total": 0,  # Calculate below
+                    "status_id": order["purchase_order_status_id"],
+                    "status": purchase_order_items[0].get("Purchase_Order_Item_Status", {}).get("po_item_status", "Unknown"),
                     "notes": order["notes"],
-                    "lineItems": []
+                    "lineItems": [],
                 }
 
+                po_total = 0
                 for item in purchase_order_items:
-                    supplier_item = item.get("Supplier_Item", {})
+                    supplier_item = item.get("Supplier_Item", {})  # Avoid KeyError
                     product = supplier_item.get("Products", {})
                     drugs = product.get("Drugs", {})
 
-                    # If the product is a drug, append its dosage details to the product name
-                    dosage_info = f" {drugs['dosage_form']} {drugs['dosage_strength']}" if drugs else ""
-                    product_name = f"{product.get('product_name', '')}{dosage_info}"
+                    # Concatenate dosage info if the product is a drug
+                    dosage_info = f" {drugs.get('dosage_form', '')} {drugs.get('dosage_strength', '')}" if drugs else ""
+                    product_name = f"{product.get('product_name', 'Unknown Product')}{dosage_info}"
+
+                    supplier_price = supplier_item.get("supplier_price", 0)
+                    poi_total = item["ordered_quantity"] * supplier_price
+                    po_total += poi_total
 
                     formatted_order["lineItems"].append({
                         "purchase_order_item_id": item["purchase_order_item_id"],
-                        "custom_poi_id": item.get("custom_poi_id", ""),  # ✅ Include custom_poi_id
-                        "product_id": product.get("product_id"),
-                        "product_name": product_name,
-                        "unit_id": product.get("unit_id"),
-                        "ordered_quantity": item["ordered_quantity"],
-                        "supplier_price": supplier_item.get("supplier_price"),
-                        "purchase_order_item_status_id": item.get("purchase_order_item_status_id"),
-                        "po_item_status": item.get("Purchase_Order_Item_Status", {}).get("po_item_status", "Unknown")
+                        "poi_id": item.get("poi_id", ""),
+                        "description": product_name,  # ✅ Includes dosage info if it's a drug
+                        "quantity": item["ordered_quantity"],
+                        "supplier_price": supplier_price,
+                        "poi_total": poi_total,  # ✅ Renamed total → poi_total
+                        "purchase_order_item_status": item["purchase_order_item_status_id"],
+                        "po_item_status": item.get("Purchase_Order_Item_Status", {}).get("po_item_status", "Unknown"),  # ✅ Added po_item_status
                     })
 
+                formatted_order["po_total"] = po_total  # ✅ Renamed total → po_total
                 formatted_orders.append(formatted_order)
 
             return Response(formatted_orders if purchase_order_id is None else formatted_orders[0], status=200)
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
 
 
     def post(self, request):
@@ -92,31 +107,31 @@ class PurchaseOrder(APIView):
             # Get the current year
             current_year = datetime.now().year
 
-            # Fetch the latest custom_po_id for the current year
-            latest_order_query = supabase.table("Purchase_Order").select("custom_po_id") \
-                .like("custom_po_id", f"PO-{current_year}-%") \
-                .order("custom_po_id", desc=True) \
+            # Fetch the latest po_id for the current year
+            latest_order_query = supabase.table("Purchase_Order").select("po_id") \
+                .like("po_id", f"PO-{current_year}-%") \
+                .order("po_id", desc=True) \
                 .limit(1) \
                 .execute()
 
             # Determine the next sequence number for purchase_order_id
             if latest_order_query.data:
-                latest_order_id = latest_order_query.data[0]["custom_po_id"]
+                latest_order_id = latest_order_query.data[0]["po_id"]
                 last_number = int(latest_order_id.split("-")[-1])  # Extract last number
                 next_number = f"{last_number + 1:03d}"  # Increment and format as 3 digits
             else:
                 next_number = "001"  # Start with 001 if no previous orders exist
 
-            # Generate the new custom_po_id
-            custom_po_id = f"PO-{current_year}-{next_number}"
-            purchase_order_suffix = custom_po_id.split("-")[-1]
+            # Generate the new po_id
+            po_id = f"PO-{current_year}-{next_number}"
+            purchase_order_suffix = po_id.split("-")[-1]
 
             order_date = datetime.fromisoformat(data["order_date"]).strftime("%Y-%m-%d")
             expected_delivery_date = datetime.fromisoformat(data["expected_delivery_date"]).strftime("%Y-%m-%d")
 
             # ✅ Insert into Purchase_Order **WITHOUT supplier_id**
             order_insert = supabase.table("Purchase_Order").insert({
-                "custom_po_id": custom_po_id,
+                "po_id": po_id,
                 "order_date": order_date,
                 "expected_delivery_date": expected_delivery_date,
                 "purchase_order_status_id": 1,
@@ -129,7 +144,7 @@ class PurchaseOrder(APIView):
 
 
             purchase_order_id = order_insert.data[0]["purchase_order_id"]
-            print(f"🟢 Purchase Order Created: ID={purchase_order_id}, Custom PO ID={custom_po_id}")  # Debugging
+            print(f"🟢 Purchase Order Created: ID={purchase_order_id}, Custom PO ID={po_id}")  # Debugging
 
             supplier_id = data["supplier_id"]  # ✅ Just for querying Supplier_Item
             print(f"🟢 Supplier ID: {supplier_id}")  # Debugging
@@ -155,24 +170,24 @@ class PurchaseOrder(APIView):
                 supplier_item = supplier_item_query.data
                 print(f"🟢 Found Supplier_Item: {supplier_item}")  # Debugging
 
-                latest_item_query = supabase.table("Purchase_Order_Item").select("custom_poi_id") \
-                    .like("custom_poi_id", f"POI-{purchase_order_suffix}-%") \
-                    .order("custom_poi_id", desc=True) \
+                latest_item_query = supabase.table("Purchase_Order_Item").select("poi_id") \
+                    .like("poi_id", f"POI-{purchase_order_suffix}-%") \
+                    .order("poi_id", desc=True) \
                     .limit(1) \
                     .execute()
 
                 if latest_item_query.data:
-                    latest_poi_id = latest_item_query.data[0]["custom_poi_id"]
+                    latest_poi_id = latest_item_query.data[0]["poi_id"]
                     last_poi_match = re.search(r"-(\d+)$", latest_poi_id)
                     last_poi_number = int(last_poi_match.group(1)) if last_poi_match else 0
                     next_poi_number = f"{last_poi_number + 1:02d}"
                 else:
                     next_poi_number = "01"
 
-                custom_poi_id = f"POI-{purchase_order_suffix}-{next_poi_number}"
+                poi_id = f"POI-{purchase_order_suffix}-{next_poi_number}"
 
                 purchase_order_items.append({
-                    "custom_poi_id": custom_poi_id,
+                    "poi_id": poi_id,
                     "purchase_order_id": purchase_order_id,
                     "supplier_item_id": supplier_item["supplier_item_id"],
                     "ordered_quantity": item["ordered_quantity"],
@@ -193,7 +208,7 @@ class PurchaseOrder(APIView):
                 # ✅ Debugging success
                 print(f"🟢 Successfully inserted {len(purchase_order_items)} items into Purchase_Order_Item.")
 
-                return Response({"message": "Purchase Order created successfully", "custom_po_id": custom_po_id}, status=201)
+                return Response({"message": "Purchase Order created successfully", "po_id": po_id}, status=201)
 
 
         except Exception as e:

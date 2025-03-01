@@ -4,10 +4,9 @@ from rest_framework_simplejwt.views import TokenRefreshView  # type: ignore
 from .views import (Branch, Brand, Customers, CustomerType, DisposedItems,
                     Drugs, DswdOrder, Expiration, Inventory, Order, PersonList,
                     Prescription, PriceHistory, ProductCategory, Products,
-                    Purchase_Order_Item_Status, PurchaseOrder,
-                    PurchaseOrderStatus, Receipt, Status, StockTransfer,
-                    Supplier, SupplierItem, Unit, UserList, UserLoginView,
-                    UserRole)
+                    Purchase_Order_Item_Status, Purchase_Order_Status,
+                    PurchaseOrder, Receipt, Status, StockTransfer, Supplier,
+                    SupplierItem, Unit, UserList, UserLoginView, UserRole)
 
 # Define resources with their corresponding view classes
 resources = [
@@ -35,7 +34,7 @@ resources = [
     ("drugs", Drugs),
     ("status", Status),
     ("supplier-items", SupplierItem),
-    ("purchase-order-status", PurchaseOrderStatus),
+    ("purchase-order-status", Purchase_Order_Status),
     ("purchase-order-item-status", Purchase_Order_Item_Status),
 ]
 
