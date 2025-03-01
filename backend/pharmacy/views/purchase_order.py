@@ -18,7 +18,7 @@ class PurchaseOrder(APIView):
         try:
             query = supabase.table("Purchase_Order").select(
                 "purchase_order_id, po_id, order_date, expected_delivery_date, purchase_order_status_id, notes, "
-                "Purchase_Order_Item (purchase_order_item_id, poi_id, ordered_quantity, purchase_order_item_status_id, "
+                "Purchase_Order_Item (purchase_order_item_id, poi_id, ordered_quantity, purchase_order_item_status_id, unit_id, Unit (unit), "
                 "Purchase_Order_Item_Status (po_item_status), "
                 "Supplier_Item (supplier_item_id, supplier_price, "
                 "Products (product_name, Drugs (dosage_form, dosage_strength)), "
@@ -86,6 +86,8 @@ class PurchaseOrder(APIView):
                         "poi_total": poi_total,  # ✅ Renamed total → poi_total
                         "purchase_order_item_status": item["purchase_order_item_status_id"],
                         "po_item_status": item.get("Purchase_Order_Item_Status", {}).get("po_item_status", "Unknown"),  # ✅ Added po_item_status
+                        "unit_id": item.get("unit_id", "N/A"),
+                        "unit": item.get("Unit", {}).get("unit", "N/A"),
                     })
 
                 formatted_order["po_total"] = po_total  # ✅ Renamed total → po_total
