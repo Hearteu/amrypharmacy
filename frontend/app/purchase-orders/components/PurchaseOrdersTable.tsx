@@ -14,7 +14,12 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import {
+  ArrowUpDown,
+  Check,
+  ChevronsUpDown,
+  MoreHorizontal,
+} from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +44,28 @@ import {
 import { DataTableViewOptions } from "@/components/table/DataTableViewOptions";
 import { DataTablePagination } from "@/components/table/DataTablePagination";
 import axios from "axios";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const statusMap: Record<number, string> = {
   1: "Draft",
@@ -69,8 +96,14 @@ interface SupplierArray {
   name: string;
 }
 
+interface POStatus {
+  purchase_order_status_id: number;
+  purchase_order_status: string;
+}
+
 export default function PurchaseOrdersTable() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrders[]>([]);
+  const [poStatus, setPOStatus] = useState<POStatus[]>([]);
 
   async function fetchPO() {
     try {
@@ -83,13 +116,27 @@ export default function PurchaseOrdersTable() {
       console.error("Error fetching purchase order", error);
     }
   }
-  
+
+  async function fetchPOStatus() {
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/pharmacy/purchase-order-status/"
+      );
+
+      const data: POStatus[] = await response.json();
+      setPOStatus(data);
+    } catch (error) {
+      console.error("error fetching status", error);
+    }
+  }
+
   useEffect(() => {
     fetchPO();
+    fetchPOStatus();
   }, []);
 
   async function cancelPurchaseOrder(orderId: number) {
-    console.log(orderId)
+    console.log(orderId);
     try {
       const response = await axios.put(
         `http://127.0.0.1:8000/pharmacy/purchase-orders/${orderId}/`
@@ -143,18 +190,101 @@ export default function PurchaseOrdersTable() {
       header: "Status",
       cell: ({ row }) => {
         const statusId = row.original.status_id;
-        const statusName = statusMap[statusId] ?? "Unknown";
+        const [open, setOpen] = useState(false);
+        const [selectedStatus, setSelectedStatus] = useState(statusId);
+
+        const statusName = statusMap[selectedStatus] ?? "Unknown";
         const color = statusColorMap[statusName] ?? "gray";
+
+        async function updateStatus(newStatusId: number) {
+          try {
+            await fetch(
+              `http://127.0.0.1:8000/pharmacy/purchase-orders/${row.original.purchase_order_id}/`,
+              {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ status_id: newStatusId }),
+              }
+            );
+            setSelectedStatus(newStatusId);
+            console.log("purchase order id", row.original.purchase_order_id);
+          } catch (error) {
+            console.error("Error updating status:", error);
+          }
+        }
+
         return (
-          <Badge
-            variant={statusId === 1 ? "outline" : "default"}
-            className={`bg-${color}-100 text-${color}-800 border-${color}-200`}
-          >
-            {statusName}
-          </Badge>
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                className="w-[130px] justify-between"
+              >
+                <Badge
+                  className={cn("px-2 py-1 rounded-md border", {
+                    "bg-gray-100 text-gray-800 border-gray-200":
+                      color === "gray",
+                    "bg-green-100 text-green-800 border-green-200":
+                      color === "green",
+                    "bg-orange-100 text-orange-800 border-orange-200":
+                      color === "orange",
+                    "bg-blue-100 text-blue-800 border-blue-200":
+                      color === "blue",
+                    "bg-red-100 text-red-800 border-red-200": color === "red",
+                  })}
+                >
+                  {statusName}
+                </Badge>
+                <ChevronsUpDown className="opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[130px] p-0">
+              <Command>
+                <CommandInput placeholder="Search status..." className="h-9" />
+                <CommandList>
+                  <CommandEmpty>No status found.</CommandEmpty>
+                  <CommandGroup>
+                    {poStatus.map((status) => {
+                      const statusLabel = status.purchase_order_status;
+                      const statusColor = statusColorMap[statusLabel] ?? "gray";
+
+                      return (
+                        <CommandItem
+                          key={status.purchase_order_status_id}
+                          value={statusLabel}
+                          onSelect={() => {
+                            updateStatus(status.purchase_order_status_id);
+                            setOpen(false);
+                          }}
+                        >
+                          <Badge
+                            className={`bg-${statusColor}-100 text-${statusColor}-800 border-${statusColor}-200 px-2 py-1 rounded-md`}
+                          >
+                            {statusLabel}
+                          </Badge>
+                          <Check
+                            className={cn(
+                              "ml-auto",
+                              status.purchase_order_status_id === selectedStatus
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         );
       },
     },
+
     {
       id: "actions",
       cell: ({ row }) => {
@@ -202,28 +332,35 @@ export default function PurchaseOrdersTable() {
           </DropdownMenu>
         );
       },
+      filterFn: (row, columnId, filterValue) => {
+        const rowValue = row.getValue(columnId);
+        if (filterValue === undefined || filterValue === null) return true;
+        return rowValue === filterValue;
+      },
     },
   ];
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [statusFilter, setStatusFilter] = useState<string>("all"); // ✅ Track selected status
 
   const table = useReactTable({
     data: purchaseOrders,
     columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onColumnVisibilityChange: setColumnVisibility,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
     },
+    debugTable: true, // Add this to help with debugging
   });
 
   return (
@@ -237,6 +374,45 @@ export default function PurchaseOrdersTable() {
           }
           className="max-w-sm"
         />
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => {
+            setStatusFilter(value);
+
+            if (value === "all") {
+              console.log("Clearing filter");
+              table.getColumn("status_id")?.setFilterValue(undefined);
+            } else {
+              const numericValue = Number(value);
+              if (!isNaN(numericValue)) {
+                console.log("Setting filter to:", numericValue);
+                table.getColumn("status_id")?.setFilterValue(numericValue);
+
+                console.log("Current filters:", table.getState().columnFilters);
+              } else {
+                console.error("Invalid status value:", value);
+              }
+            }
+          }}
+        >
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Filter by Status">
+              {statusFilter === "all"
+                ? "All"
+                : statusMap[Number(statusFilter)] ?? "Select Status"}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>{" "}
+            {/* ✅ "All" option to clear filter */}
+            {Object.entries(statusMap).map(([id, name]) => (
+              <SelectItem key={id} value={id}>
+                {name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <DataTableViewOptions table={table} />
       </div>
       <div className="rounded-md border">
