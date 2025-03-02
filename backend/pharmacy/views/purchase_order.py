@@ -21,7 +21,7 @@ class PurchaseOrder(APIView):
                 "Purchase_Order_Item (purchase_order_item_id, poi_id, ordered_quantity, purchase_order_item_status_id, unit_id, Unit (unit), "
                 "Purchase_Order_Item_Status (po_item_status), "
                 "Supplier_Item (supplier_id, supplier_item_id, supplier_price, "
-                "Products (product_name, Drugs (dosage_form, dosage_strength)), "
+                "Products (product_id, product_name, Drugs (dosage_form, dosage_strength)), "
                 "Supplier (supplier_name, Person (first_name, last_name, contact, email, address))))"
             )
 
@@ -69,6 +69,7 @@ class PurchaseOrder(APIView):
                     supplier_item = item.get("Supplier_Item", {})  # Avoid KeyError
                     product = supplier_item.get("Products", {})
                     drugs = product.get("Drugs", {})
+                    product_id = product.get("product_id", "N/A")
 
                     # Concatenate dosage info if the product is a drug
                     dosage_info = f" {drugs.get('dosage_form', '')} {drugs.get('dosage_strength', '')}" if drugs else ""
@@ -81,6 +82,7 @@ class PurchaseOrder(APIView):
                     formatted_order["lineItems"].append({
                         "purchase_order_item_id": item["purchase_order_item_id"],
                         "poi_id": item.get("poi_id", ""),
+                        "product_id": product_id,
                         "description": product_name,  # ✅ Includes dosage info if it's a drug
                         "quantity": item["ordered_quantity"],
                         "supplier_price": supplier_price,
