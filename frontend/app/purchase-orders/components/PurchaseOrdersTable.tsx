@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/table";
 import { DataTableViewOptions } from "@/components/table/DataTableViewOptions";
 import { DataTablePagination } from "@/components/table/DataTablePagination";
+import axios from "axios";
 
 const statusMap: Record<number, string> = {
   1: "Draft",
@@ -71,20 +72,37 @@ interface SupplierArray {
 export default function PurchaseOrdersTable() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrders[]>([]);
 
-  useEffect(() => {
-    async function fetchPO() {
-      try {
-        const response = await fetch(
-          "http://127.0.0.1:8000/pharmacy/purchase-orders/"
-        );
-        const data: PurchaseOrders[] = await response.json();
-        setPurchaseOrders(data);
-      } catch (error) {
-        console.error("Error fetching purchase order", error);
-      }
+  async function fetchPO() {
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/pharmacy/purchase-orders/"
+      );
+      const data: PurchaseOrders[] = await response.json();
+      setPurchaseOrders(data);
+    } catch (error) {
+      console.error("Error fetching purchase order", error);
     }
+  }
+  
+  useEffect(() => {
     fetchPO();
   }, []);
+
+  async function cancelPurchaseOrder(orderId: number) {
+    console.log(orderId)
+    try {
+      const response = await axios.put(
+        `http://127.0.0.1:8000/pharmacy/purchase-orders/${orderId}/`
+      );
+
+      console.log("Purchase order canceled:", response.data);
+      fetchPO();
+      return response.data;
+    } catch (error) {
+      console.error("Error canceling purchase order:", error);
+      throw error;
+    }
+  }
 
   const columns: ColumnDef<PurchaseOrders>[] = [
     {
@@ -124,15 +142,15 @@ export default function PurchaseOrdersTable() {
       accessorKey: "status_id",
       header: "Status",
       cell: ({ row }) => {
-        const statusId = row.original.status_id; 
-        const statusName = statusMap[statusId] ?? "Unknown"; 
-        const color = statusColorMap[statusName] ?? "gray"; 
+        const statusId = row.original.status_id;
+        const statusName = statusMap[statusId] ?? "Unknown";
+        const color = statusColorMap[statusName] ?? "gray";
         return (
           <Badge
             variant={statusId === 1 ? "outline" : "default"}
             className={`bg-${color}-100 text-${color}-800 border-${color}-200`}
           >
-            {statusName} 
+            {statusName}
           </Badge>
         );
       },
@@ -174,8 +192,11 @@ export default function PurchaseOrdersTable() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
-                Cancel order
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={() => cancelPurchaseOrder(po.purchase_order_id)}
+              >
+                Cancel Order
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
