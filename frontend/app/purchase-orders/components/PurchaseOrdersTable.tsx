@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   type ColumnDef,
+  type Row,
   type ColumnFiltersState,
   type SortingState,
   type VisibilityState,
@@ -36,21 +37,35 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DataTableViewOptions } from "@/components/table/DataTableViewOptions";
+import { DataTablePagination } from "@/components/table/DataTablePagination";
 
-const statusColorMap = {
-  1: "gray",
-  2: "green",
-  3: "orange",
-  4: "blue",
-  5: "red",
+const statusMap: Record<number, string> = {
+  1: "Draft",
+  2: "Ordered",
+  3: "Delayed",
+  4: "Completed",
+  5: "Cancelled",
+};
+
+const statusColorMap: Record<string, string> = {
+  Draft: "gray",
+  Ordered: "green",
+  Delayed: "orange",
+  Completed: "blue",
+  Cancelled: "red",
 };
 
 interface PurchaseOrders {
   purchase_order_id: number;
-  custom_po_id: string;
-  supplier_name: string;
+  po_id: string;
+  supplier: SupplierArray;
   order_date: string;
-  purchase_order_status_id: number;
+  status: string;
+  status_id: number;
+}
+
+interface SupplierArray {
+  name: string;
 }
 
 export default function PurchaseOrdersTable() {
@@ -73,30 +88,29 @@ export default function PurchaseOrdersTable() {
 
   const columns: ColumnDef<PurchaseOrders>[] = [
     {
-      accessorKey: "custom_po_id",
+      accessorKey: "po_id",
       header: "PO Number",
       cell: ({ row }) => (
         <Link
-          href={`/purchase-orders/${row.original.custom_po_id}`}
+          href={`/purchase-orders/${row.original.purchase_order_id}`}
           className="font-medium text-primary hover:underline"
         >
-          {row.getValue("custom_po_id")}
+          {row.getValue("po_id")}
         </Link>
       ),
     },
     {
-      accessorKey: "supplier_name",
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Supplier
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        );
-      },
+      id: "supplier",
+      accessorFn: (row) => row.supplier?.name || "No Supplier",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Supplier
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
     },
     {
       accessorKey: "order_date",
@@ -107,19 +121,18 @@ export default function PurchaseOrdersTable() {
       },
     },
     {
-      accessorKey: "purchase_order_status_id",
+      accessorKey: "status_id",
       header: "Status",
       cell: ({ row }) => {
-        const status = Number(row.getValue("purchase_order_status_id")); // Convert to number
-        const color =
-          statusColorMap[status as keyof typeof statusColorMap] || "gray"; // Ensure valid key lookup
-
+        const statusId = row.original.status_id; 
+        const statusName = statusMap[statusId] ?? "Unknown"; 
+        const color = statusColorMap[statusName] ?? "gray"; 
         return (
           <Badge
-            variant={status === 1 ? "outline" : "default"}
+            variant={statusId === 1 ? "outline" : "default"}
             className={`bg-${color}-100 text-${color}-800 border-${color}-200`}
           >
-            {status}
+            {statusName} 
           </Badge>
         );
       },
@@ -139,7 +152,7 @@ export default function PurchaseOrdersTable() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(po.custom_po_id)}
+                onClick={() => navigator.clipboard.writeText(po.po_id)}
               >
                 Copy PO number
               </DropdownMenuItem>
@@ -171,9 +184,9 @@ export default function PurchaseOrdersTable() {
     },
   ];
 
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
   const table = useReactTable({
     data: purchaseOrders,
@@ -190,20 +203,20 @@ export default function PurchaseOrdersTable() {
       columnFilters,
       columnVisibility,
     },
-  })
+  });
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-
-          <Input
-            placeholder="Filter purchase orders..."
-            value={(table.getColumn("custom_po_id")?.getFilterValue() as string) ?? ""}
-            onChange={(event) => table.getColumn("custom_po_id")?.setFilterValue(event.target.value)}
-            className="max-w-sm"
-          />
-        <DataTableViewOptions table={table}/>
-
+        <Input
+          placeholder="Filter purchase orders..."
+          value={(table.getColumn("po_id")?.getFilterValue() as string) ?? ""}
+          onChange={(event) =>
+            table.getColumn("po_id")?.setFilterValue(event.target.value)
+          }
+          className="max-w-sm"
+        />
+        <DataTableViewOptions table={table} />
       </div>
       <div className="rounded-md border">
         <Table>
@@ -213,9 +226,14 @@ export default function PurchaseOrdersTable() {
                 {headerGroup.headers.map((header) => {
                   return (
                     <TableHead key={header.id}>
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                     </TableHead>
-                  )
+                  );
                 })}
               </TableRow>
             ))}
@@ -223,15 +241,26 @@ export default function PurchaseOrdersTable() {
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
                   No purchase orders found.
                 </TableCell>
               </TableRow>
@@ -239,24 +268,8 @@ export default function PurchaseOrdersTable() {
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2">
-        <div className="flex-1 text-sm text-muted-foreground">
-          Showing {table.getFilteredRowModel().rows.length} of {purchaseOrders.length} purchase orders
-        </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-            Next
-          </Button>
-        </div>
-      </div>
+
+      <DataTablePagination table={table} />
     </div>
-  )
+  );
 }

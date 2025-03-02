@@ -290,7 +290,7 @@ export default function EditSupplierForm({
             name="status_id"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Category</FormLabel>
+                <FormLabel>Status</FormLabel>
                 <Popover open={statusOpen} onOpenChange={setStatusOpen}>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -319,7 +319,7 @@ export default function EditSupplierForm({
                       />
                       <CommandList>
                         <CommandEmpty>
-                          Press ENTER to Add New Category
+                          No Results found
                         </CommandEmpty>
                         <CommandGroup>
                           {status.map((stat) => (

@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { CalendarIcon, Plus, Trash2 } from "lucide-react";
-import router from "next/router";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -89,7 +89,7 @@ export default function PurchaseOrderForm({
   initialData,
   isEditing = false,
 }: PurchaseOrderFormProps) {
-  //   const router = useRouter();
+    const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [selectedSupplier, setSelectedSupplier] = useState<number | null>(null);
@@ -157,6 +157,7 @@ export default function PurchaseOrderForm({
     },
   });
 
+
   async function onSubmit(data: FormValues) {
     setIsSubmitting(true);
     console.log("Submitted Data:", data);
@@ -174,8 +175,8 @@ export default function PurchaseOrderForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formattedData),
       });
+      router.push("/purchase-orders");
       console.log(JSON.stringify(formattedData));
-      // router.push("/purchase-orders");
     } catch (error) {
       console.error("Error submitting form:", error);
     } finally {
