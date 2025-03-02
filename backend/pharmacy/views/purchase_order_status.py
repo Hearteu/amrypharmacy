@@ -38,7 +38,7 @@ class Purchase_Order_Status(APIView):
             return Response({"error": str(e)}, status=400)
  
     def put(self, request, purchase_order_status_id):
-        data = request.data 
+        data = request.data
         try:
             response = supabase.table("Purchase_Order_Status").update(data).eq('purchase_order_status_id', purchase_order_status_id).execute()
 

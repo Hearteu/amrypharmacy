@@ -230,6 +230,19 @@ class PurchaseOrder(APIView):
             data = request.data
             print(f"🟢 Received update data: {data}")  # Debugging input
 
+            # ✅ Check if only `purchase_order_status_id` is provided
+            if set(data.keys()) == {"purchase_order_status_id"}:
+                update_response = supabase.table("Purchase_Order") \
+                    .update({"purchase_order_status_id": data["purchase_order_status_id"]}) \
+                    .eq("purchase_order_id", purchase_order_id) \
+                    .execute()
+
+                if not update_response.data:
+                    return Response({"error": "Purchase order not found or not updated"}, status=404)
+
+                print(f"✅ Updated Purchase Order Status: {update_response}")
+                return Response({"message": "Purchase order status updated successfully"}, status=200)
+
             # ✅ Fetch PO ID for suffix
             purchase_order_query = supabase.table("Purchase_Order").select("po_id").eq("purchase_order_id", purchase_order_id).single().execute()
             po_id = purchase_order_query.data["po_id"] if purchase_order_query.data else None
