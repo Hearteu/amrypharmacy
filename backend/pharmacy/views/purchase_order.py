@@ -218,30 +218,87 @@ class PurchaseOrder(APIView):
             print(f"❌ Exception: {str(e)}")  # Debugging
             return Response({"error": str(e)}, status=500)
 
-    def put(self, request, purchase_order_id):
-        """Update an existing purchase order"""
+    def put(self, request, purchase_order_id=None):
+        """Update an existing purchase order and handle line items (update & add new)"""
         try:
             data = request.data
+            print(f"🟢 Received update data: {data}")  # Debugging input
 
+            # ✅ Update Purchase Order
             update_data = {
-                "supplier_id": data.get("supplier_id"),
                 "expected_delivery_date": data.get("expected_delivery_date"),
-                "status": data.get("status")
+                "purchase_order_status_id": data.get("purchase_order_status_id")
             }
+
+            if update_data.get("expected_delivery_date"):
+                update_data["expected_delivery_date"] = datetime.fromisoformat(update_data["expected_delivery_date"]).strftime("%Y-%m-%d")
 
             update_data = {key: value for key, value in update_data.items() if value is not None}
 
-            if not update_data:
-                return Response({"error": "No fields provided for update"}, status=400)
+            if update_data:
+                response = supabase.table("Purchase_Order").update(update_data).eq("purchase_order_id", purchase_order_id).execute()
+                if not response.data:
+                    return Response({"error": "Purchase order not found or not updated"}, status=404)
 
-            response = supabase.table("Purchase_Order").update(update_data).eq("purchase_order_id", purchase_order_id).execute()
+            # ✅ Handle Line Items
+            if "lineItems" in data and isinstance(data["lineItems"], list):
+                purchase_order_suffix = data.get("po_id", "").split("-")[-1]  # Extract suffix from PO ID
 
-            if not response.data:
-                return Response({"error": "Purchase order not found or not updated"}, status=404)
+                # Get the latest POI ID for correct numbering
+                latest_item_query = supabase.table("Purchase_Order_Item").select("poi_id") \
+                    .like("poi_id", f"POI-{purchase_order_suffix}-%") \
+                    .order("poi_id", desc=True) \
+                    .limit(1) \
+                    .execute()
+
+                if latest_item_query.data:
+                    latest_poi_id = latest_item_query.data[0]["poi_id"]
+                    last_poi_number = int(latest_poi_id.split("-")[-1])  # Extract last number
+                else:
+                    last_poi_number = 0
+
+                # ✅ Process line items (update existing & insert new)
+                new_items = []
+                for item in data["lineItems"]:
+                    poi_id = item.get("poi_id")
+
+                    if poi_id:
+                        # ✅ Update existing PO Item
+                        item_update_data = {
+                            "ordered_quantity": item.get("ordered_quantity"),
+                            "purchase_order_item_status_id": item.get("purchase_order_item_status_id")
+                        }
+                        item_update_data = {k: v for k, v in item_update_data.items() if v is not None}
+
+                        if item_update_data:
+                            supabase.table("Purchase_Order_Item").update(item_update_data).eq("poi_id", poi_id).execute()
+                    else:
+                        # ✅ Insert new PO Item
+                        last_poi_number += 1  # Increment for the new item
+                        new_poi_id = f"POI-{purchase_order_suffix}-{last_poi_number:02d}"
+
+                        supplier_item_query = supabase.table("Supplier_Item").select("supplier_item_id, supplier_price") \
+                            .eq("product_id", item["product_id"]).eq("supplier_id", data["supplier_id"]).single().execute()
+
+                        if supplier_item_query.data:
+                            supplier_item = supplier_item_query.data
+                            new_items.append({
+                                "poi_id": new_poi_id,
+                                "purchase_order_id": purchase_order_id,
+                                "supplier_item_id": supplier_item["supplier_item_id"],
+                                "ordered_quantity": item["ordered_quantity"],
+                                "unit_id": item["unit_id"],
+                                "purchase_order_item_status_id": 1
+                            })
+
+                # ✅ Bulk insert new items
+                if new_items:
+                    supabase.table("Purchase_Order_Item").insert(new_items).execute()
 
             return Response({"message": "Purchase order updated successfully"}, status=200)
 
         except Exception as e:
+            print(f"❌ Exception: {str(e)}")  # Debugging
             return Response({"error": str(e)}, status=500)
 
     def delete(self, request, purchase_order_id):
