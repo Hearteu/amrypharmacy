@@ -219,7 +219,7 @@ class PurchaseOrder(APIView):
             return Response({"error": str(e)}, status=500)
 
     def put(self, request, purchase_order_id=None):
-        """Update an existing purchase order and handle line items (update & add new)"""
+        """Update an existing purchase order and sync line items (update, add new, remove missing)"""
         try:
             data = request.data
             print(f"🟢 Received update data: {data}")  # Debugging input
@@ -244,25 +244,19 @@ class PurchaseOrder(APIView):
             if "lineItems" in data and isinstance(data["lineItems"], list):
                 purchase_order_suffix = data.get("po_id", "").split("-")[-1]  # Extract suffix from PO ID
 
-                # Get the latest POI ID for correct numbering
-                latest_item_query = supabase.table("Purchase_Order_Item").select("poi_id") \
-                    .like("poi_id", f"POI-{purchase_order_suffix}-%") \
-                    .order("poi_id", desc=True) \
-                    .limit(1) \
-                    .execute()
+                # Get existing PO Items for this order
+                existing_items_query = supabase.table("Purchase_Order_Item").select("poi_id").eq("purchase_order_id", purchase_order_id).execute()
+                existing_poi_ids = {item["poi_id"] for item in existing_items_query.data} if existing_items_query.data else set()
 
-                if latest_item_query.data:
-                    latest_poi_id = latest_item_query.data[0]["poi_id"]
-                    last_poi_number = int(latest_poi_id.split("-")[-1])  # Extract last number
-                else:
-                    last_poi_number = 0
-
-                # ✅ Process line items (update existing & insert new)
+                # ✅ Process line items (update existing, insert new)
                 new_items = []
+                updated_poi_ids = set()
                 for item in data["lineItems"]:
                     poi_id = item.get("poi_id")
 
                     if poi_id:
+                        updated_poi_ids.add(poi_id)  # Track updated items
+
                         # ✅ Update existing PO Item
                         item_update_data = {
                             "ordered_quantity": item.get("ordered_quantity"),
@@ -274,7 +268,7 @@ class PurchaseOrder(APIView):
                             supabase.table("Purchase_Order_Item").update(item_update_data).eq("poi_id", poi_id).execute()
                     else:
                         # ✅ Insert new PO Item
-                        last_poi_number += 1  # Increment for the new item
+                        last_poi_number = len(existing_poi_ids) + len(new_items) + 1  # Increment dynamically
                         new_poi_id = f"POI-{purchase_order_suffix}-{last_poi_number:02d}"
 
                         supplier_item_query = supabase.table("Supplier_Item").select("supplier_item_id, supplier_price") \
@@ -291,6 +285,12 @@ class PurchaseOrder(APIView):
                                 "purchase_order_item_status_id": 1
                             })
 
+                # ✅ Delete missing items
+                items_to_delete = existing_poi_ids - updated_poi_ids
+                if items_to_delete:
+                    supabase.table("Purchase_Order_Item").delete().in_("poi_id", list(items_to_delete)).execute()
+                    print(f"🗑️ Deleted PO Items: {items_to_delete}")
+
                 # ✅ Bulk insert new items
                 if new_items:
                     supabase.table("Purchase_Order_Item").insert(new_items).execute()
@@ -300,6 +300,7 @@ class PurchaseOrder(APIView):
         except Exception as e:
             print(f"❌ Exception: {str(e)}")  # Debugging
             return Response({"error": str(e)}, status=500)
+
 
     def delete(self, request, purchase_order_id):
         """Delete a purchase order"""

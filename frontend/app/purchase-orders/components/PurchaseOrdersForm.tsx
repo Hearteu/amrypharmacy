@@ -193,18 +193,24 @@ export default function PurchaseOrderForm({
     };
   
     try {
-      await fetch("http://127.0.0.1:8000/pharmacy/purchase-orders/", {
+      const url = isEditing
+        ? `http://127.0.0.1:8000/pharmacy/purchase-orders/${formattedData.purchase_order_id}/` // ✅ Pass ID in URL when editing
+        : "http://127.0.0.1:8000/pharmacy/purchase-orders/";
+    
+      await fetch(url, {
         method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formattedData),
       });
+    
       router.push("/purchase-orders");
-      console.log(JSON.stringify(formattedData));
+      console.log("🟢 Submitted Data:", JSON.stringify(formattedData));
     } catch (error) {
-      console.error("Error submitting form:", error);
+      console.error("❌ Error submitting form:", error);
     } finally {
       setIsSubmitting(false);
     }
+    
   }
 
   function addLineItem() {
