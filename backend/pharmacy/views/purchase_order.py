@@ -20,7 +20,7 @@ class PurchaseOrder(APIView):
                 "purchase_order_id, po_id, order_date, expected_delivery_date, purchase_order_status_id, notes, "
                 "Purchase_Order_Item (purchase_order_item_id, poi_id, ordered_quantity, purchase_order_item_status_id, unit_id, Unit (unit), "
                 "Purchase_Order_Item_Status (po_item_status), "
-                "Supplier_Item (supplier_item_id, supplier_price, "
+                "Supplier_Item (supplier_id, supplier_item_id, supplier_price, "
                 "Products (product_name, Drugs (dosage_form, dosage_strength)), "
                 "Supplier (supplier_name, Person (first_name, last_name, contact, email, address))))"
             )
@@ -48,6 +48,7 @@ class PurchaseOrder(APIView):
                     "purchase_order_id": order["purchase_order_id"],
                     "po_id": order["po_id"],
                     "supplier": {
+                        "supplier_id": supplier_item.get("supplier_id", "N/A"),
                         "name": supplier_data.get("supplier_name", "Unknown Supplier"),
                         "contact": f"{person_data.get('first_name', '')} {person_data.get('last_name', '')}".strip(),
                         "email": person_data.get("email", "N/A"),
@@ -98,8 +99,6 @@ class PurchaseOrder(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=500)
 
-
-
     def post(self, request):
         """Create a new Purchase Order with line items"""
         try:
@@ -144,17 +143,30 @@ class PurchaseOrder(APIView):
                 print(f"❌ Error inserting Purchase Order: {order_insert.error}")
                 return Response({"error": str(order_insert.error)}, status=500)
 
-
             purchase_order_id = order_insert.data[0]["purchase_order_id"]
             print(f"🟢 Purchase Order Created: ID={purchase_order_id}, Custom PO ID={po_id}")  # Debugging
 
             supplier_id = data["supplier_id"]  # ✅ Just for querying Supplier_Item
             print(f"🟢 Supplier ID: {supplier_id}")  # Debugging
 
+            # ✅ Fetch latest POI suffix (so we don't query every time)
+            latest_item_query = supabase.table("Purchase_Order_Item").select("poi_id") \
+                .like("poi_id", f"POI-{purchase_order_suffix}-%") \
+                .order("poi_id", desc=True) \
+                .limit(1) \
+                .execute()
+
+            if latest_item_query.data:
+                latest_poi_id = latest_item_query.data[0]["poi_id"]
+                last_poi_match = re.search(r"-(\d+)$", latest_poi_id)
+                last_poi_number = int(last_poi_match.group(1)) if last_poi_match else 0
+            else:
+                last_poi_number = 0  # No previous items exist
+
             # ✅ Insert line items
             purchase_order_items = []
-            for item in data["lineItems"]:
-                print(f"🔹 Processing Line Item: {item}")  # Debugging
+            for index, item in enumerate(data["lineItems"], start=1):
+                print(f"🔹 Processing Line Item {index}: {item}")  # Debugging
 
                 supplier_item_query = supabase.table("Supplier_Item").select(
                     "supplier_item_id, supplier_price"
@@ -168,24 +180,12 @@ class PurchaseOrder(APIView):
                     print(f"⚠️ No Supplier_Item found for product_id {item['product_id']} and supplier_id {supplier_id}")
                     continue
 
-
                 supplier_item = supplier_item_query.data
                 print(f"🟢 Found Supplier_Item: {supplier_item}")  # Debugging
 
-                latest_item_query = supabase.table("Purchase_Order_Item").select("poi_id") \
-                    .like("poi_id", f"POI-{purchase_order_suffix}-%") \
-                    .order("poi_id", desc=True) \
-                    .limit(1) \
-                    .execute()
-
-                if latest_item_query.data:
-                    latest_poi_id = latest_item_query.data[0]["poi_id"]
-                    last_poi_match = re.search(r"-(\d+)$", latest_poi_id)
-                    last_poi_number = int(last_poi_match.group(1)) if last_poi_match else 0
-                    next_poi_number = f"{last_poi_number + 1:02d}"
-                else:
-                    next_poi_number = "01"
-
+                # ✅ Increment poi_id properly using counter
+                last_poi_number += 1
+                next_poi_number = f"{last_poi_number:02d}"
                 poi_id = f"POI-{purchase_order_suffix}-{next_poi_number}"
 
                 purchase_order_items.append({
@@ -212,11 +212,9 @@ class PurchaseOrder(APIView):
 
                 return Response({"message": "Purchase Order created successfully", "po_id": po_id}, status=201)
 
-
         except Exception as e:
             print(f"❌ Exception: {str(e)}")  # Debugging
             return Response({"error": str(e)}, status=500)
-
 
     def put(self, request, purchase_order_id):
         """Update an existing purchase order"""
