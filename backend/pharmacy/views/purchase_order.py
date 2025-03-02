@@ -39,10 +39,15 @@ class PurchaseOrder(APIView):
             for order in purchase_orders:
                 purchase_order_items = order.get("Purchase_Order_Item", [])
 
-                # Extract supplier details from the first line item (assuming all items belong to the same supplier)
-                supplier_item = purchase_order_items[0].get("Supplier_Item", {}) if purchase_order_items else {}
-                supplier_data = supplier_item.get("Supplier", {})
-                person_data = supplier_data.get("Person", {})
+                # ✅ Ensure purchase_order_items exists before accessing index 0
+                supplier_item = {}
+                supplier_data = {}
+                person_data = {}
+
+                if purchase_order_items:
+                    supplier_item = purchase_order_items[0].get("Supplier_Item", {})
+                    supplier_data = supplier_item.get("Supplier", {})
+                    person_data = supplier_data.get("Person", {})
 
                 formatted_order = {
                     "purchase_order_id": order["purchase_order_id"],
@@ -59,7 +64,7 @@ class PurchaseOrder(APIView):
                     "expected_date": order["expected_delivery_date"],
                     "po_total": 0,  # Calculate below
                     "status_id": order["purchase_order_status_id"],
-                    "status": purchase_order_items[0].get("Purchase_Order_Item_Status", {}).get("po_item_status", "Unknown"),
+                    "status": "Unknown" if not purchase_order_items else purchase_order_items[0].get("Purchase_Order_Item_Status", {}).get("po_item_status", "Unknown"),
                     "notes": order["notes"],
                     "lineItems": [],
                 }
@@ -68,11 +73,11 @@ class PurchaseOrder(APIView):
                 for item in purchase_order_items:
                     supplier_item = item.get("Supplier_Item", {})  # Avoid KeyError
                     product = supplier_item.get("Products", {})
-                    drugs = product.get("Drugs", {})
+                    drugs = product.get("Drugs", {}) if "Drugs" in product else {}  # ✅ Fix for non-drug products
                     product_id = product.get("product_id", "N/A")
 
-                    # Concatenate dosage info if the product is a drug
-                    dosage_info = f" {drugs.get('dosage_form', '')} {drugs.get('dosage_strength', '')}" if drugs else ""
+                    # ✅ Concatenate dosage info only if available
+                    dosage_info = f" {drugs.get('dosage_form', '')} {drugs.get('dosage_strength', '')}".strip() if drugs else ""
                     product_name = f"{product.get('product_name', 'Unknown Product')}{dosage_info}"
 
                     supplier_price = supplier_item.get("supplier_price", 0)
@@ -88,7 +93,7 @@ class PurchaseOrder(APIView):
                         "supplier_price": supplier_price,
                         "poi_total": poi_total,  # ✅ Renamed total → poi_total
                         "purchase_order_item_status": item["purchase_order_item_status_id"],
-                        "po_item_status": item.get("Purchase_Order_Item_Status", {}).get("po_item_status", "Unknown"),  # ✅ Added po_item_status
+                        "po_item_status": item.get("Purchase_Order_Item_Status", {}).get("po_item_status", "Unknown"),
                         "unit_id": item.get("unit_id", "N/A"),
                         "unit": item.get("Unit", {}).get("unit", "N/A"),
                     })
@@ -100,6 +105,7 @@ class PurchaseOrder(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
 
     def post(self, request):
         """Create a new Purchase Order with line items"""
