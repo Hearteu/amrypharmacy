@@ -35,6 +35,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
+import axios from "axios";
 import { format } from "date-fns";
 import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -213,15 +214,27 @@ export default function PurchaseOrderForm({
     ]);
   }
 
-  function removeLineItem(index: number) {
+  async function removeLineItem(index: number) { // ✅ Make it `async`
     const items = form.getValues("lineItems");
-    if (items.length > 1) {
-      form.setValue(
-        "lineItems",
-        items.filter((_, i) => i !== index)
-      );
+    const itemToDelete = items[index];
+  
+    if (itemToDelete.purchase_order_item_id) {
+      try {
+        await axios.delete(
+          `http://127.0.0.1:8000/pharmacy/purchase-order-items/${itemToDelete.purchase_order_item_id}/`
+        );
+        console.log(`🗑️ Deleted PO Item ID: ${itemToDelete.purchase_order_item_id}`);
+      } catch (error) {
+        console.error("❌ Error deleting purchase order item:", error);
+      }
     }
+  
+    form.setValue(
+      "lineItems",
+      items.filter((_, i) => i !== index)
+    );
   }
+  
 
   function selectProduct(index: number, product_id: string) {
     const product = items.find((p) => p.product_id.toString() === product_id);
