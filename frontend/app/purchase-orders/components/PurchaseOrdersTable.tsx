@@ -188,6 +188,7 @@ export default function PurchaseOrdersTable() {
     {
       accessorKey: "status_id",
       header: "Status",
+      filterFn: "weakEquals", 
       cell: ({ row }) => {
         const statusId = row.original.status_id;
         const [open, setOpen] = useState(false);
@@ -237,6 +238,7 @@ export default function PurchaseOrdersTable() {
                   })}
                 >
                   {statusName}
+                  {row.original.status_id}
                 </Badge>
                 <ChevronsUpDown className="opacity-50" />
               </Button>
@@ -386,7 +388,8 @@ export default function PurchaseOrdersTable() {
               const numericValue = Number(value);
               if (!isNaN(numericValue)) {
                 console.log("Setting filter to:", numericValue);
-                table.getColumn("status_id")?.setFilterValue(numericValue);
+                table.getColumn("status_id")?.setFilterValue([numericValue]);
+                console.log(purchaseOrders)
 
                 console.log("Current filters:", table.getState().columnFilters);
               } else {
@@ -407,7 +410,7 @@ export default function PurchaseOrdersTable() {
             {/* ✅ "All" option to clear filter */}
             {Object.entries(statusMap).map(([id, name]) => (
               <SelectItem key={id} value={id}>
-                {name}
+                {name} {id}
               </SelectItem>
             ))}
           </SelectContent>
