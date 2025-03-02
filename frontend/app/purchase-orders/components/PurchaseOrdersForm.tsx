@@ -92,7 +92,9 @@ export default function PurchaseOrderForm({
     const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [selectedSupplier, setSelectedSupplier] = useState<number | null>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<string | null>(
+    initialData?.supplier_id || null
+  );
   const [items, setItems] = useState<SupplierItem[]>([]);
   const [units, setUnits] = useState<Units[]>([]);
 
@@ -129,21 +131,30 @@ export default function PurchaseOrderForm({
 
   // Fetch supplier items based on selected supplier
   useEffect(() => {
-    if (selectedSupplier === null) return;
-
     async function fetchSupplierItems() {
+      if (!selectedSupplier) return; // ✅ Ensures a supplier is selected before fetching
+  
       try {
+        console.log(`📡 Fetching products for supplier: ${selectedSupplier}`);
         const response = await fetch(
           `http://127.0.0.1:8000/pharmacy/supplier-items/${selectedSupplier}/`
         );
         const data: SupplierItem[] = await response.json();
         setItems(data);
       } catch (error) {
-        console.error("Error fetching supplier items:", error);
+        console.error("❌ Error fetching supplier items:", error);
       }
     }
+  
     fetchSupplierItems();
-  }, [selectedSupplier]);
+  }, [selectedSupplier]); // ✅ Only runs when supplier changes
+  
+  // ✅ Ensure the correct supplier is selected on first render
+  useEffect(() => {
+    if (initialData?.supplier_id) {
+      setSelectedSupplier(initialData.supplier_id);
+    }
+  }, [initialData]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -156,6 +167,13 @@ export default function PurchaseOrderForm({
       ],
     },
   });
+
+  useEffect(() => {
+    if (initialData) {
+      console.log("🔄 Updating form with initialData:", initialData);
+      form.reset(initialData);
+    }
+  }, [initialData, form.reset]);
 
 
   async function onSubmit(data: FormValues) {

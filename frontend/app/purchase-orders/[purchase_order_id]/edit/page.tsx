@@ -14,8 +14,12 @@ interface LineItems {
   supplier_price: number
 }
 
+interface Supplier {
+    supplier_id: number;
+}
+
 interface PurchaseOrder {
-  supplier_id: string
+  supplier: Supplier
   order_date: Date
   expected_delivery_date: Date
   lineItems: LineItems[]
@@ -26,38 +30,48 @@ export default function EditPurchaseOrderPage({
 }: {
   params: { purchase_order_id: string }
 }) {
-  const [purchaseOrder, setPurchaseOrder] = useState<Partial<PurchaseOrder> | undefined>(undefined)
+    const [purchaseOrder, setPurchaseOrder] = useState<PurchaseOrder | null>(null)
 
-  useEffect(() => {
-    if (!params?.purchase_order_id) {
-      console.error("Purchase Order ID is undefined")
-      return // Prevent the API call if `params.id` is missing
-    }
-
-    async function fetchPurchaseOrder() {
-      try {
-        const response = await axios.get<PurchaseOrder>(`http://127.0.0.1:8000/pharmacy/purchase-orders/${params.purchase_order_id}/`)
-
-        const formattedPurchaseOrder: PurchaseOrder = {
-          supplier_id: String(response.data.supplier_id), // Ensure string
-          order_date: new Date(response.data.order_date), // Convert to Date
-          expected_delivery_date: new Date(response.data.expected_delivery_date), // Convert to Date
-          lineItems: response.data.lineItems.map((item) => ({
-            product_id: String(item.product_id), // Ensure string
-            unit_id: String(item.unit_id), // Ensure string
-            ordered_quantity: item.ordered_quantity, // Use correct field
-            supplier_price: item.supplier_price,
-          })),
-        }
-
-        setPurchaseOrder(formattedPurchaseOrder)
-      } catch (error) {
-        console.error("Error fetching purchase order:", error)
+    useEffect(() => {
+      if (!params?.purchase_order_id) {
+        console.error("❌ Purchase Order ID is undefined")
+        return
       }
-    }
+  
+      async function fetchPurchaseOrder() {
+        try {
+          console.log(`📡 Fetching purchase order with ID: ${params.purchase_order_id}`);
+    
+          const response = await axios.get(`http://127.0.0.1:8000/pharmacy/purchase-orders/${params.purchase_order_id}/`);
+    
+          console.log("✅ API Response:", response.data); // Debug API response
 
-    fetchPurchaseOrder()
-  }, [params?.purchase_order_id]) // Use optional chaining here too
+        console.log("🔎 lineItems from API:", response.data.lineItems);
+
+    
+          // Transform data to match `useForm` defaultValues
+          const formattedPurchaseOrder = {
+            supplier_id: String(response.data.supplier.supplier_id), // Convert number to string
+            order_date: new Date(response.data.order_date), // Ensure Date conversion
+            expected_delivery_date: new Date(response.data.expected_date), // Ensure Date conversion
+            lineItems: response.data.lineItems.map((item) => ({
+              product_id: String(item.product_id), // Convert to string
+              unit_id: String(item.unit_id), // Convert to string
+              ordered_quantity: item.quantity, // Match expected field name
+              supplier_price: item.supplier_price,
+            })),
+          };
+    
+          console.log("🛠️ Formatted Purchase Order (matches useForm defaults):", formattedPurchaseOrder);
+    
+          setPurchaseOrder(formattedPurchaseOrder);
+        } catch (error) {
+          console.error("❌ Error fetching purchase order:", error);
+        }
+      }
+    
+      fetchPurchaseOrder();
+    }, [params?.purchase_order_id]);
 
   console.log(purchaseOrder)
   return (
