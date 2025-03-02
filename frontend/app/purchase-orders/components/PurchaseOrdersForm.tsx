@@ -35,7 +35,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import axios from "axios";
 import { format } from "date-fns";
 import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -72,7 +71,6 @@ const formSchema = z.object({
   lineItems: z
     .array(
       z.object({
-        purchase_order_item_id: z.string().optional(), // ✅ Include po_item_id
         product_id: z.string().min(1, "Product is required"),
         unit_id: z.string().min(1, "Unit is required"),
         ordered_quantity: z.coerce
@@ -167,7 +165,7 @@ export default function PurchaseOrderForm({
       order_date: new Date(),
       expected_delivery_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       lineItems: [
-        { purchase_order_item_id: undefined, product_id: "", unit_id: "", ordered_quantity: 1, supplier_price: 0 },
+        {  product_id: "", unit_id: "", ordered_quantity: 1, supplier_price: 0 },
       ],
     },
   });
@@ -216,28 +214,29 @@ export default function PurchaseOrderForm({
   function addLineItem() {
     form.setValue("lineItems", [
       ...form.getValues("lineItems"),
-      { product_id: "", unit_id: "", ordered_quantity: 1, supplier_price: 0 },
-    ]);
+      {
+        
+        product_id: "",
+        unit_id: "",
+        ordered_quantity: 1,
+        supplier_price: 0,
+      },
+    ], { shouldValidate: true });
   }
+  
 
-  async function removeLineItem(index: number) { // ✅ Make it `async`
+  async function removeLineItem(index: number) {
     const items = form.getValues("lineItems");
-    const itemToDelete = items[index];
-  
-    if (itemToDelete.purchase_order_item_id) {
-      try {
-        await axios.delete(
-          `http://127.0.0.1:8000/pharmacy/purchase-order-items/${itemToDelete.purchase_order_item_id}/`
-        );
-        console.log(`🗑️ Deleted PO Item ID: ${itemToDelete.purchase_order_item_id}`);
-      } catch (error) {
-        console.error("❌ Error deleting purchase order item:", error);
-      }
+
+    if (items.length <= 1) {
+      console.warn("❗ At least one item is required.");
+      return;
     }
-  
+
     form.setValue(
       "lineItems",
-      items.filter((_, i) => i !== index)
+      items.filter((_, i) => i !== index),
+      { shouldValidate: true }
     );
   }
   
