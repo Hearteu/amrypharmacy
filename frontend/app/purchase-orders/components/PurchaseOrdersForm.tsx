@@ -64,12 +64,14 @@ interface Units {
 }
 
 const formSchema = z.object({
+  purchase_order_id: z.string().optional(),
   supplier_id: z.string().min(1, "Supplier is required"),
   order_date: z.date(),
   expected_delivery_date: z.date(),
   lineItems: z
     .array(
       z.object({
+        purchase_order_item_id: z.string().optional(), // ✅ Include po_item_id
         product_id: z.string().min(1, "Product is required"),
         unit_id: z.string().min(1, "Unit is required"),
         ordered_quantity: z.coerce
@@ -159,11 +161,12 @@ export default function PurchaseOrderForm({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData || {
+      purchase_order_id: undefined,
       supplier_id: "",
       order_date: new Date(),
-      expected_delivery_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
+      expected_delivery_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       lineItems: [
-        { product_id: "", unit_id: "", ordered_quantity: 1, supplier_price: 0 },
+        { purchase_order_item_id: undefined, product_id: "", unit_id: "", ordered_quantity: 1, supplier_price: 0 },
       ],
     },
   });
@@ -173,6 +176,7 @@ export default function PurchaseOrderForm({
       console.log("🔄 Updating form with initialData:", initialData);
       form.reset(initialData);
     }
+    console.log(initialData)
   }, [initialData, form.reset]);
 
 
@@ -571,7 +575,13 @@ export default function PurchaseOrderForm({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Create Purchase Order"}
+              {isSubmitting
+                ? isEditing
+                  ? "Updating..."
+                  : "Creating..."
+                : isEditing
+                  ? "Update Purchase Order"
+                  : "Create Purchase Order"}
             </Button>
           </CardFooter>
         </Card>     

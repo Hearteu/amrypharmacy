@@ -8,6 +8,7 @@ import { useEffect, useState } from "react"
 import PurchaseOrderForm from "../../components/PurchaseOrdersForm"
 
 interface LineItems {
+    purchase_order_item_id: string;
   product_id: string
   unit_id: string
   ordered_quantity: number
@@ -19,6 +20,7 @@ interface Supplier {
 }
 
 interface PurchaseOrder {
+    purchase_order_id: string
   supplier: Supplier
   order_date: Date
   expected_delivery_date: Date
@@ -51,10 +53,12 @@ export default function EditPurchaseOrderPage({
     
           // Transform data to match `useForm` defaultValues
           const formattedPurchaseOrder = {
+            purchase_order_id: String(response.data.purchase_order_id),
             supplier_id: String(response.data.supplier.supplier_id), // Convert number to string
             order_date: new Date(response.data.order_date), // Ensure Date conversion
             expected_delivery_date: new Date(response.data.expected_date), // Ensure Date conversion
             lineItems: response.data.lineItems.map((item) => ({
+                purchase_order_item_id: String(item.purchase_order_item_id),
               product_id: String(item.product_id), // Convert to string
               unit_id: String(item.unit_id), // Convert to string
               ordered_quantity: item.quantity, // Match expected field name
