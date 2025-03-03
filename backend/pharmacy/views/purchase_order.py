@@ -208,6 +208,9 @@ class PurchaseOrder(APIView):
                     "ordered_quantity": item["ordered_quantity"],
                     "unit_id": item["unit_id"],
                     "purchase_order_item_status_id": 1,
+                    "expired_qty": 0,  # ✅ Default to 0
+                    "damage_qty": 0,  # ✅ Default to 0
+                    "expiry_date": None,  # ✅ Default to NULL
                 })
 
             print(f"🟢 Total Line Items to Insert: {len(purchase_order_items)}")  # Debugging
@@ -223,11 +226,12 @@ class PurchaseOrder(APIView):
                 # ✅ Debugging success
                 print(f"🟢 Successfully inserted {len(purchase_order_items)} items into Purchase_Order_Item.")
 
-                return Response({"message": "Purchase Order created successfully", "po_id": po_id}, status=201)
+            return Response({"message": "Purchase Order created successfully", "po_id": po_id}, status=201)
 
         except Exception as e:
             print(f"❌ Exception: {str(e)}")  # Debugging
             return Response({"error": str(e)}, status=500)
+
 
     def put(self, request, purchase_order_id=None):
         """Update an existing purchase order and handle line items correctly."""
