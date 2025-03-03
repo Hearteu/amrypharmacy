@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import ReceiveItemsForm from "./ReceiveItemsForm";
 
 const statusColorMap: Record<string, string> = {
   draft: "gray",
@@ -113,104 +114,7 @@ export function LineItemsTable({
                         Record received quantities and any issues
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid grid-cols-2 items-center gap-4">
-                        <div>
-                          <label className="text-sm font-medium">
-                            Item Status
-                          </label>
-                          <Select
-                            // value={receiveStatus}
-                            onValueChange={(value) => {
-                              //   setReceiveStatus(value)
-                              //   if (value === "not-received" || value === "out-of-stock" || value === "backordered") {
-                              //     setReceiveQuantity(0)
-                              //   }
-                            }}
-                          >
-                            <SelectTrigger className="mt-1">
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="receiving">
-                                Receiving Items
-                              </SelectItem>
-                              <SelectItem value="not-received">
-                                Not Received
-                              </SelectItem>
-                              <SelectItem value="out-of-stock">
-                                Out of Stock
-                              </SelectItem>
-                              <SelectItem value="backordered">
-                                Backordered
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium">
-                            Quantity to Receive
-                          </label>
-                          <Input
-                            type="number"
-                            min={0}
-                            // max={item.quantity - (item.receivedQuantity || 0)}
-                            // value={receiveQuantity}
-                            // onChange={(e) => setReceiveQuantity(Number(e.target.value))}
-                            className="mt-1"
-                          />
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {/* {item.quantity - (item.receivedQuantity || 0)} remaining */}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* {receiveStatus === "receiving" ? ( */}
-                      <>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-sm font-medium">
-                              Expired Items
-                            </label>
-                            <Input
-                              type="number"
-                              min={0}
-                              // value={expiredQuantity}
-                              // onChange={(e) => setExpiredQuantity(Number(e.target.value))}
-                              className="mt-1"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium">
-                              Damaged Items
-                            </label>
-                            <Input
-                              type="number"
-                              min={0}
-                              //   value={damagedQuantity}
-                              //   onChange={(e) => setDamagedQuantity(Number(e.target.value))}
-                              className="mt-1"
-                            />
-                          </div>
-                        </div>
-                      </>
-                      {/* ) : null} */}
-
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={() => {}}>
-                          Cancel
-                        </Button>
-                        <Button
-                        //   onClick={() => handleReceiveItems(item)}
-                        //   disabled={
-                        //     receiveStatus === "receiving" &&
-                        //     receiveQuantity + expiredQuantity + damagedQuantity === 0
-                        //   }
-                        >
-                          Record Receipt
-                        </Button>
-                      </div>
-                    </div>
+                    <ReceiveItemsForm purchase_order_item_id={item.purchase_order_item_id}></ReceiveItemsForm>
                   </DialogContent>
                 </Dialog>
               </TableCell>
