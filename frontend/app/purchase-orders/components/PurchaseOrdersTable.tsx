@@ -199,18 +199,15 @@ export default function PurchaseOrdersTable() {
 
         async function updateStatus(newStatusId: number) {
           try {
-            await fetch(
-              `http://127.0.0.1:8000/pharmacy/purchase-orders/${row.original.purchase_order_id}/`,
-              {
-                method: "PUT",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ status_id: newStatusId }),
-              }
-            );
-            setSelectedStatus(newStatusId);
-            console.log("purchase order id", row.original.purchase_order_id);
+            const response = await axios.put(
+                `http://127.0.0.1:8000/pharmacy/purchase-orders/${row.original.purchase_order_id}/`,
+                { purchase_order_status_id: newStatusId },
+                { headers: { "Content-Type": "application/json" } }
+              );
+              setSelectedStatus(newStatusId);
+              row.original.status_id = newStatusId;
+              
+              console.log("✅ Status update response:", row.original.status_id);
           } catch (error) {
             console.error("Error updating status:", error);
           }
@@ -238,7 +235,6 @@ export default function PurchaseOrdersTable() {
                   })}
                 >
                   {statusName}
-                  {row.original.status_id}
                 </Badge>
                 <ChevronsUpDown className="opacity-50" />
               </Button>
@@ -348,7 +344,7 @@ export default function PurchaseOrdersTable() {
   const [statusFilter, setStatusFilter] = useState<string>("all"); // ✅ Track selected status
 
   const table = useReactTable({
-    data: purchaseOrders,
+    data: purchaseOrders, // ✅ Use tableData instead of purchaseOrders
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -362,8 +358,10 @@ export default function PurchaseOrdersTable() {
       columnFilters,
       columnVisibility,
     },
-    debugTable: true, // Add this to help with debugging
+    debugTable: true, // Helps with debugging
   });
+
+  
 
   return (
     <div className="space-y-4">
@@ -382,16 +380,11 @@ export default function PurchaseOrdersTable() {
             setStatusFilter(value);
 
             if (value === "all") {
-              console.log("Clearing filter");
               table.getColumn("status_id")?.setFilterValue(undefined);
             } else {
               const numericValue = Number(value);
               if (!isNaN(numericValue)) {
-                console.log("Setting filter to:", numericValue);
                 table.getColumn("status_id")?.setFilterValue([numericValue]);
-                console.log(purchaseOrders)
-
-                console.log("Current filters:", table.getState().columnFilters);
               } else {
                 console.error("Invalid status value:", value);
               }
@@ -410,7 +403,7 @@ export default function PurchaseOrdersTable() {
             {/* ✅ "All" option to clear filter */}
             {Object.entries(statusMap).map(([id, name]) => (
               <SelectItem key={id} value={id}>
-                {name} {id}
+                {name}
               </SelectItem>
             ))}
           </SelectContent>

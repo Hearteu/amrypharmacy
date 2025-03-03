@@ -118,7 +118,14 @@ export default function PurchaseOrderPage({
                   <TabsTrigger value="notes">Notes</TabsTrigger>
                 </TabsList>
                 <TabsContent value="items" className="pt-4">
-                  <LineItemsTable lineItems={purchaseOrder?.lineItems ?? []} />
+                  <LineItemsTable
+                  lineItems={purchaseOrder?.lineItems ?? []}
+                  editable={true}
+                  onStatusChange={(id, status) => {
+                    // In a real app, you would update the status in your database
+                    console.log(`Item ${id} status changed to ${status}`)
+                  }}
+                />
                   <div className="flex justify-end mt-4">
                     <div className="w-64 space-y-2">
                   
@@ -180,9 +187,9 @@ export default function PurchaseOrderPage({
                   <div className="grid grid-cols-[100px_1fr]">
                     <span className="text-sm font-medium">Expected:</span>
                     <span>
-                      {purchaseOrder?.expected_delivery_date
+                      {purchaseOrder?.expected_date
                         ? new Date(
-                            purchaseOrder.expected_delivery_date
+                            purchaseOrder.expected_date
                           ).toLocaleDateString()
                         : "No delivery date available"}
                     </span>
