@@ -18,7 +18,8 @@ class PurchaseOrder(APIView):
         try:
             query = supabase.table("Purchase_Order").select(
                 "purchase_order_id, po_id, order_date, expected_delivery_date, purchase_order_status_id, notes, "
-                "Purchase_Order_Item (purchase_order_item_id, poi_id, ordered_quantity, purchase_order_item_status_id, unit_id, Unit (unit), "
+                "Purchase_Order_Item (purchase_order_item_id, poi_id, ordered_quantity, purchase_order_item_status_id, "
+                "unit_id, expired_qty, damaged_qty, expiry_date, Unit (unit), "
                 "Purchase_Order_Item_Status (po_item_status), "
                 "Supplier_Item (supplier_id, supplier_item_id, supplier_price, "
                 "Products (product_id, product_name, Drugs (dosage_form, dosage_strength)), "
@@ -96,6 +97,9 @@ class PurchaseOrder(APIView):
                         "po_item_status": item.get("Purchase_Order_Item_Status", {}).get("po_item_status", "Unknown"),
                         "unit_id": item.get("unit_id", "N/A"),
                         "unit": item.get("Unit", {}).get("unit", "N/A"),
+                        "expired_qty": item.get("expired_qty", 0),  # ✅ Added expired quantity
+                        "damaged_qty": item.get("damaged_qty", 0),  # ✅ Added damaged quantity
+                        "expiry_date": item.get("expiry_date", None),  # ✅ Added expiry date
                     })
 
                 formatted_order["po_total"] = po_total  # ✅ Renamed total → po_total
@@ -105,6 +109,7 @@ class PurchaseOrder(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
 
 
     def post(self, request):
@@ -341,6 +346,9 @@ class PurchaseOrder(APIView):
                         item_update_data = {
                             "ordered_quantity": item.get("ordered_quantity"),
                             "purchase_order_item_status_id": item.get("purchase_order_item_status_id"),
+                            "expired_qty": item.get("expired_qty", 0),
+                            "damaged_qty": item.get("damaged_qty", 0),
+                            "expiry_date": item.get("expiry_date"),
                         }
                         item_update_data = {k: v for k, v in item_update_data.items() if v is not None}
 
@@ -363,6 +371,9 @@ class PurchaseOrder(APIView):
                             "ordered_quantity": item["ordered_quantity"],
                             "unit_id": item["unit_id"],
                             "purchase_order_item_status_id": 1,
+                            "expired_qty": item.get("expired_qty", 0),
+                            "damaged_qty": item.get("damaged_qty", 0),
+                            "expiry_date": item.get("expiry_date"),
                         })
                         print(f"➕ New POI ID: {new_poi_id}")
 
@@ -376,6 +387,7 @@ class PurchaseOrder(APIView):
         except Exception as e:
             print(f"❌ Exception: {str(e)}")  # Debugging
             return Response({"error": str(e)}, status=500)
+
 
 
     # def delete(self, request, purchase_order_id):
