@@ -26,6 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { DataTablePagination } from "@/components/table/DataTablePagination";
 import { DataTableViewOptions } from "@/components/table/DataTableViewOptions";
+import { Button } from "@/components/ui/button";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -62,38 +63,44 @@ export function DataTable<TData, TValue>({
     },
   });
 
+  const isRowSelected = Object.keys(rowSelection).length > 0;
+  console.log(isRowSelected)
   return (
     <div>
-      {/* Search */}
-      <div className="flex items-center pt-4 mx-4">
+      {/* Search & Add Button */}
+      <div className="flex items-center justify-between p-4">
         <Input
           placeholder="Search Item..."
-          value={(table.getColumn("product_name")?.getFilterValue() as string) ?? ""}
+          value={(table.getColumn("item_name")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
-            table.getColumn("product_name_brand")?.setFilterValue(event.target.value)
+            table.getColumn("item_name")?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
         />
-        <DataTableViewOptions table={table} />
+        <Button
+          className={`px-4 py-2 text-white rounded ${
+            isRowSelected ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-300 cursor-not-allowed"
+          }`}
+          disabled={!isRowSelected}
+          onClick={() => console.log("Add button clicked with selected rows:", rowSelection)}
+        >
+          Add
+        </Button>
       </div>
+
       {/* Table */}
       <div className="rounded-md border m-4">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  );
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>
@@ -106,10 +113,7 @@ export function DataTable<TData, TValue>({
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -124,7 +128,8 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      {/* Pagination  */}
+
+      {/* Pagination */}
       <DataTablePagination table={table} />
     </div>
   );

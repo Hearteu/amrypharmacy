@@ -14,11 +14,66 @@ interface SalesOrder {
   order_status: string;
   order_date: string;
   product_name: string;
+  form: string;
+  size: string;
+  stock_quantity: number;
   price: number;
 }
 
+// Sample Data
+const sampleOrders: SalesOrder[] = [
+  {
+    order_id: 1,
+    customer_name: "John Doe",
+    total_amount: 150.5,
+    order_status: "Completed",
+    order_date: "2024-02-10",
+    product_name: "Paracetamol",
+    price: 50.5,
+    form: "Tablet",
+    size: "500mg",
+    stock_quantity: 100,
+  },
+  {
+    order_id: 2,
+    customer_name: "Jane Smith",
+    total_amount: 250.0,
+    order_status: "Pending",
+    order_date: "2024-02-09",
+    product_name: "Amoxicillin",
+    price: 125.0,
+    form: "Capsule",
+    size: "250mg",
+    stock_quantity: 50,
+  },
+  {
+    order_id: 3,
+    customer_name: "Carlos Mendoza",
+    total_amount: 180.75,
+    order_status: "Shipped",
+    order_date: "2024-02-08",
+    product_name: "Cough Syrup",
+    price: 60.25,
+    form: "Liquid",
+    size: "100ml",
+    stock_quantity: 30,
+  },
+  {
+    order_id: 4,
+    customer_name: "Carlos Mendoza",
+    total_amount: 180.75,
+    order_status: "Shipped",
+    order_date: "2024-02-08",
+    product_name: "Cough Syrup",
+    price: 60.25,
+    form: "Liquid",
+    size: "100ml",
+    stock_quantity: 30,
+  },
+];
+
 export default function SalesOrderPage() {
-  const [orderData, setOrderData] = useState<SalesOrder[]>([]);
+  const [orderData, setOrderData] = useState<SalesOrder[]>(sampleOrders); // Set initial data
   const [loading, setLoading] = useState(true);
   const [selectedOrders, setSelectedOrders] = useState<SalesOrder[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
@@ -33,7 +88,7 @@ export default function SalesOrderPage() {
         setOrderData(data);
       } catch (error) {
         console.error("Error fetching sales orders:", error);
-        setOrderData([]);
+        // Keep sample data if API fails
       } finally {
         setLoading(false);
       }
@@ -42,26 +97,6 @@ export default function SalesOrderPage() {
     fetchOrders();
   }, []);
 
-  // Function to handle adding a selected order to the order summary
-  const handleAddOrder = () => {
-    if (!selectedOrder) return;
-
-    setSelectedOrders((prevOrders) => {
-      const existingIndex = prevOrders.findIndex((order) => order.order_id === selectedOrder.order_id);
-      if (existingIndex !== -1) {
-        // If order exists, increase quantity
-        const updatedOrders = [...prevOrders];
-        updatedOrders[existingIndex] = {
-          ...updatedOrders[existingIndex],
-          quantity: (updatedOrders[existingIndex].quantity || 1) + 1,
-        };
-        return updatedOrders;
-      } else {
-        // Add new order with quantity 1
-        return [...prevOrders, { ...selectedOrder, quantity: 1 }];
-      }
-    });
-  };
 
   const columnDefs = columns();
 
@@ -85,14 +120,6 @@ export default function SalesOrderPage() {
           {/* Header Section: Title + Add Button on Right */}
           <div className="flex justify-between items-center pb-4">
             <h2 className="text-xl font-semibold">Sales Orders</h2>
-            {/* Can only be clickable if there is a selected item */}
-            <Button
-              onClick={handleAddOrder}
-              disabled={!selectedOrder}
-              className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md"
-            >
-              Add
-            </Button>
           </div>
 
           {/* Table Content */}

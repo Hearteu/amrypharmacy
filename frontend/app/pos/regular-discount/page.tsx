@@ -70,7 +70,8 @@ export default function DswdPage() {
 
   return (
     <>
-      <div className="p-4 fixed w-full bg-white shadow-md">
+      {/* Breadcrumb Header */}
+      <div className="p-4 fixed w-full bg-white shadow-md z-10">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -85,133 +86,123 @@ export default function DswdPage() {
           </BreadcrumbList>
         </Breadcrumb>
       </div>
-      <Card className="m-6 p-5 shadow-lg border border-gray-300 rounded-lg">
-        <CardContent className="space-y-4">
-          {/* Back Button */}
-          <Button
+
+      {/* Main Content */}
+      <div className="flex flex-col md:flex-row min-h-screen pt-16 gap-4 p-4">
+        {/* Left Side - Form */}
+ 
+        <div className="md:w-2/3 w-full bg-white shadow-md p-4 rounded-lg">
+        <Button
             variant="outline"
             className="flex items-center gap-2"
             onClick={() => router.push("/pos/main")}
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
+          <CardHeader>
+            <CardTitle className="text-lg font-bold">PWD/Senior Details</CardTitle>
+          </CardHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField control={form.control} name="patient_name" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Patient Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
-          <div className="flex gap-8">
-            {/* Left Side - Form */}
-            <div className="w-1/2 p-4 border-r border-gray-300">
-              <CardHeader>
-                <CardTitle className="text-lg font-bold">Customer Details</CardTitle>
-              </CardHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField control={form.control} name="patient_name" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Patient Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
+              <FormField control={form.control} name="pwdSenior_id" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>PWD/Senior ID</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter PWD/Senior ID" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
-                  <FormField control={form.control} name="pwdSenior_id" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>PWD/Senior ID</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter PWD/Senior ID" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
+              <FormField control={form.control} name="address" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter Address" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
-                <FormField control={form.control} name="address" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter address" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
+              <FormField control={form.control} name="prescription_date" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Prescription Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
-                  <FormField control={form.control} name="prescription_date" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Prescription Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />    
+              <FormField control={form.control} name="physician_name" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Physician Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter physician name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
-                <FormField control={form.control} name="physician_name" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Physician Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter physician name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
+              <FormField control={form.control} name="physician_prc" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Physician PRC</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter physician PRC number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
-                <FormField control={form.control} name="physician_prc" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Physician PRC</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter physician PRC number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
+              <FormField control={form.control} name="physician_ptr" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Physician PTR</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter physician PTR" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
-                <FormField control={form.control} name="physician_ptr" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Physician PTR</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter physician PTR" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <Button 
-                  type="submit" 
-                  className="w-full"
-                  onClick={() => router.push("/pos/main")}
-                  >Submit</Button>
-                </form>
-              </Form>
-            </div>
+              <Button type="submit" className="w-full" onClick={() => router.push("/pos/main")}>
+                Submit
+              </Button>
+            </form>
+          </Form>
+        </div>
 
-            {/* Right Side - Order Summary */}
-            <div className="w-1/2 p-4">
-              <Card className="p-4 shadow-md border border-gray-300 rounded-lg">
-                <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {selectedItems.length > 0 ? (
-                    <ul className="space-y-2">
-                      {selectedItems.map((item) => (
-                        <li key={item.id} className="flex justify-between">
-                          <span>{item.product} x{item.quantity}</span>
-                          <span>${item.price * item.quantity}</span>
-                        </li>
-                      ))}
-                      <hr className="my-2 border-gray-300" />
-                      <li className="flex justify-between font-bold">
-                        <span>Total:</span>
-                        <span>${totalAmount}</span>
-                      </li>
-                    </ul>
-                  ) : (
-                    <p className="text-gray-500">No items selected.</p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Right Side - Order Summary */}
+        <div className="md:w-1/3 w-full bg-gray-100 shadow-md p-4 rounded-lg">
+          <Card className="p-4 shadow-md border border-gray-300 rounded-lg">
+            <CardHeader>
+              <CardTitle>Order Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {selectedItems.map((item) => (
+                <div key={item.id} className="flex justify-between">
+                  <span>{item.product} x{item.quantity}</span>
+                  <span>${item.price * item.quantity}</span>
+                </div>
+              ))}
+              <hr className="my-2 border-gray-300" />
+              <div className="flex justify-between font-bold">
+                <span>Total:</span>
+                <span>${totalAmount}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </>
   );
 }
