@@ -98,9 +98,6 @@ export default function PurchaseOrderPage({
               {purchaseOrder?.status}
             </Badge>
           </div>
-          <div className="flex gap-2">
-            <Button size="sm">Edit Order</Button>
-          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

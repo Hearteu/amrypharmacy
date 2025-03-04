@@ -310,7 +310,7 @@ export default function PurchaseOrderForm({
                                     onSelect={() => {
                                         const selectedId = supplier.supplier_id.toString();
                                         form.setValue("supplier_id", selectedId);
-                                        setSelectedSupplier(Number(selectedId)); 
+                                        setSelectedSupplier(selectedId); 
                                     }}
                                   >
                                     {supplier.supplier_name}

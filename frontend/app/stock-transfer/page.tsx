@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { columns } from "./columns";
-import { DataTable } from "./data-table";
+import { StockTransferForm } from "./components/StockTransferForm";
+import StockTransferTable from "./components/StockTransferTable";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { PlusCircle } from "lucide-react";
 
 interface StockTransfer{
     stock_transfer_id: number;
@@ -18,12 +21,26 @@ export default function StockTransferList() {
 
   return (
     <>
-      <div className="p-4">
-        <div id="inventory" className="min-h-screen w-full pt-8 pr-4">
-          <div className="flex flex-row justify-between">
-            <h2 className="text-xl font-semibold p-4">Stock Transfer History</h2>
+    <div className="p-4">
+      <div className="container mx-auto py-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Stock Transfers
+            </h1>
+            <p className="text-muted-foreground">
+              Manage and track your stock transfers
+            </p>
           </div>
-            <DataTable columns={columns} data={stockTransferData} />
+          <Button asChild>
+            <Link href="/stock-transfer/create">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              New Stock Transfer
+            </Link>
+          </Button>
+        </div>
+
+          <StockTransferTable/>
         </div>
       </div>
     </>

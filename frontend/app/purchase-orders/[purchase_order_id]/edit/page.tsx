@@ -57,7 +57,7 @@ export default function EditPurchaseOrderPage({
             supplier_id: String(response.data.supplier.supplier_id), // Convert number to string
             order_date: new Date(response.data.order_date), // Ensure Date conversion
             expected_delivery_date: new Date(response.data.expected_date), // Ensure Date conversion
-            lineItems: response.data.lineItems.map((item) => ({
+            lineItems: response.data.lineItems.map((item: any) => ({
                 purchase_order_item_id: String(item.purchase_order_item_id),
               product_id: String(item.product_id), // Convert to string
               unit_id: String(item.unit_id), // Convert to string
@@ -82,7 +82,7 @@ export default function EditPurchaseOrderPage({
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center gap-2">
       <Button variant="outline" size="icon" asChild>
-        <Link href={`/purchase-orders/${params.purchase_order_id}`}>
+        <Link href={"/purchase-orders/"}>
           <ArrowLeft className="h-4 w-4" />
         </Link>
       </Button>

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import {
   type ColumnDef,
-  type Row,
   type ColumnFiltersState,
   type SortingState,
   type VisibilityState,
@@ -365,7 +364,7 @@ export default function PurchaseOrdersTable() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-x-4">
         <Input
           placeholder="Filter purchase orders..."
           value={(table.getColumn("po_id")?.getFilterValue() as string) ?? ""}
@@ -454,7 +453,7 @@ export default function PurchaseOrdersTable() {
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No purchase orders found.
+                  Loading...
                 </TableCell>
               </TableRow>
             )}
