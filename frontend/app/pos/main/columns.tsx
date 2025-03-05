@@ -80,26 +80,26 @@ export const columns: (onSuccess: () => void) => ColumnDef<MergedInventoryData>[
       </Button>
     ),
   },
-  {
-    accessorKey: "stock_quantity",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Stock Quantity
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    cell: ({ row }) => {
-      const quantity = row.original.stock_quantity;
-      return (
-        <span className={quantity <= 10 ? "text-red-500 font-bold" : ""}>
-          {quantity}
-        </span>
-      );
-    }
-  },
+  // {
+  //   accessorKey: "stock_quantity",
+  //   header: ({ column }) => (
+  //     <Button
+  //       variant="ghost"
+  //       onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+  //     >
+  //       Stock Quantity
+  //       <ArrowUpDown className="ml-2 h-4 w-4" />
+  //     </Button>
+  //   ),
+  //   cell: ({ row }) => {
+  //     const quantity = row.original.stock_quantity;
+  //     return (
+  //       <span className={quantity <= 10 ? "text-red-500 font-bold" : ""}>
+  //         {quantity}
+  //       </span>
+  //     );
+  //   }
+  // },
   {
     accessorKey: "price",
     header: ({ column }) => (

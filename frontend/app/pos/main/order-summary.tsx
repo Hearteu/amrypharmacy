@@ -59,14 +59,16 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ orderData, setOrderData }) 
   const total = subtotal - discount;
 
   return (
-    <Card className="shadow-md">
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold">Order Summary</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <Card className="shadow-md h-[500px] flex flex-col">
+      <CardContent className="flex-grow overflow-hidden flex flex-col">
         <OrderTypeSelector value={orderType} onChange={handleOrderTypeChange} />
         {orderType === "DSWD" && <DSWDNote />}
-        <OrderTable orderData={orderData} updateQuantity={updateQuantity} />
+        
+        {/* Scrollable Order Table */}
+        <div className="flex-grow overflow-y-auto border border-gray-200 rounded-lg p-2">
+          <OrderTable orderData={orderData} updateQuantity={updateQuantity} />
+        </div>
+
         {isDiscountAllowed && <DiscountSelector value={discountType} onChange={setDiscountType} router={router} />}
         <OrderTotal subtotal={subtotal} discount={discount} total={total} isDiscountAllowed={isDiscountAllowed} />
       </CardContent>

@@ -31,18 +31,22 @@ import { Button } from "@/components/ui/button";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  onAdd: (row: TData) => void;
+  onRowClick?: (row: TData) => void;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  onAdd,
+  onRowClick,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
+  const [rowSelection, setRowSelection] = React.useState<Record<string, boolean>>({});
+  const [selectedRow, setSelectedRow] = React.useState<TData | null>(null);
+  
 
   const table = useReactTable({
     data,
@@ -63,11 +67,22 @@ export function DataTable<TData, TValue>({
     },
   });
 
-  const isRowSelected = Object.keys(rowSelection).length > 0;
-  console.log(isRowSelected)
+  // When a row is clicked, update selectedRow and call onRowClick if provided.
+  const handleRowClick = (row: TData) => {
+    setSelectedRow(row);
+    console.log("Selected Row Data:", row);
+    if (onRowClick) {
+      onRowClick(row);
+    }
+  };
+
+  const isRowSelected = selectedRow !== null;
+
+  
+
   return (
     <div>
-      {/* Search & Add Button */}
+      {/* Search & Add Button Header */}
       <div className="flex items-center justify-between p-4">
         <Input
           placeholder="Search Item..."
@@ -77,15 +92,6 @@ export function DataTable<TData, TValue>({
           }
           className="max-w-sm"
         />
-        <Button
-          className={`px-4 py-2 text-white rounded ${
-            isRowSelected ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-300 cursor-not-allowed"
-          }`}
-          disabled={!isRowSelected}
-          onClick={() => console.log("Add button clicked with selected rows:", rowSelection)}
-        >
-          Add
-        </Button>
       </div>
 
       {/* Table */}
@@ -109,7 +115,9 @@ export function DataTable<TData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
+                  data-state={selectedRow === row.original ? "selected" : ""}
+                  onClick={() => handleRowClick(row.original)}
+                  className="cursor-pointer hover:bg-gray-50"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
