@@ -54,13 +54,16 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export default function ReceiveItemsForm({ initialData, purchase_order_item_id }: ReceiveItemsProps) {
+export default function ReceiveItemsForm({
+  initialData,
+  purchase_order_item_id,
+}: ReceiveItemsProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [poItemStatus, setPOItemStatus] = useState<POItemStatus[]>([]);
   const [statusOpen, setStatusOpen] = useState(false);
 
   const [isEditing, setIsEditing] = useState(!!initialData);
-    console.log(purchase_order_item_id, "Purchase order item")
+  console.log(purchase_order_item_id, "Purchase order item");
   useEffect(() => {
     setIsEditing(!!initialData);
   }, [initialData]);
@@ -79,11 +82,10 @@ export default function ReceiveItemsForm({ initialData, purchase_order_item_id }
     fetchPOItemStatus();
   }, []);
 
-
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      purchase_order_item_id: purchase_order_item_id.toString() ,
+      purchase_order_item_id: purchase_order_item_id.toString(),
       purchase_order_item_status_id:
         initialData?.purchase_order_item_status_id ?? "",
       expiry_date: initialData?.expiry_date
@@ -123,7 +125,7 @@ export default function ReceiveItemsForm({ initialData, purchase_order_item_id }
       });
 
       console.log("Submitted data", JSON.stringify(formattedData));
-      console.log(formattedData)
+      console.log(formattedData);
     } catch (error) {
       console.error("error submiting", error);
     }
@@ -201,7 +203,17 @@ export default function ReceiveItemsForm({ initialData, purchase_order_item_id }
               <FormItem className="col-span-2">
                 <FormLabel>To Receive:</FormLabel>
                 <FormControl>
-                  <Input type="number" min={1} {...field} />
+                <Input
+                    type="number"
+                    min={0}
+                    {...field}
+                    value={field.value ?? 0} // Ensure value is never null
+                    onChange={(e) =>
+                      field.onChange(
+                        e.target.value === "" ? 0 : Number(e.target.value)
+                      )
+                    } // Convert empty string to 0
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -216,7 +228,17 @@ export default function ReceiveItemsForm({ initialData, purchase_order_item_id }
               <FormItem className="col-span-2">
                 <FormLabel>Expired Items:</FormLabel>
                 <FormControl>
-                  <Input type="number" min={1} {...field} />
+                <Input
+                    type="number"
+                    min={0}
+                    {...field}
+                    value={field.value ?? 0} // Ensure value is never null
+                    onChange={(e) =>
+                      field.onChange(
+                        e.target.value === "" ? 0 : Number(e.target.value)
+                      )
+                    } // Convert empty string to 0
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -230,7 +252,17 @@ export default function ReceiveItemsForm({ initialData, purchase_order_item_id }
               <FormItem className="col-span-2">
                 <FormLabel>Damaged Items:</FormLabel>
                 <FormControl>
-                  <Input type="number" min={1} {...field} />
+                  <Input
+                    type="number"
+                    min={0}
+                    {...field}
+                    value={field.value ?? 0} // Ensure value is never null
+                    onChange={(e) =>
+                      field.onChange(
+                        e.target.value === "" ? 0 : Number(e.target.value)
+                      )
+                    } // Convert empty string to 0
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
