@@ -222,7 +222,7 @@ export default function PurchaseOrderForm({
         ordered_quantity: 1,
         supplier_price: 0,
       },
-    ], { shouldValidate: true });
+    ], );
   }
   
 

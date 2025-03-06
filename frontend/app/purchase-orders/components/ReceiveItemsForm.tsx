@@ -315,10 +315,10 @@ export default function ReceiveItemsForm({
               {isSubmitting
                 ? isEditing
                   ? "Updating..."
-                  : "Creating..."
+                  : "Receiving..."
                 : isEditing
-                ? "Update Purchase Order"
-                : "Create Purchase Order"}
+                ? "Update Items Received"
+                : "Receive Items"}
             </Button>
           </div>
         </form>
