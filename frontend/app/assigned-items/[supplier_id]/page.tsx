@@ -12,6 +12,8 @@ import { columns } from "./columns";
 import { DataTable } from "./data-table";
 import { Button } from "@/components/ui/button";
 import AddSupplierItemForm from "@/components/forms/AddSupplierItemForm";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 interface AssignedItems {
   supplier_item_id: number;
@@ -76,12 +78,23 @@ export default function AssignedItemsPage({
       <div className="p-4">
         <div className="container mx-auto py-6 space-y-6">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" asChild>
+                <Link href={"/suppliers/"}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+              </Button>
+              <div>
               <h1 className="text-3xl font-bold tracking-tight">
                 Items Provided by Supplier:{" "}
                 {supplierItemData[0]?.supplier_name || "Loading..."}
               </h1>
-              <p className="text-muted-foreground">Assign items to this supplier and manage their product offerings.</p>
+              <p className="text-muted-foreground">
+                Assign items to this supplier and manage their product
+                offerings.
+              </p>
+              </div>
+              
             </div>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>

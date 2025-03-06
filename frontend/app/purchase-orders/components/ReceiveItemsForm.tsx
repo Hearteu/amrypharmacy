@@ -47,9 +47,9 @@ const formSchema = z.object({
   purchase_order_item_id: z.string().optional(),
   purchase_order_item_status_id: z.string().min(1, "Status is required"),
   expiry_date: z.date().optional(),
-  received_qty: z.coerce.number().min(1, "Quantity must be at least 1"),
-  expired_qty: z.coerce.number().min(1, "Quantity must be at least 1"),
-  damaged_qty: z.coerce.number().min(1, "Quantity must be at least 1"),
+  received_qty: z.union([z.coerce.number(), z.undefined()]).nullable(),
+  expired_qty: z.union([z.coerce.number(), z.undefined()]).nullable(),
+  damaged_qty: z.union([z.coerce.number(), z.undefined()]).nullable(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -83,7 +83,7 @@ export default function ReceiveItemsForm({ initialData, purchase_order_item_id }
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      purchase_order_item_id: initialData?.purchase_order_item_id ?? undefined,
+      purchase_order_item_id: purchase_order_item_id.toString() ,
       purchase_order_item_status_id:
         initialData?.purchase_order_item_status_id ?? "",
       expiry_date: initialData?.expiry_date
@@ -105,6 +105,7 @@ export default function ReceiveItemsForm({ initialData, purchase_order_item_id }
   async function onSubmit(data: FormValues) {
     const formattedData = {
       ...data,
+      purchase_order_item_id: purchase_order_item_id.toString(),
       expiry_date: data?.expiry_date
         ? format(new Date(data.expiry_date), "yyyy-MM-dd")
         : null,
@@ -122,6 +123,7 @@ export default function ReceiveItemsForm({ initialData, purchase_order_item_id }
       });
 
       console.log("Submitted data", JSON.stringify(formattedData));
+      console.log(formattedData)
     } catch (error) {
       console.error("error submiting", error);
     }

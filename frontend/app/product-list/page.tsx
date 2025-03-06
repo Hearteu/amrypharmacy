@@ -70,9 +70,9 @@ export default function ProducList() {
   const tableColumns = columns(refreshData);
 
   useEffect(() => {
-    refreshData(); // Fetch initial data
-  });
-
+    refreshData();
+  }, []);
+  
   if (error) return <p>{error}</p>;
 
   return (

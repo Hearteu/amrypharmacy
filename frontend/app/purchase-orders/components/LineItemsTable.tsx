@@ -122,6 +122,8 @@ export function LineItemsTable({
           ))}
         </TableBody>
       </Table>
+
+    
     </div>
   );
 }
