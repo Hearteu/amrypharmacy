@@ -71,6 +71,7 @@ const formSchema = z.object({
   lineItems: z
     .array(
       z.object({
+        purchase_order_item_id: z.string().optional(),
         product_id: z.string().min(1, "Product is required"),
         unit_id: z.string().min(1, "Unit is required"),
         ordered_quantity: z.coerce
