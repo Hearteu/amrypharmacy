@@ -91,7 +91,7 @@ class Products(APIView):
         print(data)
 
         try:
-            # Insert into Products table
+            # ✅ Step 1: Insert into Products table
             product_response = supabase.table("Products").insert({
                 "product_name": data["product_name"],
                 "category_id": data["category_id"],
@@ -104,10 +104,19 @@ class Products(APIView):
             if not product_response.data:
                 return Response({"error": "Products insertion failed"}, status=400)
 
-            # Get the generated product_id
+            # ✅ Step 2: Get the generated product_id
             product_id = product_response.data[0]["product_id"]
 
-            # Check if it's a drug (has dosage_strength and dosage_form)
+            # ✅ Step 3: Insert into Stock_Item table (Initial quantity = 0)
+            stock_item_response = supabase.table("Stock_Item").insert({
+                "product_id": product_id,  # Link to Products table
+                "quantity": 0  # Initial stock quantity
+            }).execute()
+
+            if not stock_item_response.data:
+                return Response({"error": "Stock_Item insertion failed"}, status=400)
+
+            # ✅ Step 4: If it's a drug, insert into Drugs table
             if "dosage_strength" in data and "dosage_form" in data:
                 drug_response = supabase.table("Drugs").insert({
                     "product_id": product_id,  # FK to Products
@@ -118,12 +127,15 @@ class Products(APIView):
                 if not drug_response.data:
                     return Response({"error": "Drugs insertion failed"}, status=400)
 
-            return Response({"message": "Product added successfully", "product": product_response.data}, status=201)
+            return Response({
+                "message": "Product added successfully",
+                "product": product_response.data,
+                "stock_item": stock_item_response.data
+            }, status=201)
 
         except Exception as e:
             return Response({"error": str(e)}, status=400)
 
- 
     def put(self, request, product_id=None):
         data = request.data
         print(data)

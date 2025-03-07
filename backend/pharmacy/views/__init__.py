@@ -14,10 +14,12 @@ from .product_brand import Brand
 from .product_category import ProductCategory
 from .products import Products
 from .purchase_order import PurchaseOrder
+from .purchase_order_item import POI
 from .purchase_order_item_status import Purchase_Order_Item_Status
 from .purchase_order_status import Purchase_Order_Status
 from .receipt import Receipt
 from .status import Status
+from .stock_transaction import StockTransaction
 from .stock_transfer import StockTransfer
 from .supplier import Supplier
 from .supplier_item import SupplierItem

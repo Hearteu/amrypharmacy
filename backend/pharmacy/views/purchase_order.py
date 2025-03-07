@@ -79,7 +79,7 @@ class PurchaseOrder(APIView):
 
                     # ✅ Concatenate dosage info only if available
                     dosage_info = f" {drugs.get('dosage_form', '')} {drugs.get('dosage_strength', '')}".strip() if drugs else ""
-                    product_name = f"{product.get('product_name', 'Unknown Product')}{dosage_info}"
+                    product_name = f"{product.get('product_name', 'Unknown Product')} {dosage_info}"
 
                     supplier_price = supplier_item.get("supplier_price", 0)
                     poi_total = item["ordered_quantity"] * supplier_price

@@ -1,12 +1,13 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView  # type: ignore
 
-from .views import (Branch, Brand, Customers, CustomerType, DisposedItems,
+from .views import (POI, Branch, Brand, Customers, CustomerType, DisposedItems,
                     Drugs, DswdOrder, Expiration, Inventory, Order, PersonList,
                     Prescription, PriceHistory, ProductCategory, Products,
                     Purchase_Order_Item_Status, Purchase_Order_Status,
-                    PurchaseOrder, Receipt, Status, StockTransfer, Supplier,
-                    SupplierItem, Unit, UserList, UserLoginView, UserRole)
+                    PurchaseOrder, Receipt, Status, StockTransaction,
+                    StockTransfer, Supplier, SupplierItem, Unit, UserList,
+                    UserLoginView, UserRole)
 
 # Define resources with their corresponding view classes
 resources = [
@@ -36,6 +37,8 @@ resources = [
     ("supplier-items", SupplierItem),
     ("purchase-order-status", Purchase_Order_Status),
     ("purchase-order-item-status", Purchase_Order_Item_Status),
+    ("stock-transactions", StockTransaction),
+    ("purchase-order-items", POI),
 ]
 
 # Generate urlpatterns dynamically
