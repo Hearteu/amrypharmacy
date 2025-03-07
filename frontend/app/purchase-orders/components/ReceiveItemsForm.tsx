@@ -257,7 +257,7 @@ export default function ReceiveItemsForm({ purchase_order_item_id }: ReceiveItem
 
         <div className="col-span-4">
           <Button type="submit" disabled={isSubmitting} className="w-full">
-            {isSubmitting ? "Updating..." : "Update Purchase Order Item"}
+            {isSubmitting ? "Updating..." : "Receive Items"}
           </Button>
         </div>
       </form>
