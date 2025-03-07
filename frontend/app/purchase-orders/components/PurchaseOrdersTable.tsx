@@ -453,7 +453,7 @@ export default function PurchaseOrdersTable() {
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  Loading...
+                  No Purchase Orders Found
                 </TableCell>
               </TableRow>
             )}

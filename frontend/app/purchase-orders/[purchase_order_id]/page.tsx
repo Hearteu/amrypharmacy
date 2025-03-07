@@ -67,6 +67,7 @@ export default function PurchaseOrderPage({
         );
 
         setPurchaseOrder(response.data);
+        console.log(response.data)
       } catch (error) {
         console.error("Error fetching purchase order:", error);
         setError("Failed to load purchase order.");
