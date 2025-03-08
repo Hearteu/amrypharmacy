@@ -264,10 +264,7 @@ export default function ReceiveItemsForm({
     const statusId = parseInt(data.purchase_order_item_status_id, 10) || null;
 
     // 🔹 Prevent submission if status is 2, 3, 4, or 5
-    if ([2, 3, 4, 5].includes(statusId)) {
-      setIsSubmitting(false);
-      return;
-    }
+
     const formattedData = {
       purchase_order_item_status_id:
         parseInt(data.purchase_order_item_status_id, 10) || null,
