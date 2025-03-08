@@ -11,14 +11,14 @@ supabase = get_supabase_client()
 
 #Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
 
-class POI(APIView):
-    def get(self, request, purchase_order_item_id=None):
+class STI(APIView):
+    def get(self, request, stock_transfer_item_id=None):
         """Retrieve a specific Purchase Order Item or all items"""
         try:
-            if purchase_order_item_id:
-                response = supabase.table("Purchase_Order_Item").select("*").eq("purchase_order_item_id", purchase_order_item_id).execute()
+            if stock_transfer_item_id:
+                response = supabase.table("Stock_Transfer_Item").select("*").eq("stock_transfer_item_id", stock_transfer_item_id).execute()
             else:
-                response = supabase.table("Purchase_Order_Item").select("*").execute()
+                response = supabase.table("Stock_Transfer_Item").select("*").execute()
 
             if hasattr(response, "error") and response.error:
                 print(f"❌ Error fetching Purchase Order Items: {response.error}")
@@ -33,11 +33,11 @@ class POI(APIView):
             return Response({"error": str(e)}, status=500)
 
  
-    def put(self, request, purchase_order_item_id=None):
+    def put(self, request, stock_transfer_item_id=None):
         """Update a Purchase Order Item, insert stock transaction, and update stock item"""
         try:
             data = request.data
-            print(f"🟢 Received update request for POI {purchase_order_item_id}: {data}")  # Debugging input
+            print(f"🟢 Received update request for POI {stock_transfer_item_id}: {data}")  # Debugging input
 
             # Extracting fields from request
             status = data.get("purchase_order_item_status_id", 1)
@@ -48,11 +48,11 @@ class POI(APIView):
 
             expiry_date = datetime.fromisoformat(expiry_date).strftime("%Y-%m-%d") if expiry_date else None
 
-            # ✅ Step 1: Get product_id and ordered_qty from Purchase_Order_Item
+            # ✅ Step 1: Get product_id and ordered_qty from Stock_Transfer_Item
             poi_query = (
-                supabase.table("Purchase_Order_Item")
+                supabase.table("Stock_Transfer_Item")
                 .select("supplier_item_id, ordered_qty, Supplier_Item (product_id)")
-                .eq("purchase_order_item_id", purchase_order_item_id)
+                .eq("stock_transfer_item_id", stock_transfer_item_id)
                 .single()
             )
             poi_result = poi_query.execute()
@@ -79,14 +79,14 @@ class POI(APIView):
             current_quantity = stock_item_result.data["quantity"]
             new_quantity = current_quantity + to_receive
 
-            # ✅ Step 3: Update the Purchase_Order_Item table
-            update_response = supabase.table("Purchase_Order_Item").update({
+            # ✅ Step 3: Update the Stock_Transfer_Item table
+            update_response = supabase.table("Stock_Transfer_Item").update({
                 "purchase_order_item_status_id": status,
                 "received_qty": to_receive,
                 "expired_qty": expired_qty,
                 "damaged_qty": damaged_qty,
                 "expiry_date": expiry_date
-            }).eq("purchase_order_item_id", purchase_order_item_id).execute()
+            }).eq("stock_transfer_item_id", stock_transfer_item_id).execute()
 
             if hasattr(update_response, "error") and update_response.error:
                 print(f"❌ Error updating Purchase Order Item: {update_response.error}")
@@ -114,7 +114,7 @@ class POI(APIView):
                 transaction_data = {
                     "stock_item_id": stock_item_id,
                     "transaction_type": "POI",
-                    "reference_id": purchase_order_item_id,
+                    "reference_id": stock_transfer_item_id,
                     "src_location": src_location_id,
                     "des_location": des_location_id,
                     "quantity_change": to_receive,
@@ -125,7 +125,7 @@ class POI(APIView):
                 # ✅ Step 7: Update Stock_Item quantity
                 supabase.table("Stock_Item").update({"quantity": new_quantity}).eq("stock_item_id", stock_item_id).execute()
 
-                print(f"🟢 Successfully updated POI {purchase_order_item_id}, added Stock Transaction, and updated Stock Item")
+                print(f"🟢 Successfully updated POI {stock_transfer_item_id}, added Stock Transaction, and updated Stock Item")
             else:
                 print(f"⚠️ Stock transaction skipped: {total_qty_handled} ≠ {ordered_qty}")
 
@@ -136,13 +136,13 @@ class POI(APIView):
             return Response({"error": str(e)}, status=500)
 
 
-    def delete(self, request, purchase_order_item_id):
+    def delete(self, request, stock_transfer_item_id):
         try:
-            response = supabase.table("Purchase_Order_Item").delete().eq('purchase_order_item_id', purchase_order_item_id).execute()
+            response = supabase.table("Stock_Transfer_Item").delete().eq('stock_transfer_item_id', stock_transfer_item_id).execute()
 
             if response.data:
-                return Response({"message": "Purchase_Order_Item deleted successfully"}, status=204)
+                return Response({"message": "Stock_Transfer_Item deleted successfully"}, status=204)
             else:
-                return Response({"error": "Purchase_Order_Item not found or deletion failed"}, status=400)
+                return Response({"error": "Stock_Transfer_Item not found or deletion failed"}, status=400)
         except Exception as e:
             return Response({"error": str(e)}, status=400)

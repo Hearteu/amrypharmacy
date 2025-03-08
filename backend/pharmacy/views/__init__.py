@@ -6,6 +6,7 @@ from .drugs import Drugs
 from .dswd import DswdOrder
 from .expiration import Expiration
 from .inventory import Inventory
+from .location import Location
 from .order import Order
 from .person_views import PersonList
 from .prescription import Prescription

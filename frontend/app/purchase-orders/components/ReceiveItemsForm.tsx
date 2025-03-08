@@ -29,7 +29,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -45,7 +45,7 @@ interface POItemStatus {
 
 interface POIStatus {
   purchase_order_item_status_id: string;
-  ordered_quantity: number;
+  ordered_qty: number;
   expiry_date: Date;
   received_qty: number;
   expired_qty: number;
@@ -134,7 +134,7 @@ export default function ReceiveItemsForm({
 
         // ✅ Extract the first object from the array
         const item = data[0];
-        setOrderedQuantity(Number(item.ordered_quantity) || 0);
+        setOrderedQuantity(Number(item.ordered_qty) || 0);
 
         const formattedData: Partial<POIStatus> = {
           purchase_order_item_status_id: String(

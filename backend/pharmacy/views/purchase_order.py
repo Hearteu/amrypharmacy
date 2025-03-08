@@ -18,8 +18,8 @@ class PurchaseOrder(APIView):
         try:
             query = supabase.table("Purchase_Order").select(
                 "purchase_order_id, po_id, order_date, expected_delivery_date, purchase_order_status_id, notes, "
-                "Purchase_Order_Status!inner(purchase_order_status), " 
-                "Purchase_Order_Item (purchase_order_item_id, poi_id, ordered_quantity, purchase_order_item_status_id, "
+                "Purchase_Order_Status!inner(purchase_order_status), "
+                "Purchase_Order_Item (purchase_order_item_id, poi_id, ordered_qty, purchase_order_item_status_id, "
                 "unit_id, expired_qty, damaged_qty, expiry_date, received_qty, Unit (unit), "
                 "Purchase_Order_Item_Status (po_item_status), "
                 "Supplier_Item (supplier_id, supplier_item_id, supplier_price, "
@@ -84,7 +84,7 @@ class PurchaseOrder(APIView):
                     product_name = f"{product.get('product_name', 'Unknown Product')} {dosage_info}"
 
                     supplier_price = supplier_item.get("supplier_price", 0)
-                    poi_total = item["ordered_quantity"] * supplier_price
+                    poi_total = item["ordered_qty"] * supplier_price
                     po_total += poi_total
 
                     formatted_order["lineItems"].append({
@@ -92,7 +92,7 @@ class PurchaseOrder(APIView):
                         "poi_id": item.get("poi_id", ""),
                         "product_id": product_id,
                         "description": product_name,  # ✅ Includes dosage info if it's a drug
-                        "quantity": item["ordered_quantity"],
+                        "quantity": item["ordered_qty"],
                         "supplier_price": supplier_price,
                         "poi_total": poi_total,  # ✅ Renamed total → poi_total
                         "purchase_order_item_status": item["purchase_order_item_status_id"],
@@ -112,8 +112,6 @@ class PurchaseOrder(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
-
-
 
     def post(self, request):
         """Create a new Purchase Order with line items"""
@@ -208,11 +206,11 @@ class PurchaseOrder(APIView):
                     "poi_id": poi_id,
                     "purchase_order_id": purchase_order_id,
                     "supplier_item_id": supplier_item["supplier_item_id"],
-                    "ordered_quantity": item["ordered_quantity"],
+                    "ordered_qty": item["ordered_qty"],
                     "unit_id": item["unit_id"],
                     "purchase_order_item_status_id": 1,
                     "expired_qty": 0,  # ✅ Default to 0
-                    "damage_qty": 0,  # ✅ Default to 0
+                    "damaged_qty": 0,  # ✅ Default to 0
                     "expiry_date": None,  # ✅ Default to NULL
                 })
 
@@ -351,7 +349,7 @@ class PurchaseOrder(APIView):
                     if poi_id:
                         # ✅ Update existing PO Item
                         item_update_data = {
-                            "ordered_quantity": item.get("ordered_quantity"),
+                            "ordered_qty": item.get("ordered_qty"),
                             "purchase_order_item_status_id": item.get("purchase_order_item_status_id"),
                             "expired_qty": item.get("expired_qty", 0),
                             "damaged_qty": item.get("damaged_qty", 0),
@@ -375,7 +373,7 @@ class PurchaseOrder(APIView):
                             "poi_id": new_poi_id,
                             "purchase_order_id": purchase_order_id,
                             "supplier_item_id": supplier_item_id,
-                            "ordered_quantity": item["ordered_quantity"],
+                            "ordered_qty": item["ordered_qty"],
                             "unit_id": item["unit_id"],
                             "purchase_order_item_status_id": 1,
                             "expired_qty": item.get("expired_qty", 0),
