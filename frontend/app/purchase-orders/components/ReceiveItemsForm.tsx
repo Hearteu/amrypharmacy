@@ -45,7 +45,7 @@ interface POItemStatus {
 
 interface POIStatus {
   purchase_order_item_status_id: string;
-  ordered_qty: number;
+  ordered_quantity: number;
   expiry_date: Date;
   received_qty: number;
   expired_qty: number;
@@ -135,6 +135,7 @@ export default function ReceiveItemsForm({
         // ✅ Extract the first object from the array
         const item = data[0];
         setOrderedQuantity(Number(item.ordered_qty) || 0);
+        console.log("ordered qty", item.ordered_qty)
 
         const formattedData: Partial<POIStatus> = {
           purchase_order_item_status_id: String(
