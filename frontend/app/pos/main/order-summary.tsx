@@ -1,13 +1,5 @@
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -16,7 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Trash2 } from "lucide-react";
 
 interface OrderItem {
   product_name: string;
@@ -30,18 +23,6 @@ interface OrderSummaryProps {
 }
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({ orderData, setOrderData }) => {
-  const [orderType, setOrderType] = useState("Regular");
-  const [discountType, setDiscountType] = useState("None");
-  const router = useRouter();
-
-  const handleOrderTypeChange = (value: string) => {
-    setOrderType(value);
-    if (value === "DSWD") {
-      setDiscountType("None");
-      router.push("/pos/dswd");
-    }
-  };
-
   const updateQuantity = (index: number, amount: number) => {
     setOrderData((prevOrders) => {
       const updatedOrders = [...prevOrders];
@@ -53,120 +34,54 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ orderData, setOrderData }) 
     });
   };
 
+  const deleteOrder = (index: number) => {
+    setOrderData((prevOrders) => prevOrders.filter((_, i) => i !== index));
+  };
+
   const subtotal = orderData.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const isDiscountAllowed = orderType === "Regular";
-  const discount = isDiscountAllowed && discountType === "PWD/Senior" ? subtotal * 0.2 : 0;
-  const total = subtotal - discount;
+  const tax = subtotal * 0.08;
+  const total = subtotal + tax;
 
   return (
     <Card className="shadow-md h-[500px] flex flex-col">
-      <CardContent className="flex-grow overflow-hidden flex flex-col">
-        <OrderTypeSelector value={orderType} onChange={handleOrderTypeChange} />
-        {orderType === "DSWD" && <DSWDNote />}
-        
-        {/* Scrollable Order Table */}
-        <div className="flex-grow overflow-y-auto border border-gray-200 rounded-lg p-2">
-          <OrderTable orderData={orderData} updateQuantity={updateQuantity} />
-        </div>
+      <CardContent>
+        <h2 className="text-lg font-bold mb-2">Current Order</h2>
+        <Table>
+          <TableBody>
+            {orderData.map((order, index) => (
+              <TableRow key={index}>
+                <TableCell>{order.product_name}</TableCell>
+                <TableCell>₱{order.price.toFixed(2)}</TableCell>
+                <TableCell>
+                  <Button onClick={() => updateQuantity(index, -1)}>-</Button>
+                  <span>{order.quantity}</span>
+                  <Button onClick={() => updateQuantity(index, 1)}>+</Button>
+                </TableCell>
+                <TableCell>
+                  <Button onClick={() => deleteOrder(index)}>
+                    <Trash2 />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
 
-        {isDiscountAllowed && <DiscountSelector value={discountType} onChange={setDiscountType} router={router} />}
-        <OrderTotal subtotal={subtotal} discount={discount} total={total} isDiscountAllowed={isDiscountAllowed} />
+        <div className="flex justify-between">
+          <span>Subtotal:</span>
+          <span>₱{subtotal.toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Tax (8%):</span>
+          <span>₱{tax.toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between font-bold">
+          <span>Total:</span>
+          <span>₱{total.toFixed(2)}</span>
+        </div>
       </CardContent>
     </Card>
   );
 };
-
-const OrderTypeSelector = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
-  <div>
-    <label className="text-sm font-medium">Select Order Type</label>
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="mt-1 w-full">
-        <SelectValue placeholder="Select Order Type" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="Regular">Regular</SelectItem>
-        <SelectItem value="DSWD">DSWD</SelectItem>
-      </SelectContent>
-    </Select>
-  </div>
-);
-
-const DSWDNote = () => (
-  <div className="p-3 bg-blue-100 border border-blue-400 rounded-lg text-blue-700">
-    <p className="text-sm font-medium">DSWD Order</p>
-    <p className="text-xs">This order is processed under the DSWD guarantee letter module.</p>
-  </div>
-);
-
-const OrderTable = ({ orderData, updateQuantity }: { orderData: OrderItem[]; updateQuantity: (index: number, amount: number) => void }) => (
-  <Table>
-    <TableHeader>
-      <TableRow>
-        <TableHead>Item Name</TableHead>
-        <TableHead className="text-center">Quantity</TableHead>
-      </TableRow>
-    </TableHeader>
-    <TableBody>
-      {orderData.length === 0 ? (
-        <TableRow>
-          <TableCell colSpan={2} className="text-center text-gray-500 py-4">
-            No items added.
-          </TableCell>
-        </TableRow>
-      ) : (
-        orderData.map((order, index) => (
-          <TableRow key={index}>
-            <TableCell>{order.product_name}</TableCell>
-            <TableCell className="flex justify-center items-center space-x-2">
-              <Button size="sm" variant="outline" onClick={() => updateQuantity(index, -1)}>
-                -
-              </Button>
-              <span>{order.quantity}</span>
-              <Button size="sm" variant="outline" onClick={() => updateQuantity(index, 1)}>
-                +
-              </Button>
-            </TableCell>
-          </TableRow>
-        ))
-      )}
-    </TableBody>
-  </Table>
-);
-
-const DiscountSelector = ({ value, onChange, router }: { value: string; onChange: (value: string) => void; router: any }) => (
-  <div>
-    <label className="text-sm font-medium">Apply Discount</label>
-    <Select value={value} onValueChange={(value) => {
-      onChange(value);
-      if (value === "PWD/Senior") {
-        router.push("/pos/regular-discount");
-      }
-    }}>
-      <SelectTrigger className="mt-1 w-full">
-        <SelectValue placeholder="Select Discount" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="None">None</SelectItem>
-        <SelectItem value="PWD/Senior">PWD/Senior</SelectItem>
-      </SelectContent>
-    </Select>
-  </div>
-);
-
-const OrderTotal = ({ subtotal, discount, total, isDiscountAllowed }: { subtotal: number; discount: number; total: number; isDiscountAllowed: boolean }) => (
-  <div className="p-3 bg-gray-100 rounded-lg">
-    <p className="text-sm flex justify-between">
-      <span>Subtotal:</span> <span>₱{subtotal.toFixed(2)}</span>
-    </p>
-    {isDiscountAllowed && (
-      <p className="text-sm flex justify-between">
-        <span>Discount:</span> <span>-₱{discount.toFixed(2)}</span>
-      </p>
-    )}
-    <p className="text-lg font-bold flex justify-between">
-      <span>Total:</span> <span>₱{total.toFixed(2)}</span>
-    </p>
-  </div>
-);
 
 export default OrderSummary;

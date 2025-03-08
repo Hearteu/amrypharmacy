@@ -51,65 +51,25 @@ const sampleItems: Item[] = [
 
 export default function SalesOrderPage() {
   const [selectedItems, setSelectedItems] = useState<Item[]>([]);
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
 
-  const handleAddToOrder = () => {
-    if (selectedItem) {
-      setSelectedItems((prev) => [...prev, selectedItem]);
-      setSelectedItem(null);
-    }
+  const handleAddToOrder = (item: any) => {
+    setSelectedItems((prev) => {
+      const existingItem = prev.find((i) => i.item_name === item.item_name);
+      if (existingItem) {
+        return prev.map((i) =>
+          i.item_name === item.item_name
+            ? { ...i, quantity: i.quantity + 1 }
+            : i
+        );
+      }
+      return [...prev, { ...item, quantity: 1 }];
+    });
   };
-
-  const columnDefs = columns();
 
   return (
     <>
-      {/* Breadcrumb Header */}
-      <div className="p-4 fixed w-full bg-white shadow-md">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="#items">Items</BreadcrumbLink>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex flex-col md:flex-row min-h-screen pt-16 gap-4 p-4">
-        {/* Items Table (Now using Card) */}
-        <Card className="md:w-2/3 w-full shadow-lg rounded-lg flex flex-col">
-          <CardHeader className="flex justify-between items-center">
-            {/* Title on the left */}
-            <CardTitle className="text-lg font-semibold">Available Items</CardTitle>
-
-            {/* Button on the right */}
-            <Button
-              className={`px-4 py-2 text-white rounded ${
-                selectedItem ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-300 cursor-not-allowed"
-              }`}
-              disabled={!selectedItem}
-              onClick={handleAddToOrder}
-            >
-              Add to Order
-            </Button>
-          </CardHeader>
-
-          <CardContent className="flex-1 overflow-auto">
-            <DataTable columns={columnDefs} data={sampleItems} onRowClick={setSelectedItem} />
-          </CardContent>
-        </Card>
-
-        {/* Order Summary (Now using Card) */}
-        <Card className="md:w-1/3 w-full bg-gray-100 shadow-lg rounded-lg flex flex-col">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Order Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 overflow-auto">
-            <OrderSummary orderData={selectedItems} />
-          </CardContent>
-        </Card>
-      </div>
+      <DataTable columns={columns} data={sampleItems} onAdd={handleAddToOrder} />
+      <OrderSummary orderData={selectedItems} />
     </>
   );
 }

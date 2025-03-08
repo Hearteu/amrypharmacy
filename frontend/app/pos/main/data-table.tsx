@@ -24,29 +24,23 @@ import {
 } from "@/components/ui/table";
 
 import { Input } from "@/components/ui/input";
-import { DataTablePagination } from "@/components/table/DataTablePagination";
-import { DataTableViewOptions } from "@/components/table/DataTableViewOptions";
 import { Button } from "@/components/ui/button";
+import { DataTablePagination } from "@/components/table/DataTablePagination";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   onAdd: (row: TData) => void;
-  onRowClick?: (row: TData) => void;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   onAdd,
-  onRowClick,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState<Record<string, boolean>>({});
-  const [selectedRow, setSelectedRow] = React.useState<TData | null>(null);
-  
 
   const table = useReactTable({
     data,
@@ -58,32 +52,18 @@ export function DataTable<TData, TValue>({
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
-      rowSelection,
     },
   });
 
-  // When a row is clicked, update selectedRow and call onRowClick if provided.
-  const handleRowClick = (row: TData) => {
-    setSelectedRow(row);
-    console.log("Selected Row Data:", row);
-    if (onRowClick) {
-      onRowClick(row);
-    }
-  };
-
-  const isRowSelected = selectedRow !== null;
-
-  
-
   return (
     <div>
-      {/* Search & Add Button Header */}
-      <div className="flex items-center justify-between p-4">
+      {/* Search Bar */}
+      <div className="flex items-center gap-2 p-4">
+        <label className="text-l font-bold text-black">Item List</label>
         <Input
           placeholder="Search Item..."
           value={(table.getColumn("item_name")?.getFilterValue() as string) ?? ""}
@@ -110,20 +90,24 @@ export function DataTable<TData, TValue>({
               </TableRow>
             ))}
           </TableHeader>
+
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={selectedRow === row.original ? "selected" : ""}
-                  onClick={() => handleRowClick(row.original)}
-                  className="cursor-pointer hover:bg-gray-50"
-                >
+                <TableRow key={row.id} className="hover:bg-gray-50">
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
+                  <TableCell>
+                    <Button
+                      size="sm"
+                      onClick={() => onAdd(row.original)}
+                    >
+                      +
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))
             ) : (
