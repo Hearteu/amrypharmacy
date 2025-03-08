@@ -66,7 +66,7 @@ export function LineItemsTable({ lineItems, onSuccess }: LineItemsTableProps) {
   //     }))
   //   );
 
-  const [open, setOpen] = useState(false);
+  const [openDialog, setOpenDialog] = useState<number | null>(null);
 
   return (
     <div className="rounded-md border">
@@ -85,7 +85,7 @@ export function LineItemsTable({ lineItems, onSuccess }: LineItemsTableProps) {
         </TableHeader>
         <TableBody>
           {lineItems.map((item) => (
-            <TableRow key={item.poi_id}>
+            <TableRow key={item.purchase_order_item_id}>
               <TableCell>{item.description}</TableCell>
               <TableCell className="text-right">{item.quantity}</TableCell>
               {/* replace this with received quantity */}
@@ -113,9 +113,9 @@ export function LineItemsTable({ lineItems, onSuccess }: LineItemsTableProps) {
                 {item.po_item_status}
               </TableCell>
               <TableCell className="text-center">
-                <Dialog open={open} onOpenChange={setOpen}>
+                <Dialog open={openDialog === item.purchase_order_item_id} onOpenChange={(isOpen) => setOpenDialog(isOpen ? item.purchase_order_item_id : null)}>
                   <DialogTrigger asChild>
-                    <Button>Receive Items</Button>
+                    <Button onClick={() => setOpenDialog(item.purchase_order_item_id)}>Receive Items</Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
@@ -130,7 +130,7 @@ export function LineItemsTable({ lineItems, onSuccess }: LineItemsTableProps) {
                       purchase_order_item_id={item.purchase_order_item_id}
                       onSuccess={() => {
                         onSuccess(); // ✅ Execute the function properly
-                        setOpen(false); // ✅ Close the dialog
+                        setOpenDialog(null); // ✅ Close the dialog
                       }}
                     />
                   </DialogContent>

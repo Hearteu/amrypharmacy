@@ -36,7 +36,6 @@ import { z } from "zod";
 interface ReceiveItemsProps {
   purchase_order_item_id: number;
   onSuccess: () => void;
-  
 }
 
 interface POItemStatus {
@@ -57,7 +56,7 @@ const getFormSchema = (orderedQuantity: number | null) =>
   z
     .object({
       purchase_order_item_status_id: z.string().min(1, "Status is required"),
-      expiry_date: z.date(),
+      expiry_date: z.date().optional(), // Make it optional first
       received_qty: z.coerce.number().min(0, "Quantity cannot be negative"),
       expired_qty: z.coerce.number().min(0, "Quantity cannot be negative"),
       damaged_qty: z.coerce.number().min(0, "Quantity cannot be negative"),
@@ -65,7 +64,6 @@ const getFormSchema = (orderedQuantity: number | null) =>
     .refine(
       (data) => {
         if (orderedQuantity === null) return true; // Skip validation if not loaded
-
         const total = data.received_qty + data.expired_qty + data.damaged_qty;
         return total <= orderedQuantity;
       },
@@ -74,7 +72,21 @@ const getFormSchema = (orderedQuantity: number | null) =>
           "Total quantity (Received + Expired + Damaged) cannot exceed Ordered Quantity",
         path: ["received_qty"], // Attach error to received_qty field
       }
+    )
+    .refine(
+      (data) => {
+        // Require expiry_date unless status is 4 or 5
+        if (["4", "5"].includes(data.purchase_order_item_status_id)) {
+          return true; // No need for expiry date
+        }
+        return !!data.expiry_date; // Must have expiry date otherwise
+      },
+      {
+        message: "Expiry date is required for this status.",
+        path: ["expiry_date"],
+      }
     );
+
 
 type FormValues = z.infer<ReturnType<typeof getFormSchema>>;
 
@@ -89,8 +101,6 @@ export default function ReceiveItemsForm({
     null
   );
   const [orderedQuantity, setOrderedQuantity] = useState<number | null>(null);
-
-
 
   // Fetch PO Item Statuses
   useEffect(() => {
@@ -175,12 +185,6 @@ export default function ReceiveItemsForm({
     }
   }, [initialData]);
 
-  const remainingQuantity = useMemo(() => {
-    if (orderedQuantity === null) return null;
-    return orderedQuantity - (form.watch("received_qty") + form.watch("expired_qty") + form.watch("damaged_qty"));
-  }, [orderedQuantity, form.watch("received_qty"), form.watch("expired_qty"), form.watch("damaged_qty")]);
-  
-
   async function onSubmit(data: FormValues) {
     setIsSubmitting(true);
 
@@ -214,154 +218,158 @@ export default function ReceiveItemsForm({
 
   return (
     <>
-    {orderedQuantity !== null && (
-      <p className="text-sm text-gray-600">
-        Ordered quantity:{" "}
-        <span className="text-green-600">
-          {orderedQuantity}
-        </span>
-      </p>
-    )}
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="grid grid-cols-4 gap-4 py-4"
-      >
-        {/* Status & To Receive */}
-        <FormField
-          control={form.control}
-          name="purchase_order_item_status_id"
-          render={({ field }) => (
-            <FormItem className="flex flex-col col-span-2">
-              <FormLabel>Status</FormLabel>
-              <Popover open={statusOpen} onOpenChange={setStatusOpen}>
-                <PopoverTrigger asChild>
+      <div className="flex flex-col space-y-4">
+        {orderedQuantity !== null && (
+          <p className="text-sm text-gray-600">
+            Ordered quantity:{" "}
+            <span className="text-green-600">{orderedQuantity}</span>
+          </p>
+        )}
+
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex flex-col space-y-4"
+          >
+            {/* Status */}
+            <FormField
+              control={form.control}
+              name="purchase_order_item_status_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <Popover open={statusOpen} onOpenChange={setStatusOpen}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "mt-1 w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value
+                            ? poItemStatus.find(
+                                (status) =>
+                                  status.purchase_order_item_status_id.toString() ===
+                                  field.value
+                              )?.po_item_status
+                            : "Select status"}
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full">
+                      <Command>
+                        <CommandInput placeholder="Search status..." />
+                        <CommandList>
+                          <CommandEmpty>No status found.</CommandEmpty>
+                          <CommandGroup>
+                            {poItemStatus.map((status) => (
+                              <CommandItem
+                                key={status.purchase_order_item_status_id}
+                                value={status.po_item_status}
+                                onSelect={() => {
+                                  field.onChange(
+                                    status.purchase_order_item_status_id.toString()
+                                  );
+                                  setStatusOpen(false);
+                                }}
+                              >
+                                {status.po_item_status}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Received Quantity */}
+            <FormField
+              control={form.control}
+              name="received_qty"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>To Receive:</FormLabel>
                   <FormControl>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className={cn(
-                        "justify-between",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value
-                        ? poItemStatus.find(
-                            (status) =>
-                              status.purchase_order_item_status_id.toString() ===
-                              field.value
-                          )?.po_item_status
-                        : "Select status"}
-                    </Button>
+                    <Input className="mt-1" type="number" min={0} {...field} />
                   </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="p-0">
-                  <Command>
-                    <CommandInput placeholder="Search status..." />
-                    <CommandList>
-                      <CommandEmpty>No status found.</CommandEmpty>
-                      <CommandGroup>
-                        {poItemStatus.map((status) => (
-                          <CommandItem
-                            key={status.purchase_order_item_status_id}
-                            value={status.po_item_status}
-                            onSelect={() => {
-                              field.onChange(
-                                status.purchase_order_item_status_id.toString()
-                              );
-                              setStatusOpen(false);
-                            }}
-                          >
-                            {status.po_item_status}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        {/* Other Fields (Received, Expired, Damaged) */}
-        <FormField
-          control={form.control}
-          name="received_qty"
-          render={({ field }) => (
-            <FormItem className="col-span-2">
-              <FormLabel>To Receive:</FormLabel>
-              <FormControl>
-                <Input type="number" min={0} {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            {/* Expired Quantity */}
+            <FormField
+              control={form.control}
+              name="expired_qty"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Expired Items:</FormLabel>
+                  <FormControl>
+                    <Input className="mt-1" type="number" min={0} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="expired_qty"
-          render={({ field }) => (
-            <FormItem className="col-span-2">
-              <FormLabel>Expired Items:</FormLabel>
-              <FormControl>
-                <Input type="number" min={0} {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            {/* Damaged Quantity */}
+            <FormField
+              control={form.control}
+              name="damaged_qty"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Damaged Items:</FormLabel>
+                  <FormControl>
+                    <Input className="mt-1" type="number" min={0} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="damaged_qty"
-          render={({ field }) => (
-            <FormItem className="col-span-2">
-              <FormLabel>Damaged Items:</FormLabel>
-              <FormControl>
-                <Input type="number" min={0} {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            {/* Expiry Date */}
+            <FormField
+              control={form.control}
+              name="expiry_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Expiry Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="mt-1 w-full">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {field.value
+                          ? format(field.value, "PPP")
+                          : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        {/* Expiry Date */}
-        <FormField
-          control={form.control}
-          name="expiry_date"
-          render={({ field }) => (
-            <FormItem className="col-span-4 flex flex-col">
-              <FormLabel>Expiry Date</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {field.value ? format(field.value, "PPP") : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent>
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="col-span-4">
-          <Button type="submit" disabled={isSubmitting} className="w-full">
-            {isSubmitting ? "Updating..." : "Receive Items"}
-          </Button>
-        </div>
-      </form>
-    </Form>
+            {/* Submit Button */}
+            <Button type="submit" disabled={isSubmitting} className="w-full">
+              {isSubmitting ? "Updating..." : "Receive Items"}
+            </Button>
+          </form>
+        </Form>
+      </div>
     </>
   );
 }
