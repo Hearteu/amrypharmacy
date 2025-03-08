@@ -19,7 +19,7 @@ class PurchaseOrder(APIView):
             query = supabase.table("Purchase_Order").select(
                 "purchase_order_id, po_id, order_date, expected_delivery_date, purchase_order_status_id, notes, "
                 "Purchase_Order_Item (purchase_order_item_id, poi_id, ordered_quantity, purchase_order_item_status_id, "
-                "unit_id, expired_qty, damaged_qty, expiry_date, Unit (unit), "
+                "unit_id, expired_qty, damaged_qty, expiry_date, received_qty, Unit (unit), "
                 "Purchase_Order_Item_Status (po_item_status), "
                 "Supplier_Item (supplier_id, supplier_item_id, supplier_price, "
                 "Products (product_id, product_name, Drugs (dosage_form, dosage_strength)), "
@@ -100,6 +100,7 @@ class PurchaseOrder(APIView):
                         "expired_qty": item.get("expired_qty", 0),  # ✅ Added expired quantity
                         "damaged_qty": item.get("damaged_qty", 0),  # ✅ Added damaged quantity
                         "expiry_date": item.get("expiry_date", None),  # ✅ Added expiry date
+                        "received_qty": item.get("received_qty", 0)
                     })
 
                 formatted_order["po_total"] = po_total  # ✅ Renamed total → po_total
