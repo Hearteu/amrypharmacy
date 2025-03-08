@@ -42,6 +42,14 @@ interface POItemStatus {
   po_item_status: string;
 }
 
+interface POIStatus {
+  purchase_order_item_status_id: number;
+  expiry_date: string | null;
+  received_qty: number;
+  expired_qty: number;
+  damaged_qty: number;
+}
+
 const formSchema = z.object({
   purchase_order_item_status_id: z.string().min(1, "Status is required"),
   expiry_date: z.date().optional(),
@@ -52,11 +60,15 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export default function ReceiveItemsForm({ purchase_order_item_id }: ReceiveItemsProps) {
+export default function ReceiveItemsForm({
+  purchase_order_item_id,
+}: ReceiveItemsProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [poItemStatus, setPOItemStatus] = useState<POItemStatus[]>([]);
   const [statusOpen, setStatusOpen] = useState(false);
-  const [initialData, setInitialData] = useState<Partial<FormValues> | null>(null);
+  const [initialData, setInitialData] = useState<Partial<POIStatus> | null>(
+    null
+  );
 
   // Fetch PO Item Statuses
   useEffect(() => {
@@ -73,34 +85,49 @@ export default function ReceiveItemsForm({ purchase_order_item_id }: ReceiveItem
     fetchPOItemStatus();
   }, []);
 
-  // Fetch Initial Data for the Form
   useEffect(() => {
     async function fetchPOItemData() {
       try {
-        const response = await axios.get<FormValues>(
+        const response = await axios.get(
           `http://127.0.0.1:8000/pharmacy/purchase-order-items/${purchase_order_item_id}/`
         );
         const data = response.data;
-
-        setInitialData({
-          purchase_order_item_status_id: data.purchase_order_item_status_id.toString(),
-          expiry_date: data.expiry_date ? new Date(data.expiry_date) : undefined,
-          received_qty: data.received_qty ?? 0,
-          expired_qty: data.expired_qty ?? 0,
-          damaged_qty: data.damaged_qty ?? 0,
-        });
+  
+        console.log("🛠️ API Data: ", data); // ✅ Log raw data
+  
+        if (!Array.isArray(data) || data.length === 0) {
+          console.warn("⚠️ API returned an empty array or invalid data.");
+          return;
+        }
+  
+        // ✅ Extract the first object from the array
+        const item = data[0];
+  
+        const formattedData: Partial<POIStatus> = {
+          purchase_order_item_status_id:  String(item.purchase_order_item_status_id), 
+          expiry_date: item.expiry_date || null, // Ensure it's a string or null
+          received_qty: Number(item.received_qty) || 0,
+          expired_qty: Number(item.expired_qty) || 0,
+          damaged_qty: Number(item.damaged_qty) || 0,
+        };
+  
+        console.log("✅ Formatted Data: ", formattedData);
+        setInitialData(formattedData);
       } catch (error) {
-        console.error("Error fetching initial PO item data:", error);
+        console.error("❌ Error fetching initial PO item data:", error);
       }
     }
-
-    fetchPOItemData();
+  
+    if (purchase_order_item_id) {
+      fetchPOItemData();
+    }
   }, [purchase_order_item_id]);
+  
 
-  // Initialize Form with Data (after fetch)
+  // ✅ Initialize form without `defaultValues` to allow updates
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData || {
+    defaultValues: {
       purchase_order_item_status_id: "",
       expiry_date: undefined,
       received_qty: 0,
@@ -109,19 +136,27 @@ export default function ReceiveItemsForm({ purchase_order_item_id }: ReceiveItem
     },
   });
 
-  // Update Form when Initial Data is Set
+  // ✅ Ensure `initialData` updates properly
   useEffect(() => {
     if (initialData) {
-      form.reset(initialData);
+      console.log("🔄 Updating form with initial data:", initialData);
+      form.reset({
+        ...initialData,
+        expiry_date: initialData.expiry_date ?? "", // Ensure it's a string
+      });
     }
-  }, [initialData, form]);
-
+  }, [initialData]);
+  
+    
   async function onSubmit(data: FormValues) {
     setIsSubmitting(true);
 
     const formattedData = {
-      purchase_order_item_status_id: parseInt(data.purchase_order_item_status_id, 10) || null,
-      expiry_date: data.expiry_date ? format(new Date(data.expiry_date), "yyyy-MM-dd") : null,
+      purchase_order_item_status_id:
+        parseInt(data.purchase_order_item_status_id, 10) || null,
+      expiry_date: data.expiry_date
+        ? format(new Date(data.expiry_date), "yyyy-MM-dd")
+        : null,
       received_qty: data.received_qty ?? 0,
       expired_qty: data.expired_qty ?? 0,
       damaged_qty: data.damaged_qty ?? 0,
@@ -171,7 +206,8 @@ export default function ReceiveItemsForm({ purchase_order_item_id }: ReceiveItem
                       {field.value
                         ? poItemStatus.find(
                             (status) =>
-                              status.purchase_order_item_status_id.toString() === field.value
+                              status.purchase_order_item_status_id.toString() ===
+                              field.value
                           )?.po_item_status
                         : "Select status"}
                     </Button>
@@ -188,7 +224,9 @@ export default function ReceiveItemsForm({ purchase_order_item_id }: ReceiveItem
                             key={status.purchase_order_item_status_id}
                             value={status.po_item_status}
                             onSelect={() => {
-                              field.onChange(status.purchase_order_item_status_id.toString());
+                              field.onChange(
+                                status.purchase_order_item_status_id.toString()
+                              );
                               setStatusOpen(false);
                             }}
                           >
@@ -206,54 +244,74 @@ export default function ReceiveItemsForm({ purchase_order_item_id }: ReceiveItem
         />
 
         {/* Other Fields (Received, Expired, Damaged) */}
-        <FormField control={form.control} name="received_qty" render={({ field }) => (
-          <FormItem className="col-span-2">
-            <FormLabel>To Receive:</FormLabel>
-            <FormControl>
-              <Input type="number" min={0} {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
+        <FormField
+          control={form.control}
+          name="received_qty"
+          render={({ field }) => (
+            <FormItem className="col-span-2">
+              <FormLabel>To Receive:</FormLabel>
+              <FormControl>
+                <Input type="number" min={0} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        <FormField control={form.control} name="expired_qty" render={({ field }) => (
-          <FormItem className="col-span-2">
-            <FormLabel>Expired Items:</FormLabel>
-            <FormControl>
-              <Input type="number" min={0} {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
+        <FormField
+          control={form.control}
+          name="expired_qty"
+          render={({ field }) => (
+            <FormItem className="col-span-2">
+              <FormLabel>Expired Items:</FormLabel>
+              <FormControl>
+                <Input type="number" min={0} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        <FormField control={form.control} name="damaged_qty" render={({ field }) => (
-          <FormItem className="col-span-2">
-            <FormLabel>Damaged Items:</FormLabel>
-            <FormControl>
-              <Input type="number" min={0} {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
+        <FormField
+          control={form.control}
+          name="damaged_qty"
+          render={({ field }) => (
+            <FormItem className="col-span-2">
+              <FormLabel>Damaged Items:</FormLabel>
+              <FormControl>
+                <Input type="number" min={0} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         {/* Expiry Date */}
-        <FormField control={form.control} name="expiry_date" render={({ field }) => (
-          <FormItem className="col-span-4 flex flex-col">
-            <FormLabel>Expiry Date</FormLabel>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {field.value ? format(field.value, "PPP") : "Pick a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent>
-                <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
-              </PopoverContent>
-            </Popover>
-            <FormMessage />
-          </FormItem>
-        )} />
+        <FormField
+          control={form.control}
+          name="expiry_date"
+          render={({ field }) => (
+            <FormItem className="col-span-4 flex flex-col">
+              <FormLabel>Expiry Date</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {field.value ? format(field.value, "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent>
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="col-span-4">
           <Button type="submit" disabled={isSubmitting} className="w-full">
