@@ -1,5 +1,7 @@
 # views.py
 
+from datetime import datetime
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -14,12 +16,12 @@ class StockTransfer(APIView):
         """Retrieve all stock transfers or a single stock transfer by ID with transferItems"""
         try:
             query = supabase.table("Stock_Transfer").select(
-                "stock_transfer_id, transfer_id, transfer_date, expected_arrival_date, stock_transfer_status_id, notes, "
+                "stock_transfer_id, transfer_id, transfer_date, stock_transfer_status_id, "
                 "Stock_Transfer_Status!inner(stock_transfer_status), " 
                 "src_location, des_location, "
                 "Stock_Transfer_Item (stock_transfer_item_id, sti_id, ordered_quantity, stock_transfer_item_status_id, "
-                "unit_id, transferred_qty, Unit (unit), "
-                "Products (product_id, product_name))"
+                "unit_id, transferred_qty, product_id, Unit (unit), "
+                "Products (product_name, Drugs (dosage_strength, dosage_form)))"
             )
 
             if stock_transfer_id is not None:
@@ -33,6 +35,16 @@ class StockTransfer(APIView):
             stock_transfers = [response.data] if isinstance(response.data, dict) else response.data
             formatted_transfers = []
 
+            # Collect product_ids to fetch stock quantities, ensuring no None values
+            product_ids = {item["product_id"] for transfer in stock_transfers for item in transfer.get("Stock_Transfer_Item", []) if item.get("product_id") is not None}
+
+            # Fetch stock quantities from Stock_Item table
+            stock_items = {}
+            if product_ids:
+                stock_response = supabase.table("Stock_Item").select("product_id, quantity").in_("product_id", list(product_ids)).execute()
+                if stock_response.data:
+                    stock_items = {item["product_id"]: item["quantity"] for item in stock_response.data}
+
             for transfer in stock_transfers:
                 stock_transfer_items = transfer.get("Stock_Transfer_Item", [])
 
@@ -40,30 +52,34 @@ class StockTransfer(APIView):
                     "stock_transfer_id": transfer["stock_transfer_id"],
                     "transfer_id": transfer["transfer_id"],
                     "transfer_date": transfer["transfer_date"],
-                    "expected_arrival_date": transfer["expected_arrival_date"],
                     "status_id": transfer["stock_transfer_status_id"],
                     "status": transfer.get("Stock_Transfer_Status", {}).get("stock_transfer_status", "Unknown"),
-                    "notes": transfer["notes"],
                     "src_location": transfer.get("src_location", "Unknown"),
                     "des_location": transfer.get("des_location", "Unknown"),
                     "transferItems": [],
                 }
 
                 for item in stock_transfer_items:
+                    product_id = item.get("product_id")
+                    stock_quantity = stock_items.get(product_id, 0) if product_id is not None else 0
                     product = item.get("Products", {})
-                    product_id = product.get("product_id", "N/A")
-                    product_name = product.get("product_name", "Unknown Product")
+                    product_name = product.get("product_name", "Unknown")
+                    drug = product.get("Drugs")
+                    
+                    if drug:
+                        product_name += f" {drug.get('dosage_form', '')} {drug.get('dosage_strength', '')}"
 
                     formatted_transfer["transferItems"].append({
                         "stock_transfer_item_id": item["stock_transfer_item_id"],
                         "sti_id": item.get("sti_id", ""),
-                        "product_id": product_id,
+                        "product_id": product_id if product_id is not None else 0,
                         "product_name": product_name,
                         "ordered_quantity": item["ordered_quantity"],
                         "transferred_qty": item.get("transferred_qty", 0),
                         "stock_transfer_item_status_id": item.get("stock_transfer_item_status_id", "Unknown"),
                         "unit_id": item.get("unit_id", "N/A"),
-                        "unit": item.get("Unit", {}).get("unit", "N/A")
+                        "unit": item.get("Unit", {}).get("unit", "N/A"),
+                        "current_stock_quantity": stock_quantity
                     })
 
                 formatted_transfers.append(formatted_transfer)
@@ -74,33 +90,207 @@ class StockTransfer(APIView):
             return Response({"error": str(e)}, status=500)
 
     def post(self, request):
-        data = request.data
+        """Create a new stock transfer with items"""
         try:
-           
-            response = supabase.table("Stock_Transfer").insert(data).execute()
-            return Response(response.data, status=201)
+            data = request.data
+            src_location = data.get("src_location")
+            des_location = data.get("des_location")
+            transfer_date = data.get("transfer_date")
+            items = data.get("items", [])
+
+            # Generate transfer_id (ST-YYYY-XXX)
+            year = datetime.now().year
+            last_transfer = supabase.table("Stock_Transfer").select("transfer_id").order("transfer_id", desc=True).limit(1).execute()
+            next_number = 1
+            if last_transfer.data:
+                last_id = last_transfer.data[0]["transfer_id"]
+                last_number = int(last_id.split("-")[-1])
+                next_number = last_number + 1
+            transfer_id = f"ST-{year}-{str(next_number).zfill(3)}"
+
+            # Insert into Stock_Transfer
+            stock_transfer = {
+                "transfer_id": transfer_id,
+                "transfer_date": transfer_date,
+                "stock_transfer_status_id": 1,
+                "src_location": src_location,
+                "des_location": des_location
+            }
+            response = supabase.table("Stock_Transfer").insert(stock_transfer).execute()
+            if not response.data:
+                return Response({"error": "Failed to create stock transfer"}, status=400)
+            stock_transfer_id = response.data[0]["stock_transfer_id"]
+
+            # Insert items into Stock_Transfer_Item
+            for idx, item in enumerate(items, start=1):
+                sti_id = f"STI-{str(next_number).zfill(3)}-{str(idx).zfill(2)}"
+                stock_transfer_item = {
+                    "stock_transfer_id": stock_transfer_id,
+                    "sti_id": sti_id,
+                    "product_id": item["product_id"],
+                    "ordered_quantity": item["quantity"],
+                    "stock_transfer_item_status_id": 1,
+                    "unit_id": item.get("unit_id")
+                }
+                supabase.table("Stock_Transfer_Item").insert(stock_transfer_item).execute()
+
+            return Response({"message": "Stock transfer created successfully", "transfer_id": transfer_id}, status=201)
+        
         except Exception as e:
-            return Response({"error": str(e)}, status=400)
+            return Response({"error": str(e)}, status=500)
  
     def put(self, request, stock_transfer_id):
-        data = request.data
+        """Update an existing stock transfer and handle transfer items correctly."""
         try:
-            response = supabase.table("Stock_Transfer").update(data).eq('stock_transfer_id', stock_transfer_id).execute()
+            data = request.data
+            print(f"🟢 Received update data: {data}")  # Debugging input
 
-            if response.data:
-                return Response(response.data, status=200)
-            else:
-                return Response({"error": "Customer not found or update failed"}, status=400)
+            # ✅ If only `stock_transfer_status_id` is provided, update only the status
+            if set(data.keys()) == {"stock_transfer_status_id"}:
+                update_response = supabase.table("Stock_Transfer") \
+                    .update({"stock_transfer_status_id": data["stock_transfer_status_id"]}) \
+                    .eq("stock_transfer_id", stock_transfer_id) \
+                    .execute()
+
+                if not update_response.data:
+                    return Response({"error": "Stock transfer not found or not updated"}, status=404)
+
+                print(f"✅ Updated Stock Transfer Status: {update_response}")
+                return Response({"message": "Stock transfer status updated successfully"}, status=200)
+
+            # ✅ Fetch Transfer ID for suffix
+            stock_transfer_query = supabase.table("Stock_Transfer").select("transfer_id") \
+                .eq("stock_transfer_id", stock_transfer_id).single().execute()
+            transfer_id = stock_transfer_query.data["transfer_id"] if stock_transfer_query.data else None
+
+            if not transfer_id:
+                return Response({"error": "Transfer ID not found"}, status=404)
+
+            # 🔹 Extract last three digits of Transfer ID for suffix
+            transfer_suffix = transfer_id[-3:]
+            print(f"🔹 Transfer Suffix: {transfer_suffix}")
+
+            # ✅ Update Stock Transfer if necessary
+            update_data = {
+                "src_location": data.get("src_location"),
+                "des_location": data.get("des_location"),
+                "transfer_date": data.get("transfer_date"),
+                "stock_transfer_status_id": data.get("stock_transfer_status_id"),
+            }
+            update_data = {key: value for key, value in update_data.items() if value is not None}
+
+            if update_data:
+                response = supabase.table("Stock_Transfer").update(update_data) \
+                    .eq("stock_transfer_id", stock_transfer_id).execute()
+                if not response.data:
+                    return Response({"error": "Stock transfer not found or not updated"}, status=404)
+
+            # ✅ Process Transfer Items
+            if "transferItems" in data and isinstance(data["transferItems"], list):
+                # 🔍 Get existing items in the database
+                existing_items_query = supabase.table("Stock_Transfer_Item") \
+                    .select("sti_id, product_id") \
+                    .eq("stock_transfer_id", stock_transfer_id) \
+                    .execute()
+
+                existing_items = {str(item["product_id"]): item["sti_id"] for item in existing_items_query.data}
+                print(f"🔍 Existing Items in DB: {existing_items}")
+
+                # 🔍 Extract product IDs from the request
+                passed_product_ids = {str(item["product_id"]) for item in data["transferItems"]}
+                print(f"🔍 Passed Product IDs: {passed_product_ids}")
+
+                # ✅ Identify items to delete
+                items_to_delete = [
+                    sti_id for product_id, sti_id in existing_items.items()
+                    if product_id not in passed_product_ids
+                ]
+
+                # ✅ Delete only the missing items
+                if items_to_delete:
+                    print(f"❌ Deleting STIs: {items_to_delete}")
+                    delete_response = supabase.table("Stock_Transfer_Item") \
+                        .delete() \
+                        .in_("sti_id", items_to_delete) \
+                        .execute()
+                    print(f"✅ Deleted Items Response: {delete_response}")
+
+                # 🔍 Check remaining items after deletion
+                remaining_items_check = supabase.table("Stock_Transfer_Item") \
+                    .select("sti_id") \
+                    .eq("stock_transfer_id", stock_transfer_id) \
+                    .execute()
+                print(f"🔍 Remaining Items After Deletion: {remaining_items_check.data}")
+
+                # 🔹 Get latest STI number after deletion
+                latest_sti_query = supabase.table("Stock_Transfer_Item") \
+                    .select("sti_id") \
+                    .like("sti_id", f"STI-{transfer_suffix}-%") \
+                    .order("sti_id", desc=True) \
+                    .limit(1) \
+                    .execute()
+
+                last_sti_number = int(latest_sti_query.data[0]["sti_id"].split("-")[-1]) if latest_sti_query.data else 0
+                print(f"🔹 Last STI Number after deletion: {last_sti_number}")
+
+                # ✅ Process transfer items (update existing & insert new)
+                new_items = []
+                for item in data["transferItems"]:
+                    product_id = str(item["product_id"])
+                    sti_id = existing_items.get(product_id)  # Check if it exists
+
+                    if sti_id:
+                        # ✅ Update existing Stock Transfer Item
+                        item_update_data = {
+                            "ordered_quantity": item.get("ordered_quantity"),
+                            "transferred_qty": item.get("transferred_qty", 0),
+                            "stock_transfer_item_status_id": item.get("stock_transfer_item_status_id"),
+                            "unit_id": item.get("unit_id"),
+                        }
+                        item_update_data = {k: v for k, v in item_update_data.items() if v is not None}
+
+                        if item_update_data:
+                            update_response = supabase.table("Stock_Transfer_Item") \
+                                .update(item_update_data) \
+                                .eq("sti_id", sti_id) \
+                                .execute()
+                            print(f"✅ Updated STI {sti_id}: {update_response}")
+
+                    else:
+                        # ✅ Insert new Stock Transfer Item
+                        last_sti_number += 1  # Increment for new item
+                        new_sti_id = f"STI-{transfer_suffix}-{last_sti_number:02d}"
+
+                        new_items.append({
+                            "sti_id": new_sti_id,
+                            "stock_transfer_id": stock_transfer_id,
+                            "product_id": item["product_id"],
+                            "ordered_quantity": item["ordered_quantity"],
+                            "stock_transfer_item_status_id": 1,
+                            "unit_id": item.get("unit_id"),
+                            "transferred_qty": item.get("transferred_qty", 0),
+                        })
+                        print(f"➕ New STI ID: {new_sti_id}")
+
+                # ✅ Bulk insert new items
+                if new_items:
+                    insert_response = supabase.table("Stock_Transfer_Item").insert(new_items).execute()
+                    print(f"✅ Inserted New Items: {insert_response}")
+
+            return Response({"message": "Stock transfer updated successfully"}, status=200)
+
         except Exception as e:
-            return Response({"error": str(e)}, status=400)
+            print(f"❌ Exception: {str(e)}")  # Debugging
+            return Response({"error": str(e)}, status=500)
+
    
     def delete(self, request, stock_transfer_id):
         try:
             response = supabase.table("Stock_Transfer").delete().eq('stock_transfer_id', stock_transfer_id).execute()
 
             if response.data:
-                return Response({"message": "Customer deleted successfully"}, status=204)
+                return Response({"message": "Stock Transfer deleted successfully"}, status=204)
             else:
-                return Response({"error": "Customer not found or deletion failed"}, status=400)
+                return Response({"error": "Stock Transfer not found or deletion failed"}, status=400)
         except Exception as e:
             return Response({"error": str(e)}, status=400)
