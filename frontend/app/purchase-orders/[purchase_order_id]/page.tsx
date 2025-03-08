@@ -16,6 +16,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LineItemsTable } from "../components/LineItemsTable";
 import { Separator } from "@/components/ui/separator";
+import clsx from "clsx";
 
 interface PurchaseOrderItem {
   purchase_order_item_id: number;
@@ -32,12 +33,12 @@ interface PurchaseOrderItem {
 }
 
 interface Supplier {
-    name: string;
-    contact: string;
-    email: string;
-    phone: string;
-    address: string;
-  }
+  name: string;
+  contact: string;
+  email: string;
+  phone: string;
+  address: string;
+}
 
 interface PurchaseOrder {
   purchase_order_id: number;
@@ -51,6 +52,14 @@ interface PurchaseOrder {
   lineItems: PurchaseOrderItem[];
 }
 
+const statusColorMap: Record<string, string> = {
+  Draft: "bg-gray-500",
+  Ordered: "bg-yellow-500",
+  Delayed: "bg-orange-500",
+  Completed: "bg-green-500",
+  Cancelled: "bg-red-500",
+};
+
 export default function PurchaseOrderPage({
   params,
 }: {
@@ -62,7 +71,6 @@ export default function PurchaseOrderPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-
   const fetchPurchaseOrderData = async () => {
     try {
       const response = await axios.get<PurchaseOrder>(
@@ -70,7 +78,7 @@ export default function PurchaseOrderPage({
       );
 
       setPurchaseOrder(response.data);
-      console.log("received qty", response.data)
+      console.log("received qty", response.data);
     } catch (error) {
       console.error("Error fetching purchase order:", error);
       setError("Failed to load purchase order.");
@@ -99,9 +107,26 @@ export default function PurchaseOrderPage({
             <h1 className="text-3xl font-bold tracking-tight">
               {purchaseOrder?.po_id}
             </h1>
-            <Badge className="ml-2">
-              {purchaseOrder?.status}
+            <Badge
+              variant="outline"
+              className={clsx(
+                "text-white px-2 py-1 rounded-md",
+                statusColorMap[purchaseOrder?.status ?? "Pending"] ||
+                  "bg-gray-500" // Default to "Pending"
+              )}
+            >
+              {purchaseOrder?.status ?? "Unknown"}
             </Badge>
+
+            {/* <Badge
+                              variant="outline"
+                              className={clsx(
+                                "text-white px-2 py-1 rounded-md",
+                                statusColorMap[item.po_item_status] || "bg-gray-500"
+                              )}
+                            >
+                              {item.po_item_status}
+                            </Badge> */}
           </div>
         </div>
 
@@ -121,18 +146,17 @@ export default function PurchaseOrderPage({
                 </TabsList>
                 <TabsContent value="items" className="pt-4">
                   <LineItemsTable
-                  lineItems={purchaseOrder?.lineItems ?? []}
-                  onStatusChange={(id, status) => {
-                    // In a real app, you would update the status in your database
-                    console.log(`Item ${id} status changed to ${status}`)
-                  }}
-                  onSuccess={() => {
-                    fetchPurchaseOrderData(); // ✅ Refresh data
-                  }}
-                />
+                    lineItems={purchaseOrder?.lineItems ?? []}
+                    onStatusChange={(id, status) => {
+                      // In a real app, you would update the status in your database
+                      console.log(`Item ${id} status changed to ${status}`);
+                    }}
+                    onSuccess={() => {
+                      fetchPurchaseOrderData(); // ✅ Refresh data
+                    }}
+                  />
                   <div className="flex justify-end mt-4">
                     <div className="w-64 space-y-2">
-                  
                       <div className="flex justify-between text-lg font-bold">
                         <span>Total:</span>
                         <span>${purchaseOrder?.po_total.toFixed(2)}</span>

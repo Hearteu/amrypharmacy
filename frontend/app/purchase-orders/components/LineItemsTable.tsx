@@ -26,15 +26,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ReceiveItemsForm from "./ReceiveItemsForm";
+import clsx from "clsx";
 
 const statusColorMap: Record<string, string> = {
-  draft: "gray",
-  ordered: "green",
-  delayed: "orange",
-  completed: "blue",
-  cancelled: "red",
+  Pending: "bg-gray-500",
+  Received: "bg-green-500",
+  "Received, Partially Defective": "bg-orange-500",
+  Missing: "bg-red-500",
+  Defective: "bg-red-500",
 };
-
 interface LineItemsTableProps {
   lineItems: LineItem[];
   onStatusChange?: (id: string, status: string) => void;
@@ -93,9 +93,7 @@ export function LineItemsTable({ lineItems, onSuccess }: LineItemsTableProps) {
               {/* replace this with issues */}
               <TableCell className="text-right">
                 {item.expired_qty !== undefined && (
-                  <>
-                   Expired: {item.expired_qty}
-                  </>
+                  <>Expired: {item.expired_qty}</>
                 )}
                 {item.damaged_qty !== undefined && (
                   <>
@@ -110,12 +108,29 @@ export function LineItemsTable({ lineItems, onSuccess }: LineItemsTableProps) {
                 ${item.poi_total.toFixed(2)}
               </TableCell>
               <TableCell className="text-right">
-                {item.po_item_status}
+                <Badge
+                  variant="outline"
+                  className={clsx(
+                    "text-white px-2 py-1 rounded-md",
+                    statusColorMap[item.po_item_status] || "bg-gray-500"
+                  )}
+                >
+                  {item.po_item_status}
+                </Badge>
               </TableCell>
               <TableCell className="text-center">
-                <Dialog open={openDialog === item.purchase_order_item_id} onOpenChange={(isOpen) => setOpenDialog(isOpen ? item.purchase_order_item_id : null)}>
+                <Dialog
+                  open={openDialog === item.purchase_order_item_id}
+                  onOpenChange={(isOpen) =>
+                    setOpenDialog(isOpen ? item.purchase_order_item_id : null)
+                  }
+                >
                   <DialogTrigger asChild>
-                    <Button onClick={() => setOpenDialog(item.purchase_order_item_id)}>Receive Items</Button>
+                    <Button
+                      onClick={() => setOpenDialog(item.purchase_order_item_id)}
+                    >
+                      Receive Items
+                    </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
