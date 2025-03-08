@@ -29,7 +29,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -43,22 +43,38 @@ interface POItemStatus {
 }
 
 interface POIStatus {
-  purchase_order_item_status_id: number;
-  expiry_date: string | null;
+  purchase_order_item_status_id: string;
+  ordered_quantity: number;
+  expiry_date: Date;
   received_qty: number;
   expired_qty: number;
   damaged_qty: number;
 }
 
-const formSchema = z.object({
-  purchase_order_item_status_id: z.string().min(1, "Status is required"),
-  expiry_date: z.date().optional(),
-  received_qty: z.coerce.number().min(0, "Quantity cannot be negative"),
-  expired_qty: z.coerce.number().min(0, "Quantity cannot be negative"),
-  damaged_qty: z.coerce.number().min(0, "Quantity cannot be negative"),
-});
+const getFormSchema = (orderedQuantity: number | null) =>
+  z
+    .object({
+      purchase_order_item_status_id: z.string().min(1, "Status is required"),
+      expiry_date: z.date(),
+      received_qty: z.coerce.number().min(0, "Quantity cannot be negative"),
+      expired_qty: z.coerce.number().min(0, "Quantity cannot be negative"),
+      damaged_qty: z.coerce.number().min(0, "Quantity cannot be negative"),
+    })
+    .refine(
+      (data) => {
+        if (orderedQuantity === null) return true; // Skip validation if not loaded
 
-type FormValues = z.infer<typeof formSchema>;
+        const total = data.received_qty + data.expired_qty + data.damaged_qty;
+        return total <= orderedQuantity;
+      },
+      {
+        message:
+          "Total quantity (Received + Expired + Damaged) cannot exceed Ordered Quantity",
+        path: ["received_qty"], // Attach error to received_qty field
+      }
+    );
+
+type FormValues = z.infer<ReturnType<typeof getFormSchema>>;
 
 export default function ReceiveItemsForm({
   purchase_order_item_id,
@@ -69,6 +85,9 @@ export default function ReceiveItemsForm({
   const [initialData, setInitialData] = useState<Partial<POIStatus> | null>(
     null
   );
+  const [orderedQuantity, setOrderedQuantity] = useState<number | null>(null);
+
+
 
   // Fetch PO Item Statuses
   useEffect(() => {
@@ -92,41 +111,45 @@ export default function ReceiveItemsForm({
           `http://127.0.0.1:8000/pharmacy/purchase-order-items/${purchase_order_item_id}/`
         );
         const data = response.data;
-  
+
         console.log("🛠️ API Data: ", data); // ✅ Log raw data
-  
+
         if (!Array.isArray(data) || data.length === 0) {
           console.warn("⚠️ API returned an empty array or invalid data.");
           return;
         }
-  
+
         // ✅ Extract the first object from the array
         const item = data[0];
-  
+        setOrderedQuantity(Number(item.ordered_quantity) || 0);
+
         const formattedData: Partial<POIStatus> = {
-          purchase_order_item_status_id:  String(item.purchase_order_item_status_id), 
-          expiry_date: item.expiry_date || null, // Ensure it's a string or null
+          purchase_order_item_status_id: String(
+            item.purchase_order_item_status_id
+          ),
+          expiry_date: item.expiry_date
+            ? new Date(item.expiry_date)
+            : undefined,
           received_qty: Number(item.received_qty) || 0,
           expired_qty: Number(item.expired_qty) || 0,
           damaged_qty: Number(item.damaged_qty) || 0,
         };
-  
+
         console.log("✅ Formatted Data: ", formattedData);
         setInitialData(formattedData);
       } catch (error) {
         console.error("❌ Error fetching initial PO item data:", error);
       }
     }
-  
+
     if (purchase_order_item_id) {
       fetchPOItemData();
     }
   }, [purchase_order_item_id]);
-  
 
   // ✅ Initialize form without `defaultValues` to allow updates
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(getFormSchema(orderedQuantity)),
     defaultValues: {
       purchase_order_item_status_id: "",
       expiry_date: undefined,
@@ -142,12 +165,19 @@ export default function ReceiveItemsForm({
       console.log("🔄 Updating form with initial data:", initialData);
       form.reset({
         ...initialData,
-        expiry_date: initialData.expiry_date ?? "", // Ensure it's a string
+        expiry_date: initialData.expiry_date
+          ? new Date(initialData.expiry_date)
+          : undefined,
       });
     }
   }, [initialData]);
+
+  const remainingQuantity = useMemo(() => {
+    if (orderedQuantity === null) return null;
+    return orderedQuantity - (form.watch("received_qty") + form.watch("expired_qty") + form.watch("damaged_qty"));
+  }, [orderedQuantity, form.watch("received_qty"), form.watch("expired_qty"), form.watch("damaged_qty")]);
   
-    
+
   async function onSubmit(data: FormValues) {
     setIsSubmitting(true);
 
@@ -180,6 +210,15 @@ export default function ReceiveItemsForm({
   }
 
   return (
+    <>
+    {orderedQuantity !== null && (
+      <p className="text-sm text-gray-600">
+        Ordered quantity:{" "}
+        <span className="text-green-600">
+          {orderedQuantity}
+        </span>
+      </p>
+    )}
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
@@ -320,5 +359,6 @@ export default function ReceiveItemsForm({
         </div>
       </form>
     </Form>
+    </>
   );
 }
