@@ -33,44 +33,45 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { CommandInput } from "cmdk";
-
-// In a real app, these would come from your database
-const locations = [
-  { id: "1", name: "Main Warehouse" },
-  { id: "2", name: "Store Room A" },
-  { id: "3", name: "Store Room B" },
-  { id: "4", name: "Distribution Center" },
-];
 
 interface Products {
   product_id: number;
   full_product_name: string;
 }
 
+interface Location {
+  location_id: number;
+  location: string;
+}
+
 const transferSchema = z.object({
-  sourceLocationId: z.string({
+  src_location: z.string({
     required_error: "Please select a source location",
   }),
-  destinationLocationId: z
-    .string({
-      required_error: "Please select a destination location",
-    }),
-  transferDate: z.date({
+  des_location: z.string({
+    required_error: "Please select a destination location",
+  }),
+  transfer_date: z.date({
     required_error: "Please select a date",
   }),
   items: z
     .array(
       z.object({
-        productId: z.string({
+        product_id: z.string({
           required_error: "Please select a product",
         }),
         quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
       })
     )
     .min(1, "At least one item is required"),
-  notes: z.string().optional(),
 });
 
 type TransferFormValues = z.infer<typeof transferSchema>;
@@ -80,6 +81,24 @@ export function StockTransferForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [products, setProducts] = useState<Products[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+
+  async function fetchLocations() {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/pharmacy/locations/");
+      const data: Location[] = await response.json();
+
+      // Filter locations with ID 1, 2, or 3
+      const filteredData = data.filter((location) =>
+        [1, 2, 3].includes(location.location_id)
+      );
+
+      setLocations(filteredData);
+      console.log("3 location", filteredData);
+    } catch (error) {
+      console.error("Error fetching locations:", error);
+    }
+  }
 
   useEffect(() => {
     async function fetchProducts() {
@@ -94,22 +113,34 @@ export function StockTransferForm() {
       }
     }
     fetchProducts();
+    fetchLocations();
   }, []);
 
   const form = useForm<TransferFormValues>({
     resolver: zodResolver(transferSchema),
     defaultValues: {
-      transferDate: new Date(),
-      items: [{ productId: "", quantity: 1 }],
+      transfer_date: new Date(),
+      items: [{ product_id: "", quantity: 1 }],
     },
   });
 
   async function onSubmit(data: TransferFormValues) {
     setIsSubmitting(true);
 
+    const formattedData = {
+      ...data,
+      transfer_date: format(data.transfer_date,  "yyyy-MM-dd")
+    };
+
+    await fetch("http://127.0.0.1:8000/pharmacy/stock-transfers/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formattedData),
+    });
+
     try {
       // In a real app, you would send this to your API
-      console.log("Submitting transfer:", data);
+      console.log("Submitting transfer:", formattedData);
 
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -120,7 +151,7 @@ export function StockTransferForm() {
 
   function addItem() {
     const currentItems = form.getValues("items");
-    form.setValue("items", [...currentItems, { productId: "", quantity: 1 }]);
+    form.setValue("items", [...currentItems, { product_id: "", quantity: 1 }]);
   }
 
   function removeItem(index: number) {
@@ -139,7 +170,7 @@ export function StockTransferForm() {
         <div className="grid gap-6 md:grid-cols-2">
           <FormField
             control={form.control}
-            name="sourceLocationId"
+            name="src_location"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Source Location</FormLabel>
@@ -154,8 +185,11 @@ export function StockTransferForm() {
                   </FormControl>
                   <SelectContent>
                     {locations.map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
-                        {location.name}
+                      <SelectItem
+                        key={location.location_id}
+                        value={location.location_id.toString()}
+                      >
+                        {location.location}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -170,7 +204,7 @@ export function StockTransferForm() {
 
           <FormField
             control={form.control}
-            name="destinationLocationId"
+            name="des_location"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Destination Location</FormLabel>
@@ -185,8 +219,11 @@ export function StockTransferForm() {
                   </FormControl>
                   <SelectContent>
                     {locations.map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
-                        {location.name}
+                      <SelectItem
+                        key={location.location_id}
+                        value={location.location_id.toString()}
+                      >
+                        {location.location}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -201,7 +238,7 @@ export function StockTransferForm() {
 
           <FormField
             control={form.control}
-            name="transferDate"
+            name="transfer_date"
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Transfer Date</FormLabel>
@@ -229,9 +266,6 @@ export function StockTransferForm() {
                       mode="single"
                       selected={field.value}
                       onSelect={field.onChange}
-                      disabled={(date) =>
-                        date < new Date(new Date().setHours(0, 0, 0, 0))
-                      }
                       initialFocus
                     />
                   </PopoverContent>
@@ -259,7 +293,7 @@ export function StockTransferForm() {
               <div key={index} className="flex items-end gap-4">
                 <FormField
                   control={form.control}
-                  name={`items.${index}.productId`}
+                  name={`items.${index}.product_id`}
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Select Products</FormLabel>
@@ -277,16 +311,16 @@ export function StockTransferForm() {
                               {field.value
                                 ? products.find(
                                     (product) =>
-                                        product.product_id.toString() ===
+                                      product.product_id.toString() ===
                                       field.value
                                   )?.full_product_name
                                 : "Select product"}
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
-                        <PopoverContent className="p-0">
+                        <PopoverContent>
                           <Command>
-                            <CommandInput placeholder="Search vendors..." />
+                            <CommandInput placeholder="Search products..." />
                             <CommandList>
                               <CommandEmpty>No vendor found.</CommandEmpty>
                               <CommandGroup>
@@ -295,7 +329,9 @@ export function StockTransferForm() {
                                     key={product.product_id}
                                     value={product.full_product_name}
                                     onSelect={() => {
-                                        field.onChange(product.product_id.toString());
+                                      field.onChange(
+                                        product.product_id.toString()
+                                      );
                                     }}
                                   >
                                     {product.full_product_name}
