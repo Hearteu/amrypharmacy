@@ -31,7 +31,7 @@ import clsx from "clsx";
 const statusColorMap: Record<string, string> = {
   Pending: "bg-gray-500",
   Received: "bg-green-500",
-  "Received, Partially Defective": "bg-orange-500",
+  "Partially Received": "bg-orange-500",
   Missing: "bg-red-500",
   Defective: "bg-red-500",
 };
