@@ -18,6 +18,7 @@ class PurchaseOrder(APIView):
         try:
             query = supabase.table("Purchase_Order").select(
                 "purchase_order_id, po_id, order_date, expected_delivery_date, purchase_order_status_id, notes, "
+                "Purchase_Order_Status!inner(purchase_order_status), " 
                 "Purchase_Order_Item (purchase_order_item_id, poi_id, ordered_quantity, purchase_order_item_status_id, "
                 "unit_id, expired_qty, damaged_qty, expiry_date, received_qty, Unit (unit), "
                 "Purchase_Order_Item_Status (po_item_status), "
@@ -65,7 +66,8 @@ class PurchaseOrder(APIView):
                     "expected_date": order["expected_delivery_date"],
                     "po_total": 0,  # Calculate below
                     "status_id": order["purchase_order_status_id"],
-                    "status": "Unknown" if not purchase_order_items else purchase_order_items[0].get("Purchase_Order_Item_Status", {}).get("po_item_status", "Unknown"),
+                    "status": order.get("Purchase_Order_Status", {}).get("purchase_order_status", "Unknown"), 
+                    # "status": "Unknown" if not purchase_order_items else purchase_order_items[0].get("Purchase_Order_Item_Status", {}).get("po_item_status", "Unknown"),
                     "notes": order["notes"],
                     "lineItems": [],
                 }
