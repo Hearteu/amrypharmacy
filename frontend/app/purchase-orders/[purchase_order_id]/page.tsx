@@ -26,6 +26,9 @@ interface PurchaseOrderItem {
   poi_total: number;
   purchase_order_item_status: number;
   po_item_status: string;
+  received_qty: number;
+  expired_qty: number;
+  damaged_qty: number;
 }
 
 interface Supplier {
@@ -59,25 +62,26 @@ export default function PurchaseOrderPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+
+  const fetchPurchaseOrderData = async () => {
+    try {
+      const response = await axios.get<PurchaseOrder>(
+        `http://127.0.0.1:8000/pharmacy/purchase-orders/${params.purchase_order_id}/`
+      );
+
+      setPurchaseOrder(response.data);
+      console.log("received qty", response.data)
+    } catch (error) {
+      console.error("Error fetching purchase order:", error);
+      setError("Failed to load purchase order.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchPurchaseOrderData = async () => {
-      try {
-        const response = await axios.get<PurchaseOrder>(
-          `http://127.0.0.1:8000/pharmacy/purchase-orders/${params.purchase_order_id}/`
-        );
-
-        setPurchaseOrder(response.data);
-        console.log(response.data)
-      } catch (error) {
-        console.error("Error fetching purchase order:", error);
-        setError("Failed to load purchase order.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchPurchaseOrderData();
-  }, [params.purchase_order_id]);
+  }, []);
 
   if (loading) return <p>Loading purchase order...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
@@ -118,10 +122,12 @@ export default function PurchaseOrderPage({
                 <TabsContent value="items" className="pt-4">
                   <LineItemsTable
                   lineItems={purchaseOrder?.lineItems ?? []}
-                  editable={true}
                   onStatusChange={(id, status) => {
                     // In a real app, you would update the status in your database
                     console.log(`Item ${id} status changed to ${status}`)
+                  }}
+                  onSuccess={() => {
+                    fetchPurchaseOrderData(); // ✅ Refresh data
                   }}
                 />
                   <div className="flex justify-end mt-4">

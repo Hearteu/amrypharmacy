@@ -37,8 +37,8 @@ const statusColorMap: Record<string, string> = {
 
 interface LineItemsTableProps {
   lineItems: LineItem[];
-  editable?: boolean;
   onStatusChange?: (id: string, status: string) => void;
+  onSuccess: () => void;
 }
 
 interface LineItem {
@@ -50,13 +50,12 @@ interface LineItem {
   poi_total: number;
   purchase_order_item_status: number;
   po_item_status: string;
+  received_qty: number;
+  expired_qty: number;
+  damaged_qty: number;
 }
 
-export function LineItemsTable({
-  lineItems,
-  editable = false,
-  onStatusChange,
-}: LineItemsTableProps) {
+export function LineItemsTable({ lineItems, onSuccess }: LineItemsTableProps) {
   //change this with the data
   //   const [items, setItems] = useState(
   //     lineItems.map((item) => ({
@@ -66,6 +65,8 @@ export function LineItemsTable({
   //       issues: item.issues || { expired: 0, damaged: 0, notes: "" },
   //     }))
   //   );
+
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="rounded-md border">
@@ -79,7 +80,7 @@ export function LineItemsTable({
             <TableHead className="text-right">Unit Price</TableHead>
             <TableHead className="text-right">Total</TableHead>
             <TableHead className="text-right">Status</TableHead>
-            {editable && <TableHead className="text-center">Actions</TableHead>}
+            <TableHead className="text-center">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -88,9 +89,20 @@ export function LineItemsTable({
               <TableCell>{item.description}</TableCell>
               <TableCell className="text-right">{item.quantity}</TableCell>
               {/* replace this with received quantity */}
-              <TableCell className="text-right">{item.quantity}</TableCell>
+              <TableCell className="text-right">{item.received_qty}</TableCell>
               {/* replace this with issues */}
-              <TableCell className="text-right">{item.quantity}</TableCell>
+              <TableCell className="text-right">
+                {item.expired_qty !== undefined && (
+                  <>
+                   Expired: {item.expired_qty}
+                  </>
+                )}
+                {item.damaged_qty !== undefined && (
+                  <>
+                    <br /> Damaged: {item.damaged_qty}
+                  </>
+                )}
+              </TableCell>
               <TableCell className="text-right">
                 ${item.supplier_price.toFixed(2)}
               </TableCell>
@@ -101,7 +113,7 @@ export function LineItemsTable({
                 {item.po_item_status}
               </TableCell>
               <TableCell className="text-center">
-                <Dialog>
+                <Dialog open={open} onOpenChange={setOpen}>
                   <DialogTrigger asChild>
                     <Button>Receive Items</Button>
                   </DialogTrigger>
@@ -114,7 +126,13 @@ export function LineItemsTable({
                         Record received quantities and any issues
                       </DialogDescription>
                     </DialogHeader>
-                    <ReceiveItemsForm purchase_order_item_id={item.purchase_order_item_id}></ReceiveItemsForm>
+                    <ReceiveItemsForm
+                      purchase_order_item_id={item.purchase_order_item_id}
+                      onSuccess={() => {
+                        onSuccess(); // ✅ Execute the function properly
+                        setOpen(false); // ✅ Close the dialog
+                      }}
+                    />
                   </DialogContent>
                 </Dialog>
               </TableCell>
@@ -122,8 +140,6 @@ export function LineItemsTable({
           ))}
         </TableBody>
       </Table>
-
-    
     </div>
   );
 }

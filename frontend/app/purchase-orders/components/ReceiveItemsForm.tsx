@@ -35,6 +35,8 @@ import { z } from "zod";
 
 interface ReceiveItemsProps {
   purchase_order_item_id: number;
+  onSuccess: () => void;
+  
 }
 
 interface POItemStatus {
@@ -78,6 +80,7 @@ type FormValues = z.infer<ReturnType<typeof getFormSchema>>;
 
 export default function ReceiveItemsForm({
   purchase_order_item_id,
+  onSuccess,
 }: ReceiveItemsProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [poItemStatus, setPOItemStatus] = useState<POItemStatus[]>([]);
@@ -200,7 +203,7 @@ export default function ReceiveItemsForm({
         formattedData,
         { headers: { "Content-Type": "application/json" } }
       );
-
+      onSuccess();
       console.log("✅ Successfully updated PO item:", purchase_order_item_id);
     } catch (error) {
       console.error("❌ Error updating PO item:", error);
