@@ -1,11 +1,12 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView  # type: ignore
 
-from .views import (POI, Branch, Brand, Customers, CustomerType, DisposedItems,
-                    Drugs, DswdOrder, Expiration, Inventory, Location, Order,
-                    PersonList, Prescription, PriceHistory, ProductCategory,
-                    Products, Purchase_Order_Item_Status,
+from .views import (POI, STI, Branch, Brand, Customers, CustomerType,
+                    DisposedItems, Drugs, DswdOrder, Expiration, Inventory,
+                    Location, Order, PersonList, Prescription, PriceHistory,
+                    ProductCategory, Products, Purchase_Order_Item_Status,
                     Purchase_Order_Status, PurchaseOrder, Receipt, Status,
+                    Stock_Transfer_Item_Status, Stock_Transfer_Status,
                     StockTransaction, StockTransfer, Supplier, SupplierItem,
                     Unit, UserList, UserLoginView, UserRole)
 
@@ -40,6 +41,9 @@ resources = [
     ("stock-transactions", StockTransaction),
     ("purchase-order-items", POI),
     ("locations", Location),
+    ("stock-transfer-items", STI),
+    ("stock-transfer-status", Stock_Transfer_Status),
+    ("stock-transfer-item-status", Stock_Transfer_Item_Status),
 ]
 
 # Generate urlpatterns dynamically
@@ -53,6 +57,8 @@ urlpatterns = [
     path(f"{name}/<int:supplier_id>/", view.as_view(), name=f"get-{name}-list") if name == "supplier-items" else
     path(f"{name}/<int:purchase_order_status_id>/", view.as_view(), name=f"get-{name}-list") if name == "purchase-order-status" else
     path(f"{name}/<int:purchase_order_item_status_id>/", view.as_view(), name=f"get-{name}-list") if name == "purchase-order-item-status" else
+    path(f"{name}/<int:stock_transfer_status_id>/", view.as_view(), name=f"get-{name}-list") if name == "stock-transfer-status" else
+    path(f"{name}/<int:stock_transfer_item_status_id>/", view.as_view(), name=f"get-{name}-list") if name == "stock-transfer-item-status" else
     path(f"{name}/<int:{name[:-1].replace('-', '_')}_id>/", view.as_view(), name=f"edit-{name}-list")
     for name, view in resources
 ] + [

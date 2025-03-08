@@ -22,6 +22,9 @@ from .receipt import Receipt
 from .status import Status
 from .stock_transaction import StockTransaction
 from .stock_transfer import StockTransfer
+from .stock_transfer_item import STI
+from .stock_transfer_item_status import Stock_Transfer_Item_Status
+from .stock_transfer_status import Stock_Transfer_Status
 from .supplier import Supplier
 from .supplier_item import SupplierItem
 from .unit import Unit
