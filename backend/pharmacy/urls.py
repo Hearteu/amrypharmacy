@@ -44,6 +44,7 @@ resources = [
     ("stock-transfer-items", STI),
     ("stock-transfer-status", Stock_Transfer_Status),
     ("stock-transfer-item-status", Stock_Transfer_Item_Status),
+    ("stock-transfer", StockTransfer),
 ]
 
 # Generate urlpatterns dynamically
