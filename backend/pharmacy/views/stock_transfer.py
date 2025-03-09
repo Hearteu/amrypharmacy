@@ -17,8 +17,10 @@ class StockTransfer(APIView):
         try:
             query = supabase.table("Stock_Transfer").select(
                 "stock_transfer_id, transfer_id, transfer_date, stock_transfer_status_id, "
-                "Stock_Transfer_Status!inner(stock_transfer_status), " 
+                "Stock_Transfer_Status!inner(stock_transfer_status), "
                 "src_location, des_location, "
+                "src_location, src_location_data:Location!src_location(location), "  # Source Location
+                "des_location, des_location_data:Location!des_location(location), "  # Destination Location
                 "Stock_Transfer_Item (stock_transfer_item_id, sti_id, ordered_quantity, stock_transfer_item_status_id, "
                 "unit_id, transferred_qty, product_id, Unit (unit), "
                 "Products (product_name, Drugs (dosage_strength, dosage_form)))"
@@ -54,8 +56,11 @@ class StockTransfer(APIView):
                     "transfer_date": transfer["transfer_date"],
                     "status_id": transfer["stock_transfer_status_id"],
                     "status": transfer.get("Stock_Transfer_Status", {}).get("stock_transfer_status", "Unknown"),
-                    "src_location": transfer.get("src_location", "Unknown"),
-                    "des_location": transfer.get("des_location", "Unknown"),
+                    "src_location_id": transfer.get("src_location", None),
+                    "src_location_name": transfer.get("src_location_data", {}).get("location", "Unknown"),
+                    "des_location_id": transfer.get("des_location", None),
+                    "des_location_name": transfer.get("des_location_data", {}).get("location", "Unknown"),
+                    
                     "transferItems": [],
                 }
 
