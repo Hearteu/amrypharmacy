@@ -209,19 +209,14 @@ class StockTransfer(APIView):
                 passed_product_ids = {str(item["product_id"]) for item in data["transferItems"]}
                 print(f"🔍 Passed Product IDs: {passed_product_ids}")
 
-                # ✅ Identify items to delete
-                items_to_delete = [
-                    sti_id for product_id, sti_id in existing_items.items()
-                    if product_id not in passed_product_ids
-                ]
+                # ✅ Ensure no None values & correct types before deleting
+                items_to_delete = [sti_id for product_id, sti_id in existing_items.items() if product_id not in passed_product_ids and sti_id]
 
-                # ✅ Delete only the missing items
                 if items_to_delete:
                     print(f"❌ Deleting STIs: {items_to_delete}")
-                    delete_response = supabase.table("Stock_Transfer_Item") \
-                        .delete() \
-                        .in_("sti_id", items_to_delete) \
-                        .execute()
+                    
+                    delete_response = supabase.table("Stock_Transfer_Item").delete().in_("sti_id", list(map(str, items_to_delete))).execute()
+
                     print(f"✅ Deleted Items Response: {delete_response}")
 
                 # 🔍 Check remaining items after deletion
