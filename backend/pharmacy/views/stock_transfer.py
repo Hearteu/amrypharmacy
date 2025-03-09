@@ -18,7 +18,6 @@ class StockTransfer(APIView):
             query = supabase.table("Stock_Transfer").select(
                 "stock_transfer_id, transfer_id, transfer_date, stock_transfer_status_id, "
                 "Stock_Transfer_Status!inner(stock_transfer_status), "
-                "src_location, des_location, "
                 "src_location, src_location_data:Location!src_location(location), "  # Source Location
                 "des_location, des_location_data:Location!des_location(location), "  # Destination Location
                 "Stock_Transfer_Item (stock_transfer_item_id, sti_id, ordered_quantity, stock_transfer_item_status_id, "
@@ -38,7 +37,12 @@ class StockTransfer(APIView):
             formatted_transfers = []
 
             # Collect product_ids to fetch stock quantities, ensuring no None values
-            product_ids = {item["product_id"] for transfer in stock_transfers for item in transfer.get("Stock_Transfer_Item", []) if item.get("product_id") is not None}
+            product_ids = {
+                item["product_id"]
+                for transfer in stock_transfers
+                for item in (transfer.get("Stock_Transfer_Item") or [])
+                if item.get("product_id") is not None
+            }
 
             # Fetch stock quantities from Stock_Item table
             stock_items = {}
@@ -48,31 +52,30 @@ class StockTransfer(APIView):
                     stock_items = {item["product_id"]: item["quantity"] for item in stock_response.data}
 
             for transfer in stock_transfers:
-                stock_transfer_items = transfer.get("Stock_Transfer_Item", [])
+                stock_transfer_items = transfer.get("Stock_Transfer_Item") or []
 
                 formatted_transfer = {
                     "stock_transfer_id": transfer["stock_transfer_id"],
                     "transfer_id": transfer["transfer_id"],
                     "transfer_date": transfer["transfer_date"],
                     "status_id": transfer["stock_transfer_status_id"],
-                    "status": transfer.get("Stock_Transfer_Status", {}).get("stock_transfer_status", "Unknown"),
-                    "src_location_id": transfer.get("src_location", None),
-                    "src_location_name": transfer.get("src_location_data", {}).get("location", "Unknown"),
-                    "des_location_id": transfer.get("des_location", None),
-                    "des_location_name": transfer.get("des_location_data", {}).get("location", "Unknown"),
-                    
+                    "status": (transfer.get("Stock_Transfer_Status") or {}).get("stock_transfer_status", "Unknown"),
+                    "src_location_id": transfer.get("src_location"),
+                    "src_location_name": (transfer.get("src_location_data") or {}).get("location", "Unknown"),
+                    "des_location_id": transfer.get("des_location"),
+                    "des_location_name": (transfer.get("des_location_data") or {}).get("location", "Unknown"),
                     "transferItems": [],
                 }
 
                 for item in stock_transfer_items:
                     product_id = item.get("product_id")
                     stock_quantity = stock_items.get(product_id, 0) if product_id is not None else 0
-                    product = item.get("Products", {})
+                    product = item.get("Products") or {}
                     product_name = product.get("product_name", "Unknown")
-                    drug = product.get("Drugs")
-                    
+                    drug = product.get("Drugs") or {}
+
                     if drug:
-                        product_name += f" {drug.get('dosage_form', '')} {drug.get('dosage_strength', '')}"
+                        product_name += f" {drug.get('dosage_form', '')} {drug.get('dosage_strength', '')}".strip()
 
                     formatted_transfer["transferItems"].append({
                         "stock_transfer_item_id": item["stock_transfer_item_id"],
@@ -83,7 +86,7 @@ class StockTransfer(APIView):
                         "transferred_qty": item.get("transferred_qty", 0),
                         "stock_transfer_item_status_id": item.get("stock_transfer_item_status_id", "Unknown"),
                         "unit_id": item.get("unit_id", "N/A"),
-                        "unit": item.get("Unit", {}).get("unit", "N/A"),
+                        "unit": (item.get("Unit") or {}).get("unit", "N/A"),
                         "current_stock_quantity": stock_quantity
                     })
 
@@ -93,6 +96,7 @@ class StockTransfer(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
 
     def post(self, request):
         """Create a new stock transfer with items"""
