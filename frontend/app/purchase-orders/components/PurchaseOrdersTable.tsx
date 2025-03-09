@@ -138,7 +138,9 @@ export default function PurchaseOrdersTable() {
     console.log(orderId);
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/pharmacy/purchase-orders/${orderId}/`
+        `http://127.0.0.1:8000/pharmacy/purchase-orders/${orderId}/`,
+        { purchase_order_status_id: 5 },
+        { headers: { "Content-Type": "application/json" } }
       );
 
       console.log("Purchase order canceled:", response.data);
