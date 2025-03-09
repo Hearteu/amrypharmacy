@@ -16,6 +16,8 @@ class PurchaseOrder(APIView):
     def get(self, request, purchase_order_id=None):
         """Retrieve all purchase orders or a single purchase order by ID with lineItems"""
         try:
+            today = datetime.today().date()  # Get current date
+
             query = supabase.table("Purchase_Order").select(
                 "purchase_order_id, po_id, order_date, expected_delivery_date, purchase_order_status_id, notes, "
                 "Purchase_Order_Status!inner(purchase_order_status), "
@@ -40,7 +42,7 @@ class PurchaseOrder(APIView):
 
             for order in purchase_orders:
                 purchase_order_items = order.get("Purchase_Order_Item", [])
-
+                
                 # ✅ Ensure purchase_order_items exists before accessing index 0
                 supplier_item = {}
                 supplier_data = {}
@@ -50,6 +52,21 @@ class PurchaseOrder(APIView):
                     supplier_item = purchase_order_items[0].get("Supplier_Item", {})
                     supplier_data = supplier_item.get("Supplier", {})
                     person_data = supplier_data.get("Person", {})
+
+                expected_date = order["expected_delivery_date"]
+                current_status_id = order["purchase_order_status_id"]
+
+                # ✅ Check if order is delayed
+                if expected_date and datetime.strptime(expected_date, "%Y-%m-%d").date() < today:
+                    if current_status_id != 3:  # Avoid unnecessary updates
+                        supabase.table("Purchase_Order").update({"purchase_order_status_id": 3}).eq("purchase_order_id", order["purchase_order_id"]).execute()
+                        current_status_id = 3  # Update local variable
+
+                # ✅ Check if order is completed
+                if all(item["purchase_order_item_status_id"] != 1 for item in purchase_order_items):
+                    if current_status_id != 4:  # Avoid unnecessary updates
+                        supabase.table("Purchase_Order").update({"purchase_order_status_id": 4}).eq("purchase_order_id", order["purchase_order_id"]).execute()
+                        current_status_id = 4  # Update local variable
 
                 formatted_order = {
                     "purchase_order_id": order["purchase_order_id"],
@@ -63,11 +80,10 @@ class PurchaseOrder(APIView):
                         "address": person_data.get("address", "N/A"),
                     },
                     "order_date": order["order_date"],
-                    "expected_date": order["expected_delivery_date"],
+                    "expected_date": expected_date,
                     "po_total": 0,  # Calculate below
-                    "status_id": order["purchase_order_status_id"],
-                    "status": order.get("Purchase_Order_Status", {}).get("purchase_order_status", "Unknown"), 
-                    # "status": "Unknown" if not purchase_order_items else purchase_order_items[0].get("Purchase_Order_Item_Status", {}).get("po_item_status", "Unknown"),
+                    "status_id": current_status_id,
+                    "status": order.get("Purchase_Order_Status", {}).get("purchase_order_status", "Unknown"),
                     "notes": order["notes"],
                     "lineItems": [],
                 }
@@ -112,6 +128,7 @@ class PurchaseOrder(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
 
     def post(self, request):
         """Create a new Purchase Order with line items"""
