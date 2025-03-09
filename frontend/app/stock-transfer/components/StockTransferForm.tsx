@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CalendarIcon, Plus, Trash2 } from "lucide-react";
+import {
+  CalendarIcon,
+  Check,
+  ChevronsUpDown,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
@@ -19,13 +25,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
   Popover,
@@ -37,11 +36,15 @@ import {
   Command,
   CommandEmpty,
   CommandGroup,
+  CommandInput,
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { CommandInput } from "cmdk";
 
+interface StockTransferFormProps {
+  initialData?: Partial<TransferFormValues>;
+  isEditing?: boolean;
+}
 interface Products {
   product_id: number;
   full_product_name: string;
@@ -53,22 +56,22 @@ interface Location {
 }
 
 const transferSchema = z.object({
-  src_location: z.string({
-    required_error: "Please select a source location",
-  }),
-  des_location: z.string({
-    required_error: "Please select a destination location",
-  }),
+  stock_transfer_id: z.string().optional(),
+  src_location_id: z.string().min(1, "Please select a source location"),
+  des_location_id: z.string().min(1, "Please select a destination location"),
   transfer_date: z.date({
     required_error: "Please select a date",
   }),
-  items: z
+  transferItems: z
     .array(
       z.object({
+        stock_transfer_item_id: z.string().optional(),
         product_id: z.string({
           required_error: "Please select a product",
         }),
-        quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
+        ordered_quantity: z.coerce
+          .number()
+          .min(1, "Quantity must be at least 1"),
       })
     )
     .min(1, "At least one item is required"),
@@ -76,7 +79,10 @@ const transferSchema = z.object({
 
 type TransferFormValues = z.infer<typeof transferSchema>;
 
-export function StockTransferForm() {
+export function StockTransferForm({
+  initialData,
+  isEditing = false,
+}: StockTransferFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -118,47 +124,62 @@ export function StockTransferForm() {
 
   const form = useForm<TransferFormValues>({
     resolver: zodResolver(transferSchema),
-    defaultValues: {
+    defaultValues: initialData || {
+      src_location_id: "",
+      des_location_id: "",
+      stock_transfer_id: undefined,
       transfer_date: new Date(),
-      items: [{ product_id: "", quantity: 1 }],
+      transferItems: [{ product_id: "", ordered_quantity: 1 }],
     },
   });
+
+  useEffect(() => {
+    if (initialData) {
+      console.log("🔄 Updating form with initialData:", initialData);
+      form.reset(initialData);
+    }
+    console.log(initialData);
+  }, [initialData, form.reset]);
 
   async function onSubmit(data: TransferFormValues) {
     setIsSubmitting(true);
 
     const formattedData = {
       ...data,
-      transfer_date: format(data.transfer_date,  "yyyy-MM-dd")
+      transfer_date: format(data.transfer_date, "yyyy-MM-dd"),
     };
 
-    await fetch("http://127.0.0.1:8000/pharmacy/stock-transfers/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formattedData),
-    });
-
     try {
-      // In a real app, you would send this to your API
-      console.log("Submitting transfer:", formattedData);
+      const url = isEditing
+        ? `http://127.0.0.1:8000/pharmacy/stock-transfers/${formattedData.stock_transfer_id}/`
+        : "http://127.0.0.1:8000/pharmacy/stock-transfers/";
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await fetch(url, {
+        method: isEditing ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formattedData),
+      });
+      console.log("🟢 Submitted Data:", JSON.stringify(formattedData));
+    } catch (error) {
+      console.error("❌ Error submitting form:", error);
     } finally {
       setIsSubmitting(false);
     }
   }
 
   function addItem() {
-    const currentItems = form.getValues("items");
-    form.setValue("items", [...currentItems, { product_id: "", quantity: 1 }]);
+    const currentItems = form.getValues("transferItems");
+    form.setValue("transferItems", [
+      ...currentItems,
+      { product_id: "", ordered_quantity: 1 },
+    ]);
   }
 
   function removeItem(index: number) {
-    const currentItems = form.getValues("items");
+    const currentItems = form.getValues("transferItems");
     if (currentItems.length > 1) {
       form.setValue(
-        "items",
+        "transferItems",
         currentItems.filter((_, i) => i !== index)
       );
     }
@@ -170,33 +191,63 @@ export function StockTransferForm() {
         <div className="grid gap-6 md:grid-cols-2">
           <FormField
             control={form.control}
-            name="src_location"
+            name="src_location_id"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col">
                 <FormLabel>Source Location</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select source location" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {locations.map((location) => (
-                      <SelectItem
-                        key={location.location_id}
-                        value={location.location_id.toString()}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "justify-between w-[200px]",
+                          !field.value && "text-muted-foreground"
+                        )}
                       >
-                        {location.location}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  Select the location where items will be transferred from
-                </FormDescription>
+                        {locations.find(
+                          (location) =>
+                            location.location_id.toString() === field.value
+                        )?.location || "Select source location"}
+                        <ChevronsUpDown className="opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className=" p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search location..."
+                        className="h-9"
+                      />
+                      <CommandList>
+                        <CommandEmpty>No location found.</CommandEmpty>
+                        <CommandGroup>
+                          {locations.map((location) => (
+                            <CommandItem
+                              key={location.location_id}
+                              value={location.location}
+                              onSelect={() => {
+                                field.onChange(location.location_id.toString());
+                              }}
+                            >
+                              {location.location}
+                              <Check
+                                className={cn(
+                                  "ml-auto",
+                                  location.location_id.toString() ===
+                                    field.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
@@ -204,33 +255,63 @@ export function StockTransferForm() {
 
           <FormField
             control={form.control}
-            name="des_location"
+            name="des_location_id"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Destination Location</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select destination location" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {locations.map((location) => (
-                      <SelectItem
-                        key={location.location_id}
-                        value={location.location_id.toString()}
+              <FormItem className="flex flex-col">
+                <FormLabel>Supplier</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "justify-between w-[200px]",
+                          !field.value && "text-muted-foreground"
+                        )}
                       >
-                        {location.location}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  Select the location where items will be transferred to
-                </FormDescription>
+                        {locations.find(
+                          (location) =>
+                            location.location_id.toString() === field.value
+                        )?.location || "Select vendor"}
+                        <ChevronsUpDown className="opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search location..."
+                        className="h-9"
+                      />
+                      <CommandList>
+                        <CommandEmpty>No location found.</CommandEmpty>
+                        <CommandGroup>
+                          {locations.map((location) => (
+                            <CommandItem
+                              key={location.location_id}
+                              value={location.location}
+                              onSelect={() => {
+                                field.onChange(location.location_id.toString());
+                              }}
+                            >
+                              {location.location}
+                              <Check
+                                className={cn(
+                                  "ml-auto",
+                                  location.location_id.toString() ===
+                                    field.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
@@ -289,11 +370,11 @@ export function StockTransferForm() {
           </div>
 
           <div className="space-y-4">
-            {form.watch("items").map((item, index) => (
+            {form.watch("transferItems").map((item, index) => (
               <div key={index} className="flex items-end gap-4">
                 <FormField
                   control={form.control}
-                  name={`items.${index}.product_id`}
+                  name={`transferItems.${index}.product_id`}
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Select Products</FormLabel>
@@ -318,11 +399,11 @@ export function StockTransferForm() {
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
-                        <PopoverContent>
+                        <PopoverContent className="p-0">
                           <Command>
                             <CommandInput placeholder="Search products..." />
                             <CommandList>
-                              <CommandEmpty>No vendor found.</CommandEmpty>
+                              <CommandEmpty>No products found.</CommandEmpty>
                               <CommandGroup>
                                 {products.map((product) => (
                                   <CommandItem
@@ -349,7 +430,7 @@ export function StockTransferForm() {
 
                 <FormField
                   control={form.control}
-                  name={`items.${index}.quantity`}
+                  name={`transferItems.${index}.ordered_quantity`}
                   render={({ field }) => (
                     <FormItem className="w-[150px]">
                       <FormLabel className={cn(index !== 0 && "sr-only")}>
@@ -368,7 +449,7 @@ export function StockTransferForm() {
                   variant="outline"
                   size="icon"
                   onClick={() => removeItem(index)}
-                  disabled={form.watch("items").length <= 1}
+                  disabled={form.watch("transferItems").length <= 1}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -386,7 +467,13 @@ export function StockTransferForm() {
             Cancel
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Creating..." : "Create Transfer"}
+            {isSubmitting
+              ? isEditing
+                ? "Updating..."
+                : "Creating..."
+              : isEditing
+              ? "Update Stock Transfer"
+              : "Create Stock Transfer"}
           </Button>
         </div>
       </form>
