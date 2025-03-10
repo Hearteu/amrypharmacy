@@ -159,6 +159,7 @@ export function StockTransferForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formattedData),
       });
+      router.push("/stock-transfer");
       console.log("🟢 Submitted Data:", JSON.stringify(formattedData));
     } catch (error) {
       console.error("❌ Error submitting form:", error);

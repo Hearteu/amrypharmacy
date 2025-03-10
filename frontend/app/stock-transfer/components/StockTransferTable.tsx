@@ -91,7 +91,7 @@ export default function StockTransferTable() {
       header: "ST Number",
       cell: ({ row }) => (
         <Link
-          href={`/stock_transfer/${row.original.stock_transfer_id}/`}
+          href={`/stock-transfer/${row.original.stock_transfer_id}/`}
           className="font-medium text-primary hover:underline"
         >
           {row.getValue("transfer_id")}
