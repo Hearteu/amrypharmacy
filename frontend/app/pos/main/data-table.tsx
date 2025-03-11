@@ -25,6 +25,7 @@ import {
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { DataTablePagination } from "@/components/table/DataTablePagination";
 
 interface DataTableProps<TData, TValue> {
@@ -60,69 +61,72 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div>
-      {/* Search Bar */}
-      <div className="flex items-center gap-2 p-4">
-        <label className="text-l font-bold text-black">Item List</label>
-        <Input
-          placeholder="Search Item..."
-          value={(table.getColumn("item_name")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("item_name")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm"
-        />
-      </div>
+    <Card className="border shadow-lg rounded-lg p-4 bg-white h-[597px]">
+      {/* Card Header */}
+      <CardHeader>
+        <CardTitle className="text-xl font-semibold">Item List</CardTitle>
+      </CardHeader>
 
-      {/* Table */}
-      <div className="rounded-md border m-4">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
+      <CardContent>
+        {/* Search Bar */}
+        <div className="flex items-center gap-2 pb-4">
+          <Input
+            placeholder="Search Item..."
+            value={(table.getColumn("item_name")?.getFilterValue() as string) ?? ""}
+            onChange={(event) =>
+              table.getColumn("item_name")?.setFilterValue(event.target.value)
+            }
+            className="max-w-sm"
+          />
+        </div>
 
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} className="hover:bg-gray-50">
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
+        {/* Table */}
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
                   ))}
-                  <TableCell>
-                    <Button
-                      size="sm"
-                      onClick={() => onAdd(row.original)}
-                    >
-                      +
-                    </Button>
+                </TableRow>
+              ))}
+            </TableHeader>
+
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id} className="hover:bg-gray-50">
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                    <TableCell>
+                      <Button size="sm" onClick={() => onAdd(row.original)}>
+                        +
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    No results.
                   </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              )}
+            </TableBody>
+          </Table>
+        </div>
 
-      {/* Pagination */}
-      <DataTablePagination table={table} />
-    </div>
+        {/* Pagination */}
+        <DataTablePagination table={table} />
+      </CardContent>
+    </Card>
   );
 }

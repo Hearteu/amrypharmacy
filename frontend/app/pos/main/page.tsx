@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { DataTable } from "./data-table";
-import OrderSummary from "./order-summary";
+import { Orders } from "./orders";
 import { columns } from "./columns";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
@@ -67,9 +67,22 @@ export default function SalesOrderPage() {
   };
 
   return (
-    <>
-      <DataTable columns={columns} data={sampleItems} onAdd={handleAddToOrder} />
-      <OrderSummary orderData={selectedItems} />
-    </>
+    <div className="flex gap-4 p-4">
+      {/* Data Table Section */}
+      <div className="flex-1">
+        <DataTable columns={columns} data={sampleItems} onAdd={handleAddToOrder} />
+      </div>
+
+      {/* Orders Section */}
+      <div className="w-96">
+        <Orders
+          orders={selectedItems}
+          onIncrease={() => {}}
+          onDecrease={() => {}}
+          onRemove={() => {}}
+          onClear={() => setSelectedItems([])}
+        />
+      </div>
+    </div>
   );
 }
