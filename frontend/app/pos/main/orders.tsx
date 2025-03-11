@@ -7,6 +7,7 @@ import { Minus, Plus, Trash } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 interface OrderItem {
   item_name: string;
@@ -27,6 +28,7 @@ export function Orders({ orders, onIncrease, onDecrease, onRemove, onClear }: Or
   const router = useRouter();
   const [orderType, setOrderType] = React.useState<string>("regular");
   const [discountType, setDiscountType] = React.useState<string>("none");
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
   // 🏷️ Calculate discounts dynamically
   const subtotal = orders.reduce((acc, item) => acc + item.price * item.quantity, 0);
@@ -38,6 +40,8 @@ export function Orders({ orders, onIncrease, onDecrease, onRemove, onClear }: Or
   }
 
   const total = subtotal + tax - discount;
+  const orderNumber = "0001"; // Example order number
+  const orderDate = new Date().toLocaleDateString("en-US");
 
   return (
     <Card className="border shadow-lg rounded-lg p-4 bg-white w-full max-w-lg h-[597px] flex flex-col">
@@ -114,28 +118,45 @@ export function Orders({ orders, onIncrease, onDecrease, onRemove, onClear }: Or
 
       {/* Static Order Summary & Buttons */}
       <div className="bg-white shadow-md border-t p-4 mt-4 sticky bottom-0">
-        <p className="flex justify-between">
-          <span>Subtotal</span>
-          <span>${subtotal.toFixed(2)}</span>
-        </p>
-        <p className="flex justify-between">
-          <span>Tax (8%)</span>
-          <span>${tax.toFixed(2)}</span>
-        </p>
+        <p className="flex justify-between"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></p>
+        <p className="flex justify-between"><span>Tax (8%)</span><span>${tax.toFixed(2)}</span></p>
         {discount > 0 && (
           <p className="flex justify-between text-green-600">
             <span>Discount ({discountType === "senior" ? "20%" : "0%"})</span>
             <span>- ${discount.toFixed(2)}</span>
           </p>
         )}
-        <p className="flex justify-between font-bold text-lg">
-          <span>Total</span>
-          <span>${total.toFixed(2)}</span>
-        </p>
+        <p className="flex justify-between font-bold text-lg"><span>Total</span><span>${total.toFixed(2)}</span></p>
 
         <div className="mt-4 flex justify-between">
           <Button variant="outline" onClick={onClear}>Clear</Button>
-          <Button className="bg-black text-white">🛒 Save Order</Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="bg-black text-white" onClick={() => setIsDialogOpen(true)}>🛒 Save Order</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Order Summary</DialogTitle>
+              </DialogHeader>
+              <p>Order#: {orderNumber}</p>
+              <p>Date: {orderDate}</p>
+              <p>Order Type: {orderType}</p>
+              <p>Items:</p>
+              <ul>
+                {orders.map((item) => (
+                  <li key={item.item_name}>{item.item_name} ({item.size}) x {item.quantity}</li>
+                ))}
+              </ul>
+              <p>Subtotal: ${subtotal.toFixed(2)}</p>
+              <p>Tax: ${tax.toFixed(2)}</p>
+              <p>Discount: -${discount.toFixed(2)}</p>
+              <p className="font-bold">Total: ${total.toFixed(2)}</p>
+              <DialogFooter>
+                <Button onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                <Button className="bg-green-600 text-white">Confirm</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </Card>
