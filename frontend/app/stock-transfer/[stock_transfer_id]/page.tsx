@@ -36,6 +36,7 @@ interface StockTransfer {
 
 interface TransferItems {
   sti_id: string;
+  product_id: string;
   product_name: string;
   ordered_quantity: number;
 }

@@ -45,9 +45,16 @@ interface StockTransferFormProps {
   initialData?: Partial<TransferFormValues>;
   isEditing?: boolean;
 }
+
+interface Stock {
+  location_id: number;
+  location: string;
+  quantity: number;
+}
 interface Products {
   product_id: number;
   full_product_name: string;
+  stock_per_location: Stock[];
 }
 
 interface Location {
@@ -89,6 +96,13 @@ export function StockTransferForm({
   const [products, setProducts] = useState<Products[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
 
+  const [selectedBranch, setSelectedBranch] = useState<string | null>(
+    initialData?.src_location_id || null
+  );
+  const [selectedProducts, setSelectedProducts] = useState<{
+    [key: number]: string | null;
+  }>({});
+
   async function fetchLocations() {
     try {
       const response = await fetch("http://127.0.0.1:8000/pharmacy/locations/");
@@ -114,6 +128,7 @@ export function StockTransferForm({
         );
         const data: Products[] = await response.json();
         setProducts(data);
+        console.log("products", data);
       } catch (error) {
         console.error("Error fetching products:", error);
       }
@@ -140,6 +155,44 @@ export function StockTransferForm({
     }
     console.log(initialData);
   }, [initialData, form.reset]);
+
+  useEffect(() => {
+    if (initialData?.src_location_id) {
+      setSelectedBranch(initialData.src_location_id);
+    }
+
+    if (initialData?.transferItems) {
+      const initialSelectedProducts = initialData.transferItems.reduce(
+        (acc, item, index) => {
+          acc[index] = item.product_id?.toString() || null;
+          return acc;
+        },
+        {} as { [key: number]: string | null }
+      );
+
+      setSelectedProducts(initialSelectedProducts);
+    }
+  }, [initialData]);
+
+  const getStockForBranch = (productId: number) => {
+    const product = products.find((p) => p.product_id === productId);
+
+    if (!product) {
+      console.log("❌ Product not found in products list!");
+      return 0;
+    }
+
+    // Find the stock entry matching the selected branch
+    const stock = product.stock_per_location.find(
+      (s) => s.location_id === Number(selectedBranch) // Ensure type consistency
+    );
+
+    if (!stock) {
+      console.log("⚠️ No stock data found for this branch.");
+      return 0;
+    }
+    return stock.quantity;
+  };
 
   async function onSubmit(data: TransferFormValues) {
     setIsSubmitting(true);
@@ -187,297 +240,327 @@ export function StockTransferForm({
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <div className="grid gap-6 md:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="src_location_id"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Source Location</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className={cn(
-                          "justify-between w-[200px]",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {locations.find(
-                          (location) =>
-                            location.location_id.toString() === field.value
-                        )?.location || "Select source location"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className=" p-0">
-                    <Command>
-                      <CommandInput
-                        placeholder="Search location..."
-                        className="h-9"
+    <>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <div className="grid gap-6 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="src_location_id"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Source Location</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "justify-between w-[200px]",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {locations.find(
+                            (location) =>
+                              location.location_id.toString() === field.value
+                          )?.location || "Select source location"}
+                          <ChevronsUpDown className="opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className=" p-0">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search location..."
+                          className="h-9"
+                        />
+                        <CommandList>
+                          <CommandEmpty>No location found.</CommandEmpty>
+                          <CommandGroup>
+                            {locations.map((location) => (
+                              <CommandItem
+                                key={location.location_id}
+                                value={location.location}
+                                onSelect={() => {
+                                  field.onChange(
+                                    location.location_id.toString()
+                                  );
+                                  setSelectedBranch(
+                                    location.location_id.toString()
+                                  );
+                                }}
+                              >
+                                {location.location}
+                                <Check
+                                  className={cn(
+                                    "ml-auto",
+                                    location.location_id.toString() ===
+                                      field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="des_location_id"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Supplier</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "justify-between w-[200px]",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {locations.find(
+                            (location) =>
+                              location.location_id.toString() === field.value
+                          )?.location || "Select vendor"}
+                          <ChevronsUpDown className="opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search location..."
+                          className="h-9"
+                        />
+                        <CommandList>
+                          <CommandEmpty>No location found.</CommandEmpty>
+                          <CommandGroup>
+                            {locations.map((location) => (
+                              <CommandItem
+                                key={location.location_id}
+                                value={location.location}
+                                onSelect={() => {
+                                  field.onChange(
+                                    location.location_id.toString()
+                                  );
+                                }}
+                              >
+                                {location.location}
+                                <Check
+                                  className={cn(
+                                    "ml-auto",
+                                    location.location_id.toString() ===
+                                      field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="transfer_date"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Transfer Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
                       />
-                      <CommandList>
-                        <CommandEmpty>No location found.</CommandEmpty>
-                        <CommandGroup>
-                          {locations.map((location) => (
-                            <CommandItem
-                              key={location.location_id}
-                              value={location.location}
-                              onSelect={() => {
-                                field.onChange(location.location_id.toString());
-                              }}
-                            >
-                              {location.location}
-                              <Check
-                                className={cn(
-                                  "ml-auto",
-                                  location.location_id.toString() ===
-                                    field.value
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="des_location_id"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Supplier</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className={cn(
-                          "justify-between w-[200px]",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {locations.find(
-                          (location) =>
-                            location.location_id.toString() === field.value
-                        )?.location || "Select vendor"}
-                        <ChevronsUpDown className="opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[200px] p-0">
-                    <Command>
-                      <CommandInput
-                        placeholder="Search location..."
-                        className="h-9"
-                      />
-                      <CommandList>
-                        <CommandEmpty>No location found.</CommandEmpty>
-                        <CommandGroup>
-                          {locations.map((location) => (
-                            <CommandItem
-                              key={location.location_id}
-                              value={location.location}
-                              onSelect={() => {
-                                field.onChange(location.location_id.toString());
-                              }}
-                            >
-                              {location.location}
-                              <Check
-                                className={cn(
-                                  "ml-auto",
-                                  location.location_id.toString() ===
-                                    field.value
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="transfer_date"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Transfer Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormDescription>
-                  The date when the transfer will take place
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">Transfer Items</h3>
-            <Button type="button" variant="outline" size="sm" onClick={addItem}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Item
-            </Button>
+                    </PopoverContent>
+                  </Popover>
+                  <FormDescription>
+                    The date when the transfer will take place
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           <div className="space-y-4">
-            {form.watch("transferItems").map((item, index) => (
-              <div key={index} className="flex items-end gap-4">
-                <FormField
-                  control={form.control}
-                  name={`transferItems.${index}.product_id`}
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Select Products</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={cn(
-                                "justify-between",
-                                !field.value && "text-muted-foreground"
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium">Transfer Items</h3>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addItem}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Item
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {form.watch("transferItems").map((item, index) => (
+                <div key={index} className="flex items-end gap-4">
+                  <FormField
+                    control={form.control}
+                    name={`transferItems.${index}.product_id`}
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col w-8/12">
+                        <div className="flex flex-row items-center gap-2">
+                          <FormLabel>Select Products</FormLabel>
+                          {selectedProducts[index] && (
+                            <p className="text-sm text-gray-500">
+                              Stock Available:{" "}
+                              {getStockForBranch(
+                                Number(selectedProducts[index])
                               )}
-                            >
-                              {field.value
-                                ? products.find(
-                                    (product) =>
-                                      product.product_id.toString() ===
-                                      field.value
-                                  )?.full_product_name
-                                : "Select product"}
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="p-0">
-                          <Command>
-                            <CommandInput placeholder="Search products..." />
-                            <CommandList>
-                              <CommandEmpty>No products found.</CommandEmpty>
-                              <CommandGroup>
-                                {products.map((product) => (
-                                  <CommandItem
-                                    key={product.product_id}
-                                    value={product.full_product_name}
-                                    onSelect={() => {
-                                      field.onChange(
-                                        product.product_id.toString()
-                                      );
-                                    }}
-                                  >
-                                    {product.full_product_name}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                            </p>
+                          )}
+                        </div>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={cn(
+                                  "justify-between",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value
+                                  ? products.find(
+                                      (product) =>
+                                        product.product_id.toString() ===
+                                        field.value
+                                    )?.full_product_name
+                                  : "Select product"}
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="p-0">
+                            <Command>
+                              <CommandInput placeholder="Search products..." />
+                              <CommandList>
+                                <CommandEmpty>No products found.</CommandEmpty>
+                                <CommandGroup>
+                                  {products.map((product) => (
+                                    <CommandItem
+                                      key={product.product_id}
+                                      value={product.full_product_name}
+                                      onSelect={() => {
+                                        field.onChange(
+                                          product.product_id.toString()
+                                        );
+                                        setSelectedProducts((prev) => ({
+                                          ...prev,
+                                          [index]:
+                                            product.product_id.toString(),
+                                        }));
+                                      }}
+                                    >
+                                      {product.full_product_name}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
 
-                <FormField
-                  control={form.control}
-                  name={`transferItems.${index}.ordered_quantity`}
-                  render={({ field }) => (
-                    <FormItem className="w-[150px]">
-                      <FormLabel className={cn(index !== 0 && "sr-only")}>
-                        Quantity
-                      </FormLabel>
-                      <FormControl>
-                        <Input type="number" min={1} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => removeItem(index)}
-                  disabled={form.watch("transferItems").length <= 1}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+                  <FormField
+                    control={form.control}
+                    name={`transferItems.${index}.ordered_quantity`}
+                    render={({ field }) => (
+                      <FormItem className="w-[150px]">
+                        <FormLabel className={cn(index !== 0 && "sr-only")}>
+                          Quantity
+                        </FormLabel>
+                        <FormControl>
+                          <Input type="number" min={1} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => removeItem(index)}
+                    disabled={form.watch("transferItems").length <= 1}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div className="flex gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push("/stock-transfers")}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting
-              ? isEditing
-                ? "Updating..."
-                : "Creating..."
-              : isEditing
-              ? "Update Stock Transfer"
-              : "Create Stock Transfer"}
-          </Button>
-        </div>
-      </form>
-    </Form>
+          <div className="flex gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push("/stock-transfers")}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting
+                ? isEditing
+                  ? "Updating..."
+                  : "Creating..."
+                : isEditing
+                ? "Update Stock Transfer"
+                : "Create Stock Transfer"}
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </>
   );
 }
