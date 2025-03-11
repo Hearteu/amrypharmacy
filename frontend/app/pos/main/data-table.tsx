@@ -28,21 +28,28 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { DataTablePagination } from "@/components/table/DataTablePagination";
 
+// Define the generic interface for table props
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   onAdd: (row: TData) => void;
+  isLoading?: boolean;
+  error?: string;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   onAdd,
+  isLoading = false,
+  error = "",
 }: DataTableProps<TData, TValue>) {
+  // Table states
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
 
+  // React Table instance
   const table = useReactTable({
     data,
     columns,
@@ -62,7 +69,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <Card className="border shadow-lg rounded-lg p-4 bg-white h-[597px]">
-      {/* Card Header */}
+      {/* Header Section */}
       <CardHeader>
         <CardTitle className="text-xl font-semibold">Item List</CardTitle>
       </CardHeader>
@@ -80,7 +87,10 @@ export function DataTable<TData, TValue>({
           />
         </div>
 
-        {/* Table */}
+        {/* Error Handling */}
+        {error && <p className="text-red-500 text-center py-2">{error}</p>}
+
+        {/* Table Section */}
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -98,7 +108,13 @@ export function DataTable<TData, TValue>({
             </TableHeader>
 
             <TableBody>
-              {table.getRowModel().rows?.length ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    Loading...
+                  </TableCell>
+                </TableRow>
+              ) : data.length > 0 ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id} className="hover:bg-gray-50">
                     {row.getVisibleCells().map((cell) => (
@@ -116,7 +132,7 @@ export function DataTable<TData, TValue>({
               ) : (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center">
-                    No results.
+                    No results found.
                   </TableCell>
                 </TableRow>
               )}

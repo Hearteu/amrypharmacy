@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface OrderItem {
-  id: string;
   item_name: string;
   size: string;
   price: number;
@@ -18,20 +17,27 @@ interface OrderItem {
 
 interface OrdersProps {
   orders: OrderItem[];
-  onIncrease: (id: string) => void;
-  onDecrease: (id: string) => void;
-  onRemove: (id: string) => void;
+  onIncrease: (item_name: string) => void;
+  onDecrease: (item_name: string) => void;
+  onRemove: (item_name: string) => void;
   onClear: () => void;
 }
 
 export function Orders({ orders, onIncrease, onDecrease, onRemove, onClear }: OrdersProps) {
   const router = useRouter();
-  const [orderType, setOrderType] = React.useState<string | null>(null);
-  const [discount, setDiscount] = React.useState<string | null>(null);
+  const [orderType, setOrderType] = React.useState<string>("regular");
+  const [discountType, setDiscountType] = React.useState<string>("none");
 
+  // 🏷️ Calculate discounts dynamically
   const subtotal = orders.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const tax = subtotal * 0.08;
-  const total = subtotal + tax;
+  let discount = 0;
+
+  if (discountType === "senior") {
+    discount = subtotal * 0.2; // 20% discount for seniors/PWD
+  }
+
+  const total = subtotal + tax - discount;
 
   return (
     <Card className="border shadow-lg rounded-lg p-4 bg-white w-full max-w-lg h-[597px] flex flex-col">
@@ -44,6 +50,7 @@ export function Orders({ orders, onIncrease, onDecrease, onRemove, onClear }: Or
       <CardContent className="flex flex-col">
         <div className="grid grid-cols-2 gap-2 mb-4">
           <Select
+            value={orderType}
             onValueChange={(value) => {
               setOrderType(value);
               if (value === "dswd") {
@@ -61,19 +68,15 @@ export function Orders({ orders, onIncrease, onDecrease, onRemove, onClear }: Or
           </Select>
 
           <Select
-            onValueChange={(value) => {
-              setDiscount(value);
-              if (value === "senior") {
-                router.push("/pos/regular-discount/");
-              }
-            }}
+            value={discountType}
+            onValueChange={(value) => setDiscountType(value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Discount" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">None</SelectItem>
-              <SelectItem value="senior">PWD / Senior</SelectItem>
+              <SelectItem value="senior">PWD / Senior (20% Off)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -84,20 +87,20 @@ export function Orders({ orders, onIncrease, onDecrease, onRemove, onClear }: Or
         <div className="divide-y">
           {orders.length > 0 ? (
             orders.map((item) => (
-              <div key={item.id} className="py-4 flex justify-between items-center">
+              <div key={item.item_name} className="py-4 flex justify-between items-center">
                 <div>
                   <p className="font-semibold">{item.item_name} ({item.size})</p>
                   <p className="text-sm text-gray-500">${item.price.toFixed(2)} each</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button size="icon" variant="outline" onClick={() => onDecrease(item.id)}>
+                  <Button size="icon" variant="outline" onClick={() => onDecrease(item.item_name)}>
                     <Minus size={16} />
                   </Button>
                   <span className="w-6 text-center">{item.quantity}</span>
-                  <Button size="icon" variant="outline" onClick={() => onIncrease(item.id)}>
+                  <Button size="icon" variant="outline" onClick={() => onIncrease(item.item_name)}>
                     <Plus size={16} />
                   </Button>
-                  <Button size="icon" variant="ghost" onClick={() => onRemove(item.id)}>
+                  <Button size="icon" variant="ghost" onClick={() => onRemove(item.item_name)}>
                     <Trash size={16} className="text-red-500" />
                   </Button>
                 </div>
@@ -119,6 +122,12 @@ export function Orders({ orders, onIncrease, onDecrease, onRemove, onClear }: Or
           <span>Tax (8%)</span>
           <span>${tax.toFixed(2)}</span>
         </p>
+        {discount > 0 && (
+          <p className="flex justify-between text-green-600">
+            <span>Discount ({discountType === "senior" ? "20%" : "0%"})</span>
+            <span>- ${discount.toFixed(2)}</span>
+          </p>
+        )}
         <p className="flex justify-between font-bold text-lg">
           <span>Total</span>
           <span>${total.toFixed(2)}</span>
