@@ -15,7 +15,8 @@ class Products(APIView):
         query = supabase.table("Products").select(
             "product_id, product_name, current_price, net_content, "
             "Brand(brand_id, brand_name), Product_Category(category_id, category_name), "
-            "Unit(unit_id, unit), Drugs(dosage_strength, dosage_form)"
+            "Unit(unit_id, unit), Drugs(dosage_strength, dosage_form), "
+            "Stock_Item(location_id, quantity, Location(location))"
         )
 
         # If a specific product_id is provided, filter the query
@@ -33,6 +34,17 @@ class Products(APIView):
 
             product = products[0]  # Get the first (and only) result
             drug_info = product.get("Drugs", {})
+            stock_items = product.get("Stock_Item", [])
+
+            # Extract stock details per location
+            stock_per_location = [
+                {
+                    "location_id": item["location_id"],
+                    "location": item["Location"]["location"],
+                    "quantity": item["quantity"]
+                }
+                for item in stock_items
+            ]
 
             # Check if it's a drug
             if isinstance(drug_info, dict) and drug_info:
@@ -45,7 +57,8 @@ class Products(APIView):
                     "dosage_strength": drug_info.get("dosage_strength", "").strip(),
                     "dosage_form": drug_info.get("dosage_form", "").strip(),
                     "net_content": product.get("net_content", "").strip(),
-                    "unit_id": product.get("Unit", {}).get("unit_id")
+                    "unit_id": product.get("Unit", {}).get("unit_id"),
+                    "stock_per_location": stock_per_location  # ✅ Added stock details with location names
                 })
             else:
                 return Response({
@@ -55,7 +68,8 @@ class Products(APIView):
                     "brand_id": product.get("Brand", {}).get("brand_id"),
                     "current_price": product.get("current_price", 0),
                     "net_content": product.get("net_content", "").strip(),
-                    "unit_id": product.get("Unit", {}).get("unit_id")
+                    "unit_id": product.get("Unit", {}).get("unit_id"),
+                    "stock_per_location": stock_per_location  # ✅ Added stock details with location names
                 })
 
         # If no product_id is provided, return the list
@@ -65,27 +79,38 @@ class Products(APIView):
             category_name = product.get("Product_Category", {}).get("category_name", "").strip()
             unit_name = product.get("Unit", {}).get("unit", "").strip()
             drug_info = product.get("Drugs", {})
+            stock_items = product.get("Stock_Item", [])
+
+            # Extract stock details per location
+            stock_per_location = [
+                {
+                    "location_id": item["location_id"],
+                    "location": item["Location"]["location"],
+                    "quantity": item["quantity"]
+                }
+                for item in stock_items
+            ]
 
             # Check if it's a drug (exists in Drugs table and has data)
-            
             if isinstance(drug_info, dict) and drug_info:
                 dosage_strength = drug_info.get("dosage_strength", "").strip()
                 dosage_form = drug_info.get("dosage_form", "").strip()
                 full_name = f"{product['product_name']} {dosage_strength} {dosage_form} ({brand_name})"
             else:
                 full_name = f"{product['product_name']} {product['net_content']} per {unit_name} ({brand_name})"
+
             formatted_products.append({
                 "product_id": product.get("product_id"),
                 "full_product_name": full_name,
                 "category": category_name,
                 "price": product["current_price"],
                 "net_content": product["net_content"],
-                "unit": unit_name
+                "unit": unit_name,
+                "stock_per_location": stock_per_location  # ✅ Added stock details with location names
             })
 
         return Response(formatted_products)
-       
-        
+  
     def post(self, request):
         data = request.data
         print(data)
