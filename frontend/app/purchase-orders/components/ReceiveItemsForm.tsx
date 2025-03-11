@@ -45,7 +45,7 @@ interface POItemStatus {
 
 interface POIStatus {
   purchase_order_item_status_id: string;
-  ordered_quantity: number;
+  ordered_qty: number;
   expiry_date: Date;
   received_qty: number;
   expired_qty: number;
@@ -74,18 +74,18 @@ const getFormSchema = (orderedQuantity: number | null) =>
       }
     )
     // ✅ Status: "2" (Received) - Expired and Damaged must be 0.
-    .refine(
-      (data) => {
-        if (data.purchase_order_item_status_id === "2") {
-          return data.expired_qty === 0 && data.damaged_qty === 0;
-        }
-        return true;
-      },
-      {
-        message: "Expired and damaged quantities must be 0 when the order is marked as Received.",
-        path: ["expired_qty"],
-      }
-    )
+    // .refine(
+    //   (data) => {
+    //     if (data.purchase_order_item_status_id === "2") {
+    //       return data.expired_qty === 0 && data.damaged_qty === 0;
+    //     }
+    //     return true;
+    //   },
+    //   {
+    //     message: "Expired and damaged quantities must be 0 when the order is marked as Received.",
+    //     path: ["expired_qty"],
+    //   }
+    // )
     // ✅ Status: "3" (Partially Received) - Received quantity must NOT be equal to ordered quantity.
     .refine(
       (data) => {
@@ -150,16 +150,16 @@ const getFormSchema = (orderedQuantity: number | null) =>
         path: ["expiry_date"],
       }
     )
-    .refine(
-      (data) => {
-        const statusId = parseInt(data.purchase_order_item_status_id, 10);
-        return ![2, 3, 4, 5].includes(statusId);
-      },
-      {
-        message: "You have already recorded received items, you cannot update this form anymore",
-        path: ["purchase_order_item_status_id"], // Attach error to status field
-      }
-    );
+    // .refine(
+    //   (data) => {
+    //     const statusId = parseInt(data.purchase_order_item_status_id, 10);
+    //     return ![2, 3, 4, 5].includes(statusId);
+    //   },
+    //   {
+    //     message: "You have already recorded received items, you cannot update this form anymore",
+    //     path: ["purchase_order_item_status_id"], // Attach error to status field
+    //   }
+    // );
 
 type FormValues = z.infer<ReturnType<typeof getFormSchema>>;
 

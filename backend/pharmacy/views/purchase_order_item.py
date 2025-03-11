@@ -32,9 +32,9 @@ class POI(APIView):
             print(f"❌ Exception: {str(e)}")  # Debugging
             return Response({"error": str(e)}, status=500)
 
- 
+
     def put(self, request, purchase_order_item_id=None):
-        """Update a Purchase Order Item, insert stock transaction, and update stock item"""
+        """Update a Purchase Order Item, insert stock transaction, and update stock item by location"""
         try:
             data = request.data
             print(f"🟢 Received update request for POI {purchase_order_item_id}: {data}")  # Debugging input
@@ -53,7 +53,7 @@ class POI(APIView):
                 supabase.table("Purchase_Order_Item")
                 .select("supplier_item_id, ordered_qty, Supplier_Item (product_id)")
                 .eq("purchase_order_item_id", purchase_order_item_id)
-                .single()
+                .maybe_single()  # Avoids error if no result
             )
             poi_result = poi_query.execute()
 
@@ -63,23 +63,51 @@ class POI(APIView):
             product_id = poi_result.data["Supplier_Item"]["product_id"]
             ordered_qty = poi_result.data["ordered_qty"]
 
-            # ✅ Step 2: Get stock_item_id
+            # ✅ Step 2: Get Location IDs for src and destination
+            location_query = (
+                supabase.table("Location")
+                .select("location, location_id")
+                .in_("location", ["Supplier", "Asuncion - Stockroom"])
+            )
+            location_result = location_query.execute()
+
+            if not location_result.data or len(location_result.data) < 2:
+                return Response({"error": "One or more locations not found"}, status=404)
+
+            location_map = {loc["location"]: loc["location_id"] for loc in location_result.data}
+            src_location_id = location_map.get("Supplier")
+            des_location_id = location_map.get("Asuncion - Stockroom")
+
+            # ✅ Step 3: Get stock_item_id based on product_id and location
             stock_item_query = (
                 supabase.table("Stock_Item")
                 .select("stock_item_id, quantity")
                 .eq("product_id", product_id)
-                .single()
+                .eq("location_id", des_location_id)  # Filter by destination location
+                .maybe_single()  # Avoids error if no result
             )
             stock_item_result = stock_item_query.execute()
 
-            if not stock_item_result.data:
-                return Response({"error": "Stock item not found"}, status=404)
+            if stock_item_result.data:
+                stock_item_id = stock_item_result.data["stock_item_id"]
+                current_quantity = stock_item_result.data["quantity"]
+                new_quantity = current_quantity + to_receive
+            else:
+                # ✅ Create a new stock entry if it doesn't exist for the location
+                new_stock_item_data = {
+                    "product_id": product_id,
+                    "location_id": des_location_id,  # Assign destination location
+                    "quantity": to_receive,
+                }
+                stock_insert_response = supabase.table("Stock_Item").insert(new_stock_item_data).execute()
 
-            stock_item_id = stock_item_result.data["stock_item_id"]
-            current_quantity = stock_item_result.data["quantity"]
-            new_quantity = current_quantity + to_receive
+                if stock_insert_response.data:
+                    stock_item_id = stock_insert_response.data[0]["stock_item_id"]  # Get the newly inserted ID
+                    new_quantity = to_receive
+                else:
+                    return Response({"error": "Failed to create stock item"}, status=500)
 
-            # ✅ Step 3: Update the Purchase_Order_Item table
+            # ✅ Step 4: Update the Purchase_Order_Item table
             update_response = supabase.table("Purchase_Order_Item").update({
                 "purchase_order_item_status_id": status,
                 "received_qty": to_receive,
@@ -92,27 +120,12 @@ class POI(APIView):
                 print(f"❌ Error updating Purchase Order Item: {update_response.error}")
                 return Response({"error": str(update_response.error)}, status=500)
 
-            # ✅ Step 4: Validate before inserting stock transaction
+            # ✅ Step 5: Validate before inserting stock transaction
             total_qty_handled = to_receive + expired_qty + damaged_qty
             if total_qty_handled == ordered_qty:
-                # ✅ Step 5: Get Location IDs for src and destination
-                location_query = (
-                    supabase.table("Location")
-                    .select("location, location_id")
-                    .in_("location", ["Supplier", "Asuncion - Stockroom"])
-                )
-                location_result = location_query.execute()
-
-                if not location_result.data or len(location_result.data) < 2:
-                    return Response({"error": "One or more locations not found"}, status=404)
-
-                location_map = {loc["location"]: loc["location_id"] for loc in location_result.data}
-                src_location_id = location_map.get("Supplier")
-                des_location_id = location_map.get("Asuncion - Stockroom")
-
-                # ✅ Step 6: Insert a Stock Transaction
+                # ✅ Step 6: Insert a Stock Transaction (Now with a valid stock_item_id)
                 transaction_data = {
-                    "stock_item_id": stock_item_id,
+                    "stock_item_id": stock_item_id,  # Now we have a valid stock_item_id
                     "transaction_type": "POI",
                     "reference_id": purchase_order_item_id,
                     "src_location": src_location_id,
@@ -123,7 +136,8 @@ class POI(APIView):
                 transaction_response = supabase.table("Stock_Transaction").insert(transaction_data).execute()
 
                 # ✅ Step 7: Update Stock_Item quantity
-                supabase.table("Stock_Item").update({"quantity": new_quantity}).eq("stock_item_id", stock_item_id).execute()
+                supabase.table("Stock_Item").update({"quantity": new_quantity}) \
+                    .eq("stock_item_id", stock_item_id).execute()
 
                 print(f"🟢 Successfully updated POI {purchase_order_item_id}, added Stock Transaction, and updated Stock Item")
             else:
@@ -134,6 +148,7 @@ class POI(APIView):
         except Exception as e:
             print(f"❌ Exception: {str(e)}")  # Debugging
             return Response({"error": str(e)}, status=500)
+
 
 
     def delete(self, request, purchase_order_item_id):

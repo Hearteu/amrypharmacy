@@ -107,19 +107,27 @@ class Products(APIView):
             # ✅ Step 2: Get the generated product_id
             product_id = product_response.data[0]["product_id"]
 
-            # ✅ Step 3: Insert into Stock_Item table (Initial quantity = 0)
-            stock_item_response = supabase.table("Stock_Item").insert({
-                "product_id": product_id,  # Link to Products table
-                "quantity": 0  # Initial stock quantity
-            }).execute()
+            # ✅ Step 3: Insert into Stock_Item table for locations 1, 2, and 3 (Initial quantity = 0)
+            stock_items = []
+            for location_id in [1, 2, 3]:
+                stock_item_response = supabase.table("Stock_Item").insert({
+                    "product_id": product_id,
+                    "location_id": location_id,  # Assigning predefined locations
+                    "quantity": 0
+                }).execute()
 
-            if not stock_item_response.data:
-                return Response({"error": "Stock_Item insertion failed"}, status=400)
+                if stock_item_response.data:
+                    stock_items.append(stock_item_response.data[0])
+                else:
+                    print(f"⚠️ Failed to initialize Stock_Item for location {location_id}")
+
+            if not stock_items:
+                return Response({"error": "Failed to initialize stock items for locations"}, status=400)
 
             # ✅ Step 4: If it's a drug, insert into Drugs table
             if "dosage_strength" in data and "dosage_form" in data:
                 drug_response = supabase.table("Drugs").insert({
-                    "product_id": product_id,  # FK to Products
+                    "product_id": product_id,
                     "dosage_strength": data["dosage_strength"],
                     "dosage_form": data["dosage_form"]
                 }).execute()
@@ -130,7 +138,7 @@ class Products(APIView):
             return Response({
                 "message": "Product added successfully",
                 "product": product_response.data,
-                "stock_item": stock_item_response.data
+                "stock_items": stock_items  # Includes initialized locations
             }, status=201)
 
         except Exception as e:

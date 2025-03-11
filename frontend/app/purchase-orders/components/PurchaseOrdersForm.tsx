@@ -74,7 +74,7 @@ const formSchema = z.object({
         purchase_order_item_id: z.string().optional(),
         product_id: z.string().min(1, "Product is required"),
         unit_id: z.string().min(1, "Unit is required"),
-        ordered_quantity: z.coerce
+        ordered_qty: z.coerce
           .number()
           .min(1, "Quantity must be at least 1"),
         supplier_price: z.coerce
@@ -166,7 +166,7 @@ export default function PurchaseOrderForm({
       order_date: new Date(),
       expected_delivery_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       lineItems: [
-        {  product_id: "", unit_id: "", ordered_quantity: 1, supplier_price: 0 },
+        {  product_id: "", unit_id: "", ordered_qty: 1, supplier_price: 0 },
       ],
     },
   });
@@ -219,7 +219,7 @@ export default function PurchaseOrderForm({
         
         product_id: "",
         unit_id: "",
-        ordered_quantity: 1,
+        ordered_qty: 1,
         supplier_price: 0,
       },
     ], );
@@ -255,7 +255,7 @@ export default function PurchaseOrderForm({
 
   const lineItems = form.watch("lineItems");
   const total = lineItems.reduce((sum, item) => {
-    return sum + (item.ordered_quantity || 0) * (item.supplier_price || 0);
+    return sum + (item.ordered_qty || 0) * (item.supplier_price || 0);
   }, 0);
 
   return (
@@ -540,7 +540,7 @@ export default function PurchaseOrderForm({
                   <div className="col-span-1">
                     <FormField
                       control={form.control}
-                      name={`lineItems.${index}.ordered_quantity`}
+                      name={`lineItems.${index}.ordered_qty`}
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Qty</FormLabel>
