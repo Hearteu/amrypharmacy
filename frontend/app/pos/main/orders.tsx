@@ -141,16 +141,28 @@ export function Orders({ orders, onIncrease, onDecrease, onRemove, onClear }: Or
               <p>Order#: {orderNumber}</p>
               <p>Date: {orderDate}</p>
               <p>Order Type: {orderType}</p>
-              <p>Items:</p>
-              <ul>
-                {orders.map((item) => (
-                  <li key={item.item_name}>{item.item_name} ({item.size}) x {item.quantity}</li>
-                ))}
-              </ul>
+              <table className="w-full text-left mt-2">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map((item) => (
+                    <tr key={item.item_name}>
+                      <td>{item.item_name} ({item.size})</td>
+                      <td>{item.quantity}</td>
+                      <td>${(item.price * item.quantity).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
               <p>Subtotal: ${subtotal.toFixed(2)}</p>
-              <p>Tax: ${tax.toFixed(2)}</p>
-              <p>Discount: -${discount.toFixed(2)}</p>
-              <p className="font-bold">Total: ${total.toFixed(2)}</p>
+              <p>Tax (8%): ${tax.toFixed(2)}</p>
+              {discount > 0 && <p>Discount: -${discount.toFixed(2)}</p>}
+              <p className="font-bold text-lg">Total: ${total.toFixed(2)}</p>
               <DialogFooter>
                 <Button onClick={() => setIsDialogOpen(false)}>Cancel</Button>
                 <Button className="bg-green-600 text-white">Confirm</Button>
