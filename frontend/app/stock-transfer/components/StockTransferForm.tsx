@@ -178,7 +178,7 @@ export function StockTransferForm({
     const product = products.find((p) => p.product_id === productId);
 
     if (!product) {
-      console.log("❌ Product not found in products list!");
+      console.log("❌ Product not found in products list!", product);
       return 0;
     }
 
@@ -196,6 +196,23 @@ export function StockTransferForm({
 
   async function onSubmit(data: TransferFormValues) {
     setIsSubmitting(true);
+
+    // Manually validate ordered_quantity against stock
+    for (const item of data.transferItems) {
+      const availableStock = getStockForBranch(Number(item.product_id));
+
+      console.log(
+        `🔍 Checking: Product ${item.product_id} | Ordered ${item.ordered_quantity} | Available ${availableStock}`
+      );
+
+      if (item.ordered_quantity > availableStock) {
+        alert(
+          `❌ Error: Ordered quantity exceeds available stock for product ${item.product_id}`
+        );
+        setIsSubmitting(false);
+        return; // Stop submission
+      }
+    }
 
     const formattedData = {
       ...data,
@@ -220,6 +237,58 @@ export function StockTransferForm({
       setIsSubmitting(false);
     }
   }
+
+  const { setError, clearErrors, watch } = form;
+
+  // Watch for changes in transferItems
+  // useEffect(() => {
+  //   const subscription = watch((value) => {
+  //     const transferItems = value?.transferItems ?? []; // Ensure it's an array
+
+  //     transferItems.forEach((item, index) => {
+  //       if (!item) return; // Skip if item is undefined
+
+  //       const availableStock = getStockForBranch(Number(item.product_id))  // Default to 0
+  //       const orderedQuantity = item.ordered_quantity ?? 0; // Default to 0
+
+  //       console.log("Ordered Quantity:", orderedQuantity);
+  //       console.log("Available Stock:", availableStock);
+
+  //       if (orderedQuantity > availableStock) { // Only trigger when greater
+  //         setError(`transferItems.${index}.ordered_quantity`, {
+  //           type: "manual",
+  //           message: "Ordered quantity exceeds available stock",
+  //         });
+  //       } else {
+  //         clearErrors(`transferItems.${index}.ordered_quantity`);
+  //       }
+  //     });
+  //   });
+
+  //   return () => subscription.unsubscribe();
+  // }, [watch]);
+
+  useEffect(() => {
+    const transferItems = form.watch("transferItems") ?? [];
+
+    transferItems.forEach((item, index) => {
+      if (!item) return; // Skip if item is undefined
+
+      const availableStock = item.product_id
+        ? getStockForBranch(Number(item.product_id))
+        : 0;
+      const orderedQuantity = item.ordered_quantity ?? 0;
+
+      if (orderedQuantity > availableStock) {
+        setError(`transferItems.${index}.ordered_quantity`, {
+          type: "manual",
+          message: "Ordered quantity exceeds available stock",
+        });
+      } else {
+        clearErrors(`transferItems.${index}.ordered_quantity`);
+      }
+    });
+  }, [form.watch("transferItems")]); // Only runs when transferItems change
 
   function addItem() {
     const currentItems = form.getValues("transferItems");
@@ -437,107 +506,121 @@ export function StockTransferForm({
             </div>
 
             <div className="space-y-4">
-              {form.watch("transferItems").map((item, index) => (
-                <div key={index} className="flex items-end gap-4">
-                  <FormField
-                    control={form.control}
-                    name={`transferItems.${index}.product_id`}
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col w-8/12">
-                        <div className="flex flex-row items-center gap-2">
-                          <FormLabel>Select Products</FormLabel>
-                          {selectedProducts[index] && (
-                            <p className="text-sm text-gray-500">
-                              Stock Available:{" "}
-                              {getStockForBranch(
-                                Number(selectedProducts[index])
-                              )}
-                            </p>
-                          )}
-                        </div>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                className={cn(
-                                  "justify-between",
-                                  !field.value && "text-muted-foreground"
+              {form.watch("transferItems").map((item, index) => {
+                const productId = form.watch(
+                  `transferItems.${index}.product_id`
+                );
+                const orderedQuantity =
+                  form.watch(`transferItems.${index}.ordered_quantity`) ?? 0;
+                const availableStock = productId
+                  ? getStockForBranch(Number(productId))
+                  : 0; // Get available stock only if productId exists
+
+                return (
+                  <div key={index} className="flex items-end gap-4">
+                    <FormField
+                      control={form.control}
+                      name={`transferItems.${index}.product_id`}
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col w-8/12">
+                          <div className="flex flex-row items-center gap-2">
+                            <FormLabel>Select Products</FormLabel>
+                            {selectedProducts[index] && (
+                              <p className="text-sm text-gray-500">
+                                Stock Available:{" "}
+                                {getStockForBranch(
+                                  Number(selectedProducts[index])
                                 )}
-                              >
-                                {field.value
-                                  ? products.find(
-                                      (product) =>
-                                        product.product_id.toString() ===
-                                        field.value
-                                    )?.full_product_name
-                                  : "Select product"}
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="p-0">
-                            <Command>
-                              <CommandInput placeholder="Search products..." />
-                              <CommandList>
-                                <CommandEmpty>No products found.</CommandEmpty>
-                                <CommandGroup>
-                                  {products.map((product) => (
-                                    <CommandItem
-                                      key={product.product_id}
-                                      value={product.full_product_name}
-                                      onSelect={() => {
-                                        field.onChange(
-                                          product.product_id.toString()
-                                        );
-                                        setSelectedProducts((prev) => ({
-                                          ...prev,
-                                          [index]:
-                                            product.product_id.toString(),
-                                        }));
-                                      }}
-                                    >
-                                      {product.full_product_name}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
+                              </p>
+                            )}
+                            <FormMessage />
+                          </div>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  className={cn(
+                                    "justify-between",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value
+                                    ? products.find(
+                                        (product) =>
+                                          product.product_id.toString() ===
+                                          field.value
+                                      )?.full_product_name
+                                    : "Select product"}
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="p-0">
+                              <Command>
+                                <CommandInput placeholder="Search products..." />
+                                <CommandList>
+                                  <CommandEmpty>
+                                    No products found.
+                                  </CommandEmpty>
+                                  <CommandGroup>
+                                    {products.map((product) => (
+                                      <CommandItem
+                                        key={product.product_id}
+                                        value={product.full_product_name}
+                                        onSelect={() => {
+                                          field.onChange(
+                                            product.product_id.toString()
+                                          );
+                                          setSelectedProducts((prev) => ({
+                                            ...prev,
+                                            [index]:
+                                              product.product_id.toString(),
+                                          }));
+                                        }}
+                                      >
+                                        {product.full_product_name}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        </FormItem>
+                      )}
+                    />
 
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormField
+                      control={form.control}
+                      name={`transferItems.${index}.ordered_quantity`}
+                      render={({ field }) => (
+                        <FormItem className="w-[150px]">
+                          <div className="flex flex-row items-center gap-2">
+                            <FormLabel className={cn(index !== 0 && "sr-only")}>
+                              Quantity
+                            </FormLabel>
+                            <FormMessage />
+                          </div>
+                          <FormControl>
+                            <Input type="number" min={1} {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
 
-                  <FormField
-                    control={form.control}
-                    name={`transferItems.${index}.ordered_quantity`}
-                    render={({ field }) => (
-                      <FormItem className="w-[150px]">
-                        <FormLabel className={cn(index !== 0 && "sr-only")}>
-                          Quantity
-                        </FormLabel>
-                        <FormControl>
-                          <Input type="number" min={1} {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => removeItem(index)}
-                    disabled={form.watch("transferItems").length <= 1}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => removeItem(index)}
+                      disabled={form.watch("transferItems").length <= 1}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

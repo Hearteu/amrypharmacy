@@ -1,0 +1,438 @@
+"use client"
+
+import { useState } from "react"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Checkbox } from "@/components/ui/checkbox"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Search, Plus, Minus, Trash2, FileText, User, CreditCard } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { PrescriptionForm } from "./components/PrescriptionForm"
+import { DSWDForm } from "./components/DSWDForm"
+
+// Sample product data
+const sampleProducts = [
+  { id: 1, name: "Paracetamol 500mg", price: 5.5, category: "Pain Relief" },
+  { id: 2, name: "Amoxicillin 500mg", price: 12.75, category: "Antibiotics" },
+  { id: 3, name: "Cetirizine 10mg", price: 8.25, category: "Allergy" },
+  { id: 4, name: "Vitamin C 500mg", price: 7.0, category: "Vitamins" },
+  { id: 5, name: "Losartan 50mg", price: 15.5, category: "Hypertension" },
+  { id: 6, name: "Metformin 500mg", price: 9.75, category: "Diabetes" },
+  { id: 7, name: "Omeprazole 20mg", price: 11.25, category: "Gastric" },
+  { id: 8, name: "Simvastatin 20mg", price: 14.0, category: "Cholesterol" },
+]
+
+// Sample branches
+const branches = [
+  { id: 1, name: "Main Branch" },
+  { id: 2, name: "North Branch" },
+  { id: 3, name: "South Branch" },
+  { id: 4, name: "East Branch" },
+]
+
+export default function PosInterface() {
+  const [cart, setCart] = useState<
+    Array<{
+      id: number
+      name: string
+      price: number
+      quantity: number
+    }>
+  >([])
+
+  const [selectedBranch, setSelectedBranch] = useState("")
+  const [customerType, setCustomerType] = useState("regular")
+  const [hasPrescription, setHasPrescription] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+
+  // Customer information for DSWD clients
+  const [customerInfo, setCustomerInfo] = useState({
+    name: "",
+    guaranteeLetterNo: "",
+    guaranteeLetterDate: "",
+    address: "",
+    contactNumber: "",
+  })
+
+  // Discount information
+  const [discountInfo, setDiscountInfo] = useState({
+    type: "", // PWD or Senior
+    idNumber: "",
+    discountRate: 0.2, // 20% discount
+  })
+
+  // Prescription information
+  const [prescriptionInfo, setPrescriptionInfo] = useState({
+    doctorName: "",
+    prescriptionNumber: "",
+    prescriptionDate: "",
+    notes: "",
+  })
+
+  // Add product to cart
+  const addToCart = (product: any) => {
+    const existingItem = cart.find((item) => item.id === product.id)
+
+    if (existingItem) {
+      setCart(cart.map((item) => (item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item)))
+    } else {
+      setCart([...cart, { ...product, quantity: 1 }])
+    }
+  }
+
+  // Update quantity
+  const updateQuantity = (id: number, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      setCart(cart.filter((item) => item.id !== id))
+    } else {
+      setCart(cart.map((item) => (item.id === id ? { ...item, quantity: newQuantity } : item)))
+    }
+  }
+
+  // Remove item from cart
+  const removeItem = (id: number) => {
+    setCart(cart.filter((item) => item.id !== id))
+  }
+
+  // Calculate subtotal
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+
+  // Calculate discount
+  const discount = customerType === "pwd" || customerType === "senior" ? subtotal * discountInfo.discountRate : 0
+
+  // Calculate total
+  const total = customerType === "dswd" ? 0 : subtotal - discount
+
+  // Filter products based on search term
+  const filteredProducts = sampleProducts.filter((product) =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  const router = useRouter();
+
+  // Handle checkout
+  const handleCheckout = () => {
+    // Create order data
+    const orderData = {
+      branch: selectedBranch,
+      customerInfo, // ✅ Removed duplicate
+      customerType,
+      discount,
+      discountInfo,
+      items: cart, // ✅ Changed from `cart` to `items`
+      prescriptionInfo,
+      subtotal,
+      total,
+      timestamp: new Date(),
+    };
+  
+    // Save order to localStorage
+    localStorage.setItem("orderSummary", JSON.stringify(orderData));
+  
+    // Navigate to order summary page
+    router.push("/pos/order-summary");
+  
+    // Debugging: Log order details
+    console.log({
+      branch: selectedBranch,
+      customerType,
+      customerInfo: customerType === "dswd" ? customerInfo : null,
+      discountInfo: customerType === "pwd" || customerType === "senior" ? discountInfo : null,
+      prescription: hasPrescription ? prescriptionInfo : null,
+      items: cart,
+      subtotal,
+      discount,
+      total,
+      timestamp: new Date(),
+    });
+  
+    // Clear cart and reset form
+    setCart([]);
+    setCustomerType("regular");
+    setHasPrescription(false);
+    setCustomerInfo({
+      name: "",
+      guaranteeLetterNo: "",
+      guaranteeLetterDate: "",
+      address: "",
+      contactNumber: "",
+    });
+    setDiscountInfo({
+      type: "",
+      idNumber: "",
+      discountRate: 0.2,
+    });
+    setPrescriptionInfo({ // ✅ Fixed typo
+      doctorName: "",
+      prescriptionNumber: "",
+      prescriptionDate: "",
+      notes: "",
+    });
+  };
+  
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 p-4">
+      {/* Left Column - Product Selection */}
+      <div className="lg:col-span-2">
+        <Card className="h-full">
+          <CardHeader className="pb-3">
+            <CardTitle>Products</CardTitle>
+            <CardDescription>Search and add products to cart</CardDescription>
+            <div className="relative mt-2">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search products..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[calc(100vh-350px)]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredProducts.map((product) => (
+                  <Card
+                    key={product.id}
+                    className="cursor-pointer hover:bg-accent/50"
+                    onClick={() => addToCart(product)}
+                  >
+                    <CardHeader className="p-4 pb-2">
+                      <CardTitle className="text-base">{product.name}</CardTitle>
+                      <CardDescription>{product.category}</CardDescription>
+                    </CardHeader>
+                    <CardFooter className="p-4 pt-2 flex justify-between">
+                      <span className="font-medium">₱{product.price.toFixed(2)}</span>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          addToCart(product)
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Add
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Right Column - Cart and Checkout */}
+      <div>
+        <Card className="h-full flex flex-col">
+          <CardHeader className="pb-3">
+            <div className="flex justify-between items-center">
+              <CardTitle>Current Transaction</CardTitle>
+              <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select Branch" />
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id.toString()}>
+                      {branch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex gap-2 mt-4">
+              <Tabs value={customerType} onValueChange={setCustomerType} className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="regular">Regular</TabsTrigger>
+                  <TabsTrigger value="dswd">DSWD</TabsTrigger>
+                  <TabsTrigger value="discount">PWD/Senior</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
+            {customerType === "dswd" && (
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="w-full mt-2">
+                    <User className="h-4 w-4 mr-2" />
+                    Enter DSWD Client Info
+                  </Button>
+                </SheetTrigger>
+                <SheetContent>
+                  <DSWDForm customerInfo={customerInfo} setCustomerInfo={setCustomerInfo} />
+                </SheetContent>
+              </Sheet>
+            )}
+
+            {customerType === "discount" && (
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="w-full mt-2">
+                    <User className="h-4 w-4 mr-2" />
+                    Enter Discount Info
+                  </Button>
+                </SheetTrigger>
+                <SheetContent>
+                  <SheetHeader>
+                    <SheetTitle>Discount Information</SheetTitle>
+                    <SheetDescription>Enter PWD or Senior Citizen details</SheetDescription>
+                  </SheetHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="discount-type">Discount Type</Label>
+                      <Select
+                        value={discountInfo.type}
+                        onValueChange={(value) => setDiscountInfo({ ...discountInfo, type: value })}
+                      >
+                        <SelectTrigger id="discount-type">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pwd">PWD</SelectItem>
+                          <SelectItem value="senior">Senior Citizen</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="id-number">ID Number</Label>
+                      <Input
+                        id="id-number"
+                        value={discountInfo.idNumber}
+                        onChange={(e) => setDiscountInfo({ ...discountInfo, idNumber: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            )}
+
+            <div className="flex items-center space-x-2 mt-2">
+              <Checkbox
+                id="prescription"
+                checked={hasPrescription}
+                onCheckedChange={(checked) => setHasPrescription(checked as boolean)}
+              />
+              <label
+                htmlFor="prescription"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Has Prescription
+              </label>
+            </div>
+
+            {hasPrescription && (
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="w-full mt-2">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Enter Prescription Details
+                  </Button>
+                </SheetTrigger>
+                <SheetContent>
+                  <PrescriptionForm prescriptionInfo={prescriptionInfo} setPrescriptionInfo={setPrescriptionInfo} />
+                </SheetContent>
+              </Sheet>
+            )}
+          </CardHeader>
+
+          <CardContent className="flex-grow overflow-auto">
+            {cart.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No items in cart. Add products to begin.</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead className="text-right">Qty</TableHead>
+                    <TableHead className="text-right">Price</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cart.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <span className="w-8 text-center">{item.quantity}</span>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">₱{(item.price * item.quantity).toFixed(2)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-destructive"
+                          onClick={() => removeItem(item.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+
+          <CardFooter className="flex-col border-t pt-4">
+            <div className="w-full space-y-2">
+              <div className="flex justify-between">
+                <span>Subtotal:</span>
+                <span>₱{subtotal.toFixed(2)}</span>
+              </div>
+
+              {(customerType === "pwd" || customerType === "senior") && (
+                <div className="flex justify-between text-green-600">
+                  <span>Discount ({discountInfo.discountRate * 100}%):</span>
+                  <span>-₱{discount.toFixed(2)}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between font-bold text-lg">
+                <span>Total:</span>
+                <span>{customerType === "dswd" ? "FREE" : `₱${total.toFixed(2)}`}</span>
+              </div>
+
+              <Button
+                className="w-full mt-4"
+                size="lg"
+                disabled={cart.length === 0 || !selectedBranch || (customerType === "dswd" && !customerInfo.name)}
+                onClick={(handleCheckout)}
+              >
+                <CreditCard className="mr-2 h-4 w-4" />
+                {customerType === "dswd" ? "Complete Transaction" : "Proceed to Payment"}
+              </Button>
+            </div>
+          </CardFooter>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
