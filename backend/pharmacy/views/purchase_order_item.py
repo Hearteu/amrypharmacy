@@ -112,8 +112,7 @@ class POI(APIView):
                 "purchase_order_item_status_id": status,
                 "received_qty": to_receive,
                 "expired_qty": expired_qty,
-                "damaged_qty": damaged_qty,
-                "expiry_date": expiry_date
+                "damaged_qty": damaged_qty
             }).eq("purchase_order_item_id", purchase_order_item_id).execute()
 
             if hasattr(update_response, "error") and update_response.error:
@@ -131,8 +130,10 @@ class POI(APIView):
                     "src_location": src_location_id,
                     "des_location": des_location_id,
                     "quantity_change": to_receive,
-                    "transaction_date": datetime.now(timezone.utc).isoformat()  # UTC timestamp
+                    "transaction_date": datetime.now(timezone.utc).isoformat(),  # UTC timestamp
+                    "expiry_date": expiry_date  # ✅ Add expiry date here
                 }
+
                 transaction_response = supabase.table("Stock_Transaction").insert(transaction_data).execute()
 
                 # ✅ Step 7: Update Stock_Item quantity
@@ -148,7 +149,6 @@ class POI(APIView):
         except Exception as e:
             print(f"❌ Exception: {str(e)}")  # Debugging
             return Response({"error": str(e)}, status=500)
-
 
 
     def delete(self, request, purchase_order_item_id):

@@ -103,6 +103,19 @@ class PurchaseOrder(APIView):
                     poi_total = item["ordered_qty"] * supplier_price
                     po_total += poi_total
 
+                    # ✅ Fetch expiry date from Stock_Transaction
+                    stock_transaction_query = (
+                        supabase.table("Stock_Transaction")
+                        .select("expiry_date")
+                        .eq("reference_id", item["purchase_order_item_id"])
+                        .order("expiry_date", desc=True)  # Get latest expiry date
+                        .limit(1)
+                        .maybe_single()
+                    )
+                    stock_transaction_result = stock_transaction_query.execute()
+
+                    expiry_date = stock_transaction_result.data["expiry_date"] if stock_transaction_result.data else None
+
                     formatted_order["lineItems"].append({
                         "purchase_order_item_id": item["purchase_order_item_id"],
                         "poi_id": item.get("poi_id", ""),
@@ -117,10 +130,10 @@ class PurchaseOrder(APIView):
                         "unit": item.get("Unit", {}).get("unit", "N/A"),
                         "expired_qty": item.get("expired_qty", 0),  # ✅ Added expired quantity
                         "damaged_qty": item.get("damaged_qty", 0),  # ✅ Added damaged quantity
-                        "expiry_date": item.get("expiry_date", None),  # ✅ Added expiry date
+                        "expiry_date": expiry_date,  # ✅ Now fetched from Stock_Transaction
                         "received_qty": item.get("received_qty", 0)
                     })
-
+                    
                 formatted_order["po_total"] = po_total  # ✅ Renamed total → po_total
                 formatted_orders.append(formatted_order)
 
@@ -228,7 +241,7 @@ class PurchaseOrder(APIView):
                     "purchase_order_item_status_id": 1,
                     "expired_qty": 0,  # ✅ Default to 0
                     "damaged_qty": 0,  # ✅ Default to 0
-                    "expiry_date": None,  # ✅ Default to NULL
+                    # "expiry_date": None,
                 })
 
             print(f"🟢 Total Line Items to Insert: {len(purchase_order_items)}")  # Debugging
@@ -370,7 +383,7 @@ class PurchaseOrder(APIView):
                             "purchase_order_item_status_id": item.get("purchase_order_item_status_id"),
                             "expired_qty": item.get("expired_qty", 0),
                             "damaged_qty": item.get("damaged_qty", 0),
-                            "expiry_date": item.get("expiry_date"),
+                            # "expiry_date": item.get("expiry_date"),
                         }
                         item_update_data = {k: v for k, v in item_update_data.items() if v is not None}
 
@@ -395,7 +408,7 @@ class PurchaseOrder(APIView):
                             "purchase_order_item_status_id": 1,
                             "expired_qty": item.get("expired_qty", 0),
                             "damaged_qty": item.get("damaged_qty", 0),
-                            "expiry_date": item.get("expiry_date"),
+                            # "expiry_date": item.get("expiry_date"),
                         })
                         print(f"➕ New POI ID: {new_poi_id}")
 
