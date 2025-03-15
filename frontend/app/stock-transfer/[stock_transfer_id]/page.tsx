@@ -1,10 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import axios from "axios";
-import { ArrowLeft, CheckCircle } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -13,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -21,7 +18,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
+import axios from "axios";
+import { ArrowLeft, CheckCircle } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 interface StockTransfer {
   stock_transfer_id: number;
@@ -74,7 +74,7 @@ export default function StockTransferPaga({
   const acknowledgeTransfer = async () => {
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/pharmacy/stock-transfers/${params.stock_transfer_id}`,
+        `http://127.0.0.1:8000/pharmacy/stock-transfers/${params.stock_transfer_id}/`,
         { status_id: 4 },
         { headers: { "Content-Type": "application/json" } }
       );

@@ -382,68 +382,100 @@ class StockTransfer(APIView):
 
             # ✅ If only `stock_transfer_status_id` is provided, update only the status
             if set(data.keys()) == {"stock_transfer_status_id"}:
-                update_response = supabase.table("Stock_Transfer") \
-                    .update({"stock_transfer_status_id": data["stock_transfer_status_id"]}) \
-                    .eq("stock_transfer_id", stock_transfer_id) \
+                update_response = (
+                    supabase.table("Stock_Transfer")
+                    .update({"stock_transfer_status_id": data["stock_transfer_status_id"]})
+                    .eq("stock_transfer_id", stock_transfer_id)
                     .execute()
+                )
 
                 if not update_response.data:
-                    return Response({"error": "Stock transfer not found or not updated"}, status=404)
+                    return Response(
+                        {"error": "Stock transfer not found or not updated"}, status=404
+                    )
 
                 print(f"✅ Updated Stock Transfer Status: {update_response}")
 
                 # ✅ If status is "Completed", update all stock transfer items and handle stock movement
                 if data["stock_transfer_status_id"] == 4:
                     # Update all stock transfer items to completed
-                    supabase.table("Stock_Transfer_Item").update({"stock_transfer_item_status_id": 4}) \
-                        .eq("stock_transfer_id", stock_transfer_id).execute()
-                    
+                    supabase.table("Stock_Transfer_Item").update(
+                        {"stock_transfer_item_status_id": 4}
+                    ).eq("stock_transfer_id", stock_transfer_id).execute()
+
                     # Fetch stock transfer details
-                    transfer_query = supabase.table("Stock_Transfer").select("src_location, des_location") \
-                        .eq("stock_transfer_id", stock_transfer_id).single().execute()
+                    transfer_query = (
+                        supabase.table("Stock_Transfer")
+                        .select("src_location, des_location")
+                        .eq("stock_transfer_id", stock_transfer_id)
+                        .single()
+                        .execute()
+                    )
                     transfer_data = transfer_query.data
-                    
+
                     if not transfer_data:
-                        return Response({"error": "Stock transfer locations not found"}, status=404)
-                    
+                        return Response(
+                            {"error": "Stock transfer locations not found"}, status=404
+                        )
+
                     src_location = transfer_data["src_location"]
                     des_location = transfer_data["des_location"]
-                    
+
                     # Fetch stock transfer items
-                    items_query = supabase.table("Stock_Transfer_Item").select("product_id, transferred_qty") \
-                        .eq("stock_transfer_id", stock_transfer_id).execute()
+                    items_query = (
+                        supabase.table("Stock_Transfer_Item")
+                        .select("product_id, ordered_quantity")
+                        .eq("stock_transfer_id", stock_transfer_id)
+                        .execute()
+                    )
                     items = items_query.data or []
-                    
+
                     for item in items:
                         product_id = item["product_id"]
-                        qty = item["transferred_qty"]
-                        
-                        # Deduct from source location
-                        supabase.table("Stock_Item").update({"quantity": supabase.raw("quantity - " + str(qty))}) \
-                            .eq("product_id", product_id).eq("location_id", src_location).execute()
-                        
-                        # Add to destination location
-                        supabase.table("Stock_Item").update({"quantity": supabase.raw("quantity + " + str(qty))}) \
-                            .eq("product_id", product_id).eq("location_id", des_location).execute()
-                        
-                        # Insert into Stock_Transaction
-                        supabase.table("Stock_Transaction").insert({
-                            "product_id": product_id,
-                            "stock_transfer_id": stock_transfer_id,
-                            "quantity": qty,
-                            "transaction_type": "Transfer",
-                            "src_location": src_location,
-                            "des_location": des_location,
-                            "transaction_date": datetime.utcnow().isoformat()
-                        }).execute()
-                    
-                    return Response({"message": "Stock transfer and items marked as completed, stock updated."}, status=200)
+                        qty = item["ordered_quantity"]
 
-                return Response({"message": "Stock transfer status updated successfully"}, status=200)
+                        # Deduct from source location
+                        supabase.table("Stock_Item").update(
+                            {"quantity": supabase.raw(f"quantity - {qty}")}
+                        ).eq("product_id", product_id).eq("location_id", src_location).execute()
+
+                        # Add to destination location
+                        supabase.table("Stock_Item").update(
+                            {"quantity": supabase.raw(f"quantity + {qty}")}
+                        ).eq("product_id", product_id).eq("location_id", des_location).execute()
+
+                        # Insert into Stock_Transaction
+                        supabase.table("Stock_Transaction").insert(
+                            {
+                                "product_id": product_id,
+                                "stock_transfer_id": stock_transfer_id,
+                                "quantity": qty,
+                                "transaction_type": "Transfer",
+                                "src_location": src_location,
+                                "des_location": des_location,
+                                "transaction_date": datetime.utcnow().isoformat(),
+                            }
+                        ).execute()
+
+                    return Response(
+                        {
+                            "message": "Stock transfer and items marked as completed, stock updated."
+                        },
+                        status=200,
+                    )
+
+                return Response(
+                    {"message": "Stock transfer status updated successfully"}, status=200
+                )
 
             # ✅ Fetch Transfer ID for suffix
-            stock_transfer_query = supabase.table("Stock_Transfer").select("transfer_id") \
-                .eq("stock_transfer_id", stock_transfer_id).single().execute()
+            stock_transfer_query = (
+                supabase.table("Stock_Transfer")
+                .select("transfer_id")
+                .eq("stock_transfer_id", stock_transfer_id)
+                .single()
+                .execute()
+            )
             transfer_id = stock_transfer_query.data["transfer_id"] if stock_transfer_query.data else None
 
             if not transfer_id:
@@ -463,16 +495,23 @@ class StockTransfer(APIView):
             update_data = {key: value for key, value in update_data.items() if value is not None}
 
             if update_data:
-                response = supabase.table("Stock_Transfer").update(update_data) \
-                    .eq("stock_transfer_id", stock_transfer_id).execute()
+                response = (
+                    supabase.table("Stock_Transfer")
+                    .update(update_data)
+                    .eq("stock_transfer_id", stock_transfer_id)
+                    .execute()
+                )
                 if not response.data:
-                    return Response({"error": "Stock transfer not found or not updated"}, status=404)
+                    return Response(
+                        {"error": "Stock transfer not found or not updated"}, status=404
+                    )
 
             return Response({"message": "Stock transfer updated successfully"}, status=200)
 
         except Exception as e:
             print(f"❌ Exception: {str(e)}")  # Debugging
             return Response({"error": str(e)}, status=500)
+
 
    
     def delete(self, request, stock_transfer_id):
