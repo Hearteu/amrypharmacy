@@ -170,19 +170,27 @@ class StockTransfer(APIView):
             data = request.data
             print(f"🟢 Submitted Data: {data}")  # Debugging input
 
-            src_location = data.get("src_location_id")  # ✅ Use correct key
-            des_location = data.get("des_location_id")  # ✅ Use correct key
+            src_location = data.get("src_location")  # ✅ Correct key
+            des_location = data.get("des_location")  # ✅ Correct key
             transfer_date = data.get("transfer_date")
-            items = data.get("transferItems", [])  # ✅ Use correct key
+            items = data.get("transferItems", [])  # ✅ Correct key
 
-            # Generate transfer_id (ST-YYYY-XXX)
+            # ✅ Generate transfer_id (ST-YYYY-XXX)
             year = datetime.now().year
-            last_transfer = supabase.table("Stock_Transfer").select("transfer_id").order("transfer_id", desc=True).limit(1).execute()
+            last_transfer = (
+                supabase.table("Stock_Transfer")
+                .select("transfer_id")
+                .order("transfer_id", desc=True)
+                .limit(1)
+                .execute()
+            )
+
             next_number = 1
             if last_transfer.data:
                 last_id = last_transfer.data[0]["transfer_id"]
                 last_number = int(last_id.split("-")[-1])
                 next_number = last_number + 1
+
             transfer_id = f"ST-{year}-{str(next_number).zfill(3)}"
 
             # ✅ Insert into Stock_Transfer
@@ -191,27 +199,35 @@ class StockTransfer(APIView):
                 "transfer_date": transfer_date,
                 "stock_transfer_status_id": 1,
                 "src_location": src_location,
-                "des_location": des_location
+                "des_location": des_location,
             }
             response = supabase.table("Stock_Transfer").insert(stock_transfer).execute()
+
             if not response.data:
                 return Response({"error": "Failed to create stock transfer"}, status=400)
+
             stock_transfer_id = response.data[0]["stock_transfer_id"]
 
             # ✅ Insert items into Stock_Transfer_Item
+            stock_transfer_items = []
             for idx, item in enumerate(items, start=1):
-                sti_id = f"STI-{transfer_id.split('-')[-1]}-{str(idx).zfill(2)}"  # ✅ Use consistent STI format
                 stock_transfer_item = {
                     "stock_transfer_id": stock_transfer_id,
-                    "sti_id": sti_id,
+                    "sti_id": f"STI-{transfer_id.split('-')[-1]}-{str(idx).zfill(2)}",  # ✅ Keeping custom sti_id
                     "product_id": item["product_id"],
                     "ordered_quantity": item["ordered_quantity"],  # ✅ Correct key
                     "stock_transfer_item_status_id": 1,
-                    "unit_id": item.get("unit_id")
+                    "unit_id": item.get("unit_id"),
                 }
-                supabase.table("Stock_Transfer_Item").insert(stock_transfer_item).execute()
+                stock_transfer_items.append(stock_transfer_item)
 
-            return Response({"message": "Stock transfer created successfully", "transfer_id": transfer_id}, status=201)
+            if stock_transfer_items:
+                supabase.table("Stock_Transfer_Item").insert(stock_transfer_items).execute()
+
+            return Response(
+                {"message": "Stock transfer created successfully", "transfer_id": transfer_id},
+                status=201,
+            )
 
         except Exception as e:
             print(f"❌ Exception: {str(e)}")  # Debugging
