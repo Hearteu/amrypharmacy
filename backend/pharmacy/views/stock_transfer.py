@@ -13,16 +13,18 @@ supabase = get_supabase_client()
 
 class StockTransfer(APIView):
     def get(self, request, stock_transfer_id=None):
-        """Retrieve all stock transfers or a single stock transfer by ID with transferItems (filtered by expiry date)"""
         try:
-            query = supabase.table("Stock_Transfer").select(
-                "stock_transfer_id, transfer_id, transfer_date, stock_transfer_status_id, "
-                "Stock_Transfer_Status!inner(stock_transfer_status), "
-                "src_location, src_location_data:Location!src_location(location), "  # Source Location
-                "des_location, des_location_data:Location!des_location(location), "  # Destination Location
-                "Stock_Transfer_Item (stock_transfer_item_id, sti_id, ordered_quantity, stock_transfer_item_status_id, "
-                "unit_id, transferred_qty, product_id, Unit (unit), "
-                "Products (product_name, Drugs (dosage_strength, dosage_form)))"
+            # ✅ Query Stock_Transfer with explicit foreign key relationships
+            query = (
+                supabase.table("Stock_Transfer")
+                .select(
+                    "stock_transfer_id, transfer_id, transfer_date, stock_transfer_status_id, "  # ✅ Added stock_transfer_status_id
+                    "src_location, des_location, "
+                    "src_location:Location!Stock_Transfer_src_location_fkey(location), "  # ✅ Renamed for clarity
+                    "des_location:Location!Stock_Transfer_des_location_fkey(location), "  # ✅ Renamed for clarity
+                    "Stock_Transfer_Item(stock_transfer_item_id, product_id, ordered_quantity, "
+                    "Products(product_name, Drugs(dosage_form, dosage_strength)))"
+                )
             )
 
             if stock_transfer_id is not None:
@@ -31,106 +33,47 @@ class StockTransfer(APIView):
             response = query.execute()
 
             if not response.data:
-                return Response({"error": "No stock transfers found"}, status=404)
+                return Response({"error": "No Stock Transfer found"}, status=404)
 
-            stock_transfers = [response.data] if isinstance(response.data, dict) else response.data
-            formatted_transfers = []
+            stock_transfers = (
+                [response.data] if isinstance(response.data, dict) else response.data
+            )
 
-            # Collect product_ids to fetch stock quantities and expiry dates
-            product_ids = {
-                item["product_id"]
-                for transfer in stock_transfers
-                for item in (transfer.get("Stock_Transfer_Item") or [])
-                if item.get("product_id") is not None
-            }
-
-            # Fetch stock quantities from Stock_Item table
-            stock_items = {}
-            if product_ids:
-                stock_response = supabase.table("Stock_Item").select("product_id, quantity").in_("product_id", list(product_ids)).execute()
-                if stock_response.data:
-                    stock_items = {item["product_id"]: item["quantity"] for item in stock_response.data}
-
-            # Fetch expiry dates from POI table for products with POI transactions
-            expiry_dates = {}
-            if product_ids:
-                stock_txns = supabase.table("Stock_Transaction").select("product_id, transaction_type, reference_id") \
-                    .in_("product_id", list(product_ids)) \
-                    .execute()
-
-                poi_references = {
-                    txn["reference_id"]
-                    for txn in stock_txns.data
-                    if txn["transaction_type"] == "POI" and txn.get("reference_id")
-                }
-
-                if poi_references:
-                    poi_response = supabase.table("POI").select("poi_id, expiry_date").in_("poi_id", list(poi_references)).execute()
-                    if poi_response.data:
-                        expiry_dates = {
-                            poi["poi_id"]: datetime.strptime(poi["expiry_date"], "%Y-%m-%d")
-                            for poi in poi_response.data
-                        }
-
-            six_months_later = datetime.now() + timedelta(days=180)  # 6 months from today
-
-            for transfer in stock_transfers:
-                stock_transfer_items = transfer.get("Stock_Transfer_Item") or []
-
-                formatted_transfer = {
+            # ✅ Format response properly
+            formatted_response = [
+                {
                     "stock_transfer_id": transfer["stock_transfer_id"],
                     "transfer_id": transfer["transfer_id"],
                     "transfer_date": transfer["transfer_date"],
-                    "status_id": transfer["stock_transfer_status_id"],
-                    "status": (transfer.get("Stock_Transfer_Status") or {}).get("stock_transfer_status", "Unknown"),
-                    "src_location_id": transfer.get("src_location"),
-                    "src_location_name": (transfer.get("src_location_data") or {}).get("location", "Unknown"),
-                    "des_location_id": transfer.get("des_location"),
-                    "des_location_name": (transfer.get("des_location_data") or {}).get("location", "Unknown"),
-                    "transferItems": [],
+                    "status_id": transfer["stock_transfer_status_id"],  # ✅ Added here
+                    "src_location_name": transfer.get("src_location", {}).get("location", "Unknown Location"),
+                    "des_location_name": transfer.get("des_location", {}).get("location", "Unknown Location"),
+                    "transferItems": [
+                        {
+                            "stock_transfer_item_id": item["stock_transfer_item_id"],
+                            "product_id": item["product_id"],
+                            "ordered_quantity": item["ordered_quantity"],
+                            "product_name": (
+                                f"{item['Products']['product_name']} "
+                                f"{item['Products']['Drugs']['dosage_form']} "
+                                f"{item['Products']['Drugs']['dosage_strength']}".strip()
+                                if item.get("Products", {}).get("Drugs")
+                                else item["Products"]["product_name"]
+                            ),
+                        }
+                        for item in transfer.get("Stock_Transfer_Item", [])
+                    ],
                 }
+                for transfer in stock_transfers
+            ]
 
-                for item in stock_transfer_items:
-                    product_id = item.get("product_id")
-                    stock_quantity = stock_items.get(product_id, 0) if product_id is not None else 0
-                    product = item.get("Products") or {}
-                    product_name = product.get("product_name", "Unknown")
-                    drug = product.get("Drugs") or {}
-
-                    if drug:
-                        product_name += f" {drug.get('dosage_form', '')} {drug.get('dosage_strength', '')}".strip()
-
-                    # Get expiry date
-                    expiry_date = None
-                    stock_txn = next((txn for txn in stock_txns.data if txn["product_id"] == product_id), None)
-                    if stock_txn and stock_txn["transaction_type"] == "POI":
-                        expiry_date = expiry_dates.get(stock_txn["reference_id"])
-
-                    # ✅ Only include items that expire 6 months or later
-                    if expiry_date and expiry_date < six_months_later:
-                        print(f"⚠️ Product {product_id} expires on {expiry_date}. Skipping...")
-                        continue  # Skip items expiring too soon
-
-                    formatted_transfer["transferItems"].append({
-                        "stock_transfer_item_id": item["stock_transfer_item_id"],
-                        "sti_id": item.get("sti_id", ""),
-                        "product_id": product_id if product_id is not None else 0,
-                        "product_name": product_name,
-                        "ordered_quantity": item["ordered_quantity"],
-                        "transferred_qty": item.get("transferred_qty", 0),
-                        "stock_transfer_item_status_id": item.get("stock_transfer_item_status_id", "Unknown"),
-                        "unit_id": item.get("unit_id", "N/A"),
-                        "unit": (item.get("Unit") or {}).get("unit", "N/A"),
-                        "current_stock_quantity": stock_quantity,
-                        "expiry_date": expiry_date.strftime("%Y-%m-%d") if expiry_date else "N/A"
-                    })
-
-                formatted_transfers.append(formatted_transfer)
-
-            return Response(formatted_transfers if stock_transfer_id is None else formatted_transfers[0], status=200)
+            return Response(
+                formatted_response[0] if stock_transfer_id else formatted_response, status=200
+            )
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
         
     # def get(self, request, stock_transfer_id=None):
     #     """Retrieve all stock transfers or a single stock transfer by ID with transferItems"""
