@@ -26,7 +26,7 @@ interface CustomerInfo {
   name: string
   guaranteeLetterNo: string
   address: string
-  contactNumber: string
+  invoiceNumber: string
 }
 
 interface DiscountInfo {
@@ -109,6 +109,39 @@ export default function OrderSummaryPage() {
     }).format(amount)
   }
 
+  const handleSubmit = () => {
+    if (!orderData) {
+      alert("No order data available.");
+      return;
+    }
+
+    const payment = Number.parseFloat(paymentAmount);
+    if (isNaN(payment) || payment < orderData.total) {
+      alert("Insufficient payment amount.");
+      return;
+    }
+
+    const transactionData = {
+      ...orderData,
+      paymentAmount: payment,
+      change,
+    };
+
+    console.log("Submitting transaction:", transactionData);
+    
+    // Example: Send data to an API
+    // fetch("/api/submit-order", {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify(transactionData),
+    // })
+    // .then(response => response.json())
+    // .then(data => console.log("Order submitted successfully:", data))
+    // .catch(error => console.error("Error submitting order:", error));
+
+    alert("Transaction completed successfully!");
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -124,7 +157,7 @@ export default function OrderSummaryPage() {
               {isDSWD
                 ? "DSWD"
                 : hasDiscount
-                  ? `${orderData.discountInfo?.type} (${orderData.discount * 100}%)`
+                  ? `${orderData.discountInfo?.type} (20%)`
                   : "Regular"}
             </Badge>
           </CardHeader>
@@ -160,10 +193,10 @@ export default function OrderSummaryPage() {
                       <span>{orderData.customerInfo.address}</span>
                     </div>
                   )}
-                  {orderData.customerInfo?.contactNumber && (
+                  {orderData.customerInfo?.invoiceNumber && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Contact Number:</span>
-                      <span>{orderData.customerInfo.contactNumber}</span>
+                      <span>{orderData.customerInfo.invoiceNumber}</span>
                     </div>
                   )}
                 </div>
@@ -242,9 +275,9 @@ export default function OrderSummaryPage() {
                 </TableRow>
                 {hasDiscount && (
                   <TableRow>
-                    <TableCell colSpan={4}>Discount ({orderData.discount * 100}%)</TableCell>
+                    <TableCell colSpan={4}>Discount (20%)</TableCell>
                     <TableCell className="text-right">
-                      -{formatCurrency(orderData.subtotal * orderData.discount)}
+                      -₱{orderData.discount}
                     </TableCell>
                   </TableRow>
                 )}
@@ -304,7 +337,7 @@ export default function OrderSummaryPage() {
             </div>
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
-            <Button>Complete Transaction</Button>
+            <Button onClick={handleSubmit}>Complete Transaction</Button>
           </CardFooter>
         </Card>
       </div>

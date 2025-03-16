@@ -16,14 +16,16 @@ import { useState } from "react"
 interface PrescriptionFormProps {
   prescriptionInfo: {
     doctorName: string
-    prescriptionNumber: string
+    PRCNumber: string
+    PTRNumber: string
     prescriptionDate: string
     notes: string
   }
   setPrescriptionInfo: React.Dispatch<
     React.SetStateAction<{
       doctorName: string
-      prescriptionNumber: string
+      PRCNumber: string
+      PTRNumber: string
       prescriptionDate: string
       notes: string
     }>
@@ -62,11 +64,20 @@ export function PrescriptionForm({ prescriptionInfo, setPrescriptionInfo }: Pres
           />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="rx-number">Prescription Number</Label>
+          <Label htmlFor="rx-number">PRC Number</Label>
           <Input
             id="rx-number"
-            value={prescriptionInfo.prescriptionNumber}
-            onChange={(e) => setPrescriptionInfo({ ...prescriptionInfo, prescriptionNumber: e.target.value })}
+            value={prescriptionInfo.PRCNumber}
+            onChange={(e) => setPrescriptionInfo({ ...prescriptionInfo, PRCNumber: e.target.value })}
+            placeholder="RX-12345"
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="rx-number">PTR Number</Label>
+          <Input
+            id="rx-number"
+            value={prescriptionInfo.PTRNumber}
+            onChange={(e) => setPrescriptionInfo({ ...prescriptionInfo, PTRNumber: e.target.value })}
             placeholder="RX-12345"
           />
         </div>

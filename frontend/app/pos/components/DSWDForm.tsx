@@ -4,7 +4,6 @@ import type React from "react"
 import { SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { CalendarIcon } from "lucide-react"
@@ -18,21 +17,35 @@ interface DSWDFormProps {
     name: string
     guaranteeLetterNo: string
     guaranteeLetterDate: string
-    address: string
-    contactNumber: string
+    receivedDate: string;
+    invoiceNumber: string
   }
   setCustomerInfo: React.Dispatch<
     React.SetStateAction<{
       name: string
       guaranteeLetterNo: string
       guaranteeLetterDate: string
-      address: string
-      contactNumber: string
+      receivedDate: string;
+      invoiceNumber: string
     }>
   >
 }
 
 export function DSWDForm({ customerInfo, setCustomerInfo }: DSWDFormProps) {
+      const [glDate, setGLDate] = useState<Date | undefined>(
+        customerInfo.guaranteeLetterDate ? new Date(customerInfo.guaranteeLetterDate) : undefined,
+      )
+    
+      const handleGLDateChange = (selectedDate: Date | undefined) => {
+        setGLDate(selectedDate)
+        if (selectedDate) {
+            setCustomerInfo({
+            ...customerInfo,
+            guaranteeLetterDate: selectedDate.toISOString().split("T")[0],
+          })
+        }
+      }
+
       const [date, setDate] = useState<Date | undefined>(
         customerInfo.guaranteeLetterDate ? new Date(customerInfo.guaranteeLetterDate) : undefined,
       )
@@ -42,10 +55,12 @@ export function DSWDForm({ customerInfo, setCustomerInfo }: DSWDFormProps) {
         if (selectedDate) {
             setCustomerInfo({
             ...customerInfo,
-            guaranteeLetterDate: selectedDate.toISOString().split("T")[0],
+            receivedDate: selectedDate.toISOString().split("T")[0],
           })
         }
       }
+
+      
   return (
     <>
       <SheetHeader>
@@ -72,7 +87,25 @@ export function DSWDForm({ customerInfo, setCustomerInfo }: DSWDFormProps) {
           />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="rx-date">Prescription Date</Label>
+          <Label htmlFor="rx-date">Guarantee Letter Date</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                id="rx-date"
+                variant={"outline"}
+                className={cn("w-full justify-start text-left font-normal", !glDate && "text-muted-foreground")}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {glDate ? format(glDate, "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar mode="single" selected={glDate} onSelect={handleGLDateChange} initialFocus />
+            </PopoverContent>
+          </Popover>
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="rx-date">Date Received</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -90,20 +123,11 @@ export function DSWDForm({ customerInfo, setCustomerInfo }: DSWDFormProps) {
           </Popover>
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="address">Address</Label>
-          <Textarea
-            id="address"
-            value={customerInfo.address}
-            onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })}
-            placeholder="Complete address"
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="contact">Contact Number</Label>
+          <Label htmlFor="contact">Invoice Number</Label>
           <Input
             id="contact"
-            value={customerInfo.contactNumber}
-            onChange={(e) => setCustomerInfo({ ...customerInfo, contactNumber: e.target.value })}
+            value={customerInfo.invoiceNumber}
+            onChange={(e) => setCustomerInfo({ ...customerInfo, invoiceNumber: e.target.value })}
             placeholder="09XX-XXX-XXXX"
           />
         </div>

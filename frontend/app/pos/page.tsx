@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,19 +28,21 @@ const sampleProducts = [
   { id: 8, name: "Simvastatin 20mg", price: 14.0, category: "Cholesterol" },
 ]
 
-// Sample branches
 const branches = [
-  { id: 1, name: "Main Branch" },
-  { id: 2, name: "North Branch" },
-  { id: 3, name: "South Branch" },
-  { id: 4, name: "East Branch" },
+  { id: 1, name: "Asuncion" },
+  { id: 2, name: "Talaingod" },
 ]
 
+interface Products {
+    product_id: number;
+    full_product_name: string;
+    price: number;
+}
 export default function PosInterface() {
   const [cart, setCart] = useState<
     Array<{
-      id: number
-      name: string
+      product_id: number
+      full_product_name: string
       price: number
       quantity: number
     }>
@@ -50,14 +52,31 @@ export default function PosInterface() {
   const [customerType, setCustomerType] = useState("regular")
   const [hasPrescription, setHasPrescription] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+  const [products, setProducts] = useState<Products[]>([]);
+
+    useEffect(() => {
+      async function fetchSupplierItems() {    
+        try {
+          const response = await fetch(
+            `http://127.0.0.1:8000/pharmacy/products/`
+          );
+          const data: Products[] = await response.json();
+          setProducts(data);
+        } catch (error) {
+          console.error("❌ Error fetching supplier items:", error);
+        }
+      }
+    
+      fetchSupplierItems();
+    }, []); 
 
   // Customer information for DSWD clients
   const [customerInfo, setCustomerInfo] = useState({
     name: "",
     guaranteeLetterNo: "",
     guaranteeLetterDate: "",
-    address: "",
-    contactNumber: "",
+    receivedDate: "",
+    invoiceNumber: "",
   })
 
   // Discount information
@@ -70,17 +89,18 @@ export default function PosInterface() {
   // Prescription information
   const [prescriptionInfo, setPrescriptionInfo] = useState({
     doctorName: "",
-    prescriptionNumber: "",
+    PRCNumber: "",
+    PTRNumber: "",
     prescriptionDate: "",
     notes: "",
   })
 
   // Add product to cart
   const addToCart = (product: any) => {
-    const existingItem = cart.find((item) => item.id === product.id)
+    const existingItem = cart.find((item) => item.product_id === product.product_id)
 
     if (existingItem) {
-      setCart(cart.map((item) => (item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item)))
+      setCart(cart.map((item) => (item.product_id === product.product_id ? { ...item, quantity: item.quantity + 1 } : item)))
     } else {
       setCart([...cart, { ...product, quantity: 1 }])
     }
@@ -89,29 +109,37 @@ export default function PosInterface() {
   // Update quantity
   const updateQuantity = (id: number, newQuantity: number) => {
     if (newQuantity <= 0) {
-      setCart(cart.filter((item) => item.id !== id))
+      setCart(cart.filter((item) => item.product_id !== id))
     } else {
-      setCart(cart.map((item) => (item.id === id ? { ...item, quantity: newQuantity } : item)))
+      setCart(cart.map((item) => (item.product_id === id ? { ...item, quantity: newQuantity } : item)))
     }
   }
 
   // Remove item from cart
   const removeItem = (id: number) => {
-    setCart(cart.filter((item) => item.id !== id))
+    setCart(cart.filter((item) => item.product_id !== id))
   }
 
   // Calculate subtotal
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
   // Calculate discount
-  const discount = customerType === "pwd" || customerType === "senior" ? subtotal * discountInfo.discountRate : 0
+  const discount = (discountInfo.type === "pwd" || discountInfo.type === "senior") 
+  ? parseFloat((subtotal * discountInfo.discountRate).toFixed(2)) 
+  : 0;
 
+  useEffect(() => {
+    if (customerType !== "regular") {
+      setDiscountInfo({ type: "", idNumber: "", discountRate: 0.2 });
+    }
+  }, [customerType]);
+  
   // Calculate total
   const total = customerType === "dswd" ? 0 : subtotal - discount
 
   // Filter products based on search term
-  const filteredProducts = sampleProducts.filter((product) =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()),
+  const filteredProducts = products.filter((product) =>
+    product.full_product_name.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const router = useRouter();
@@ -160,17 +188,18 @@ export default function PosInterface() {
       name: "",
       guaranteeLetterNo: "",
       guaranteeLetterDate: "",
-      address: "",
-      contactNumber: "",
+      receivedDate: "",
+      invoiceNumber: "",
     });
     setDiscountInfo({
       type: "",
       idNumber: "",
       discountRate: 0.2,
     });
-    setPrescriptionInfo({ // ✅ Fixed typo
+    setPrescriptionInfo({ 
       doctorName: "",
-      prescriptionNumber: "",
+      PTRNumber: "",
+      PRCNumber: "",
       prescriptionDate: "",
       notes: "",
     });
@@ -200,13 +229,13 @@ export default function PosInterface() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredProducts.map((product) => (
                   <Card
-                    key={product.id}
+                    key={product.product_id}
                     className="cursor-pointer hover:bg-accent/50"
                     onClick={() => addToCart(product)}
                   >
                     <CardHeader className="p-4 pb-2">
-                      <CardTitle className="text-base">{product.name}</CardTitle>
-                      <CardDescription>{product.category}</CardDescription>
+                      <CardTitle className="text-base">{product.full_product_name}</CardTitle>
+                      {/* <CardDescription>{product.category}</CardDescription> */}
                     </CardHeader>
                     <CardFooter className="p-4 pt-2 flex justify-between">
                       <span className="font-medium">₱{product.price.toFixed(2)}</span>
@@ -359,15 +388,15 @@ export default function PosInterface() {
                 </TableHeader>
                 <TableBody>
                   {cart.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableRow key={item.product_id}>
+                      <TableCell className="font-medium">{item.full_product_name}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end">
                           <Button
                             variant="outline"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
@@ -376,7 +405,7 @@ export default function PosInterface() {
                             variant="outline"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
@@ -388,7 +417,7 @@ export default function PosInterface() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 text-destructive"
-                          onClick={() => removeItem(item.id)}
+                          onClick={() => removeItem(item.product_id)}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -409,7 +438,7 @@ export default function PosInterface() {
 
               {(customerType === "pwd" || customerType === "senior") && (
                 <div className="flex justify-between text-green-600">
-                  <span>Discount ({discountInfo.discountRate * 100}%):</span>
+                  <span>Discount ({discountInfo.discountRate * 20}%):</span>
                   <span>-₱{discount.toFixed(2)}</span>
                 </div>
               )}
