@@ -75,7 +75,7 @@ export default function StockTransferPaga({
     try {
       const response = await axios.put(
         `http://127.0.0.1:8000/pharmacy/stock-transfers/${params.stock_transfer_id}/`,
-        { status_id: 4 },
+        { stock_transfer_status_id: 4 },
         { headers: { "Content-Type": "application/json" } }
       );
       console.log("Stock transfer acknowledged:", response.data);
