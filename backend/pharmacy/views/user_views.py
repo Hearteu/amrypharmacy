@@ -149,32 +149,34 @@ class UserLoginView(APIView):
         username = request.data.get("username")
         password = request.data.get("password")
         
-        user_response = supabase.table("Users").select("user_id").eq("username", username).execute()
+        # Fetch user details including role_id
+        user_response = supabase.table("Users").select("user_id, password, role_id, username").eq("username", username).execute()
         
         if not user_response.data:
             return Response({"error": "User not found"}, status=404)
 
-        user_id = user_response.data[0]["user_id"]
-        response = supabase.table("Users").select("*").eq("user_id", user_id).eq("username", username).execute()
-
-        if not response.data:
-            return Response({"error": "User not found"}, status=404)
-
-        user = response.data[0]  # Get the first user record
+        user = user_response.data[0]  # Get the first user record
 
         if not check_password(password, user["password"]):
             return Response({"error": "Invalid password"}, status=400)
 
+        # Fetch role_name using role_id
+        role_response = supabase.table("User_Role").select("role_name").eq("role_id", user["role_id"]).execute()
+        role_name = role_response.data[0]["role_name"] if role_response.data else None
+
         refresh = RefreshToken()
         refresh["user_id"] = user["user_id"]
         refresh["username"] = user["username"]
+        refresh["role_name"] = role_name  # Add role_name to token
 
         return Response({
             "user_id": user["user_id"],
             "username": user["username"],
+            "role_name": role_name,
             "access": str(refresh.access_token),
             "refresh": str(refresh),
         })
+
     
     #not working yet
 class ResetPassword(APIView):
