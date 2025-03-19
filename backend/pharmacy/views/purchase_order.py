@@ -104,17 +104,17 @@ class PurchaseOrder(APIView):
                     po_total += poi_total
 
                     # ✅ Fetch expiry date from Stock_Transaction
-                    stock_transaction_query = (
-                        supabase.table("Stock_Transaction")
-                        .select("expiry_date")
-                        .eq("reference_id", item["purchase_order_item_id"])
-                        .order("expiry_date", desc=True)  # Get latest expiry date
-                        .limit(1)
-                        .maybe_single()
-                    )
-                    stock_transaction_result = stock_transaction_query.execute()
+                    # stock_transaction_query = (
+                    #     supabase.table("Stock_Transaction")
+                    #     .select("expiry_date")
+                    #     .eq("reference_id", item["purchase_order_item_id"])
+                    #     .order("expiry_date", desc=True)  # Get latest expiry date
+                    #     .limit(1)
+                    #     .maybe_single()
+                    # )
+                    # stock_transaction_result = stock_transaction_query.execute()
 
-                    expiry_date = stock_transaction_result.data["expiry_date"] if stock_transaction_result.data else None
+                    # expiry_date = stock_transaction_result.data["expiry_date"] if stock_transaction_result.data else None
 
                     formatted_order["lineItems"].append({
                         "purchase_order_item_id": item["purchase_order_item_id"],
@@ -130,7 +130,7 @@ class PurchaseOrder(APIView):
                         "unit": item.get("Unit", {}).get("unit", "N/A"),
                         "expired_qty": item.get("expired_qty", 0),  # ✅ Added expired quantity
                         "damaged_qty": item.get("damaged_qty", 0),  # ✅ Added damaged quantity
-                        "expiry_date": expiry_date,  # ✅ Now fetched from Stock_Transaction
+                        # "expiry_date": expiry_date,  # ✅ Now fetched from Stock_Transaction
                         "received_qty": item.get("received_qty", 0)
                     })
                     

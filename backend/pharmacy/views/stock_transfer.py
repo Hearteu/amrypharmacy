@@ -1,6 +1,6 @@
 # views.py
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -170,8 +170,8 @@ class StockTransfer(APIView):
             data = request.data
             print(f"🟢 Submitted Data: {data}")  # Debugging input
 
-            src_location = data.get("src_location")  # ✅ Correct key
-            des_location = data.get("des_location")  # ✅ Correct key
+            src_location = int(data.get("src_location_id"))  # ✅ Correct key
+            des_location = int(data.get("des_location_id"))  # ✅ Correct key
             transfer_date = data.get("transfer_date")
             items = data.get("transferItems", [])  # ✅ Correct key
 
@@ -424,7 +424,7 @@ class StockTransfer(APIView):
                     # Fetch stock transfer items
                     items_query = (
                         supabase.table("Stock_Transfer_Item")
-                        .select("product_id, ordered_quantity")
+                        .select("product_id, ordered_quantity, stock_transfer_item_id")
                         .eq("stock_transfer_id", stock_transfer_id)
                         .execute()
                     )
@@ -433,27 +433,53 @@ class StockTransfer(APIView):
                     for item in items:
                         product_id = item["product_id"]
                         qty = item["ordered_quantity"]
+                        stock_transfer_item_id = item["stock_transfer_item_id"]
 
-                        # Deduct from source location
-                        supabase.table("Stock_Item").update(
-                            {"quantity": supabase.raw(f"quantity - {qty}")}
-                        ).eq("product_id", product_id).eq("location_id", src_location).execute()
+                        # ✅ Fetch current stock from source location
+                        src_stock_query = (
+                            supabase.table("Stock_Item")
+                            .select("quantity")
+                            .eq("product_id", product_id)
+                            .eq("location_id", src_location)
+                            .single()
+                            .execute()
+                        )
+                        src_stock_data = src_stock_query.data
+                        print(f"🔍 Source Stock Data: {src_stock_data}")
 
-                        # Add to destination location
-                        supabase.table("Stock_Item").update(
-                            {"quantity": supabase.raw(f"quantity + {qty}")}
-                        ).eq("product_id", product_id).eq("location_id", des_location).execute()
+                        if src_stock_data:
+                            new_src_quantity = max(0, src_stock_data["quantity"] - qty)
+                            print(f"🔍 New Source Quantity: {new_src_quantity}")
+                            supabase.table("Stock_Item").update(
+                                {"quantity": new_src_quantity}
+                            ).eq("product_id", product_id).eq("location_id", src_location).execute()
+
+                        # ✅ Fetch current stock from destination location
+                        des_stock_query = (
+                            supabase.table("Stock_Item")
+                            .select("quantity")
+                            .eq("product_id", product_id)
+                            .eq("location_id", des_location)
+                            .single()
+                            .execute()
+                        )
+                        des_stock_data = des_stock_query.data
+                        print(f"🔍 Destination Stock Data: {des_stock_data}")
+
+                        new_des_quantity = des_stock_data["quantity"] + qty
+                        print(f"🔍 New Destination Quantity: {new_des_quantity}")
+                        stock_item_res = supabase.table("Stock_Item").update({"quantity": new_des_quantity}).eq("product_id", product_id).eq("location_id", des_location).execute()
 
                         # Insert into Stock_Transaction
                         supabase.table("Stock_Transaction").insert(
                             {
-                                "product_id": product_id,
-                                "stock_transfer_id": stock_transfer_id,
-                                "quantity": qty,
+                                "quantity_change": qty,
                                 "transaction_type": "Transfer",
                                 "src_location": src_location,
                                 "des_location": des_location,
-                                "transaction_date": datetime.utcnow().isoformat(),
+                                "transaction_date": datetime.now(timezone.utc).isoformat(),
+                                "stock_item_id": stock_item_res.data[0]["stock_item_id"],
+                                "reference_id": stock_transfer_item_id,
                             }
                         ).execute()
 
@@ -468,50 +494,11 @@ class StockTransfer(APIView):
                     {"message": "Stock transfer status updated successfully"}, status=200
                 )
 
-            # ✅ Fetch Transfer ID for suffix
-            stock_transfer_query = (
-                supabase.table("Stock_Transfer")
-                .select("transfer_id")
-                .eq("stock_transfer_id", stock_transfer_id)
-                .single()
-                .execute()
-            )
-            transfer_id = stock_transfer_query.data["transfer_id"] if stock_transfer_query.data else None
-
-            if not transfer_id:
-                return Response({"error": "Transfer ID not found"}, status=404)
-
-            # 🔹 Extract last three digits of Transfer ID for suffix
-            transfer_suffix = transfer_id[-3:]
-            print(f"🔹 Transfer Suffix: {transfer_suffix}")
-
-            # ✅ Update Stock Transfer if necessary
-            update_data = {
-                "src_location": data.get("src_location"),
-                "des_location": data.get("des_location"),
-                "transfer_date": data.get("transfer_date"),
-                "stock_transfer_status_id": data.get("stock_transfer_status_id"),
-            }
-            update_data = {key: value for key, value in update_data.items() if value is not None}
-
-            if update_data:
-                response = (
-                    supabase.table("Stock_Transfer")
-                    .update(update_data)
-                    .eq("stock_transfer_id", stock_transfer_id)
-                    .execute()
-                )
-                if not response.data:
-                    return Response(
-                        {"error": "Stock transfer not found or not updated"}, status=404
-                    )
-
-            return Response({"message": "Stock transfer updated successfully"}, status=200)
+            return Response({"error": "Invalid request"}, status=400)
 
         except Exception as e:
             print(f"❌ Exception: {str(e)}")  # Debugging
             return Response({"error": str(e)}, status=500)
-
 
    
     def delete(self, request, stock_transfer_id):
