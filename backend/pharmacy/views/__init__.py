@@ -9,6 +9,7 @@ from .inventory import Inventory
 from .location import Location
 from .order import Order
 from .person_views import PersonList
+from .pos import POS
 from .prescription import Prescription
 from .price_history import PriceHistory
 from .product_brand import Brand

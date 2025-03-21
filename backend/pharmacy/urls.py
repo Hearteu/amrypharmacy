@@ -1,7 +1,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView  # type: ignore
 
-from .views import (POI, STI, Branch, Brand, Customers, CustomerType,
+from .views import (POI, POS, STI, Branch, Brand, Customers, CustomerType,
                     DisposedItems, Drugs, DswdOrder, Expiration, Inventory,
                     Location, Order, PersonList, Prescription, PriceHistory,
                     ProductCategory, Products, Purchase_Order_Item_Status,
@@ -46,6 +46,7 @@ resources = [
     ("stock-transfer-item-status", Stock_Transfer_Item_Status),
     ("stock-transfers", StockTransfer),
     ("stock-items", StockItem),
+    ("pos", POS),
 ]
 
 # Generate urlpatterns dynamically
@@ -61,6 +62,7 @@ urlpatterns = [
     path(f"{name}/<int:purchase_order_item_status_id>/", view.as_view(), name=f"get-{name}-list") if name == "purchase-order-item-status" else
     path(f"{name}/<int:stock_transfer_status_id>/", view.as_view(), name=f"get-{name}-list") if name == "stock-transfer-status" else
     path(f"{name}/<int:stock_transfer_item_status_id>/", view.as_view(), name=f"get-{name}-list") if name == "stock-transfer-item-status" else
+    path(f"{name}/<int:pos_id>/", view.as_view(), name=f"get-{name}-list") if name == "pos" else
     path(f"{name}/<int:{name[:-1].replace('-', '_')}_id>/", view.as_view(), name=f"edit-{name}-list")
     for name, view in resources
 ] + [

@@ -33,6 +33,7 @@ class POS(APIView):
         try:
             data = request.data
             print(f"🟢 Received POS request data: {data}")  # Debugging
+            # return Response({"message": "POS transaction created successfully"}, status=201)
 
             current_year = datetime.now().year
 
@@ -56,12 +57,15 @@ class POS(APIView):
 
             transaction_date = datetime.fromisoformat(data["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
 
+            customer_insert = supabase.table("Customers").insert({
+                "customer_type": data["customerType"],
+                "customer_name": data["customerInfo"]["name"],
+            }).execute()
+
             # ✅ Insert into POS table
             pos_insert = supabase.table("POS").insert({
                 "pos_id": pos_id,
                 "branch": data["branch"],
-                "customer_type": data["customerType"],
-                "customer_name": data["customerInfo"]["name"],
                 "guarantee_letter_no": data["customerInfo"].get("guaranteeLetterNo"),
                 "customer_address": data["customerInfo"].get("address"),
                 "invoice_number": data["customerInfo"]["invoiceNumber"],

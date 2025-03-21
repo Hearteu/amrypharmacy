@@ -2,17 +2,17 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { Calculator, FileText, User, Receipt } from "lucide-react"
+import { Calculator, FileText, Receipt, User } from "lucide-react"
+import { useEffect, useState } from "react"
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 interface Item {
   id: number
@@ -129,15 +129,14 @@ export default function OrderSummaryPage() {
 
     console.log("Submitting transaction:", transactionData);
     
-    // Example: Send data to an API
-    // fetch("/api/submit-order", {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify(transactionData),
-    // })
-    // .then(response => response.json())
-    // .then(data => console.log("Order submitted successfully:", data))
-    // .catch(error => console.error("Error submitting order:", error));
+    fetch("http://127.0.0.1:8000/pharmacy/pos/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(transactionData),
+    })
+    .then(response => response.json())
+    .then(data => console.log("Order submitted successfully:", data))
+    .catch(error => console.error("Error submitting order:", error));
 
     alert("Transaction completed successfully!");
   };
