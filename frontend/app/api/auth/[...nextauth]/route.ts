@@ -3,6 +3,9 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import axios from "axios";
 
 export const authOptions = {
+    pages: {
+        signIn: '/'
+    },
     providers: [
         CredentialsProvider({
             id: "django-auth",
@@ -46,12 +49,13 @@ export const authOptions = {
             if (account) {
                 token.user_id = user.user_id
                 token.username = user.username
+                token.role_name = user.role_name
             }
 
             return token
         },
         async session({ session, token }) {
-            session.user = { username: token.username, user_id: token.user_id }
+            session.user = { username: token.username, user_id: token.user_id, role_name: token.role_name }
             return session
         }
     },

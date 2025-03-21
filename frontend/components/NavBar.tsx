@@ -12,8 +12,23 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "./ui/collapsible";
+import { getSession, signOut } from "next-auth/react";
+import { useEffect, useState } from "react";
 
 export default function NavBar() {
+  const [session, updateSession] = useState(null);
+  const fetchSession = async () => {
+    const _session = await getSession();
+    console.log(_session);
+    updateSession(_session);
+  };
+
+  useEffect(() => {
+    fetchSession();
+  }, []);
+
+  console.log(session?.user?.role_name);
+
   return (
     <>
       <div className="fixed top-0 left-0 h-full w-64 bg-[#F4F5FC]">
@@ -30,6 +45,9 @@ export default function NavBar() {
           <h1 className="mt-4 text-lg font-semibold text-[#303086]">
             Amry Pharmacy
           </h1>
+          <h2 onClick={signOut}>
+            Hello, {session?.user?.username} {session?.user.role_id}
+          </h2>
         </div>
         <NavigationMenu>
           <NavigationMenuList className="flex flex-col p-4 space-y-2 items-stretch ">
@@ -67,7 +85,7 @@ export default function NavBar() {
             </Collapsible>
 
             <NavigationMenuItem>
-              <Link href="#" legacyBehavior passHref>
+              <Link href="/pos" legacyBehavior passHref>
                 <NavigationMenuLink className={navigationMenuTriggerStyle()}>
                   Sales Orders
                 </NavigationMenuLink>

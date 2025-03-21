@@ -1,84 +1,99 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { format } from "date-fns"
-import { Calculator, FileText, Receipt, User } from "lucide-react"
-import { useEffect, useState } from "react"
+import { format } from "date-fns";
+import { Calculator, FileText, Receipt, User } from "lucide-react";
+import { useEffect, useState } from "react";
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface Item {
-  id: number
-  name: string
-  price: number
-  category: string
-  quantity: number
+  id: number;
+  full_product_name: string;
+  price: number;
+  category: string;
+  quantity: number;
 }
 
 interface CustomerInfo {
-  name: string
-  guaranteeLetterNo: string
-  address: string
-  invoiceNumber: string
+  name: string;
+  guaranteeLetterNo: string;
+  address: string;
+  invoiceNumber: string;
 }
 
 interface DiscountInfo {
-  type: string
-  idNumber: string
-  discountRate: number
+  type: string;
+  idNumber: string;
+  discountRate: number;
 }
 
 interface PrescriptionInfo {
-  doctorName: string
-  prescriptionNumber: string
-  prescriptionDate: string
-  notes: string
+  doctorName: string;
+  prescriptionNumber: string;
+  prescriptionDate: string;
+  notes: string;
 }
 
 interface OrderData {
-  branch: string
-  customerType: string
-  customerInfo?: CustomerInfo
-  discount: number
-  discountInfo?: DiscountInfo
-  items: Item[]
-  prescriptionInfo?: PrescriptionInfo
-  subtotal: number
-  total: number
-  timestamp: string
+  branch: string;
+  customerType: string;
+  customerInfo?: CustomerInfo;
+  discount: number;
+  discountInfo?: DiscountInfo;
+  items: Item[];
+  prescriptionInfo?: PrescriptionInfo;
+  subtotal: number;
+  total: number;
+  timestamp: string;
 }
 
 export default function OrderSummaryPage() {
-  const [orderData, setOrderData] = useState<OrderData | null>(null)
-  const [paymentAmount, setPaymentAmount] = useState<string>("")
-  const [change, setChange] = useState<number>(0)
+  const [orderData, setOrderData] = useState<OrderData | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<string>("");
+  const [change, setChange] = useState<number>(0);
 
   useEffect(() => {
-    const storedData = localStorage.getItem("orderSummary")
+    const storedData = localStorage.getItem("orderSummary");
     if (storedData) {
-      setOrderData(JSON.parse(storedData))
+      setOrderData(JSON.parse(storedData));
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
     if (orderData && paymentAmount) {
-      const payment = Number.parseFloat(paymentAmount)
+      const payment = Number.parseFloat(paymentAmount);
       if (!isNaN(payment)) {
-        setChange(payment - orderData.total)
+        setChange(payment - orderData.total);
       }
     }
-  }, [paymentAmount, orderData])
+  }, [paymentAmount, orderData]);
 
   const handlePaymentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPaymentAmount(e.target.value)
-  }
+    setPaymentAmount(e.target.value);
+  };
 
   if (!orderData) {
     return (
@@ -90,24 +105,27 @@ export default function OrderSummaryPage() {
           </CardHeader>
         </Card>
       </div>
-    )
+    );
   }
 
-  const isDSWD = orderData.customerType === "dswd"
-  const hasDiscount = orderData.customerType === "discount" && orderData.discountInfo
+  const isDSWD = orderData.customerType === "dswd";
+  const hasDiscount =
+    orderData.customerType === "discount" && orderData.discountInfo;
   const hasPrescription =
     orderData.prescriptionInfo &&
-    (orderData.prescriptionInfo.doctorName || orderData.prescriptionInfo.prescriptionNumber)
+    (orderData.prescriptionInfo.doctorName ||
+      orderData.prescriptionInfo.prescriptionNumber);
   const hasCustomerInfo =
-    orderData.customerInfo && (orderData.customerInfo.name || orderData.customerInfo.guaranteeLetterNo)
+    orderData.customerInfo &&
+    (orderData.customerInfo.name || orderData.customerInfo.guaranteeLetterNo);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-PH", {
       style: "currency",
       currency: "PHP",
       minimumFractionDigits: 2,
-    }).format(amount)
-  }
+    }).format(amount);
+  };
 
   const handleSubmit = () => {
     if (!orderData) {
@@ -149,15 +167,23 @@ export default function OrderSummaryPage() {
             <div>
               <CardTitle className="text-2xl">Order Summary</CardTitle>
               <CardDescription>
-                {orderData.timestamp && format(new Date(orderData.timestamp), "MMMM d, yyyy 'at' h:mm a")}
+                {orderData.timestamp &&
+                  format(
+                    new Date(orderData.timestamp),
+                    "MMMM d, yyyy 'at' h:mm a"
+                  )}
               </CardDescription>
             </div>
-            <Badge variant={isDSWD ? "destructive" : hasDiscount ? "secondary" : "default"}>
+            <Badge
+              variant={
+                isDSWD ? "destructive" : hasDiscount ? "secondary" : "default"
+              }
+            >
               {isDSWD
                 ? "DSWD"
                 : hasDiscount
-                  ? `${orderData.discountInfo?.type} (20%)`
-                  : "Regular"}
+                ? `${orderData.discountInfo?.type} (20%)`
+                : "Regular"}
             </Badge>
           </CardHeader>
           <CardContent>
@@ -182,7 +208,9 @@ export default function OrderSummaryPage() {
                   )}
                   {orderData.customerInfo?.guaranteeLetterNo && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Guarantee Letter No:</span>
+                      <span className="text-sm font-medium">
+                        Guarantee Letter No:
+                      </span>
                       <span>{orderData.customerInfo.guaranteeLetterNo}</span>
                     </div>
                   )}
@@ -194,7 +222,9 @@ export default function OrderSummaryPage() {
                   )}
                   {orderData.customerInfo?.invoiceNumber && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Contact Number:</span>
+                      <span className="text-sm font-medium">
+                        Contact Number:
+                      </span>
                       <span>{orderData.customerInfo.invoiceNumber}</span>
                     </div>
                   )}
@@ -216,14 +246,23 @@ export default function OrderSummaryPage() {
                   )}
                   {orderData.prescriptionInfo?.prescriptionNumber && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Prescription No:</span>
-                      <span>{orderData.prescriptionInfo.prescriptionNumber}</span>
+                      <span className="text-sm font-medium">
+                        Prescription No:
+                      </span>
+                      <span>
+                        {orderData.prescriptionInfo.prescriptionNumber}
+                      </span>
                     </div>
                   )}
                   {orderData.prescriptionInfo?.prescriptionDate && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Date:</span>
-                      <span>{format(new Date(orderData.prescriptionInfo.prescriptionDate), "MMMM d, yyyy")}</span>
+                      <span>
+                        {format(
+                          new Date(orderData.prescriptionInfo.prescriptionDate),
+                          "MMMM d, yyyy"
+                        )}
+                      </span>
                     </div>
                   )}
                   {orderData.prescriptionInfo?.notes && (
@@ -259,18 +298,28 @@ export default function OrderSummaryPage() {
               <TableBody>
                 {orderData.items.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell className="font-medium">
+                      {item.full_product_name}
+                    </TableCell>
                     <TableCell>{item.category}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(item.price)}</TableCell>
-                    <TableCell className="text-right">{item.quantity}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(item.price * item.quantity)}</TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(item.price)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {item.quantity}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(item.price * item.quantity)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
               <TableFooter>
                 <TableRow>
                   <TableCell colSpan={4}>Subtotal</TableCell>
-                  <TableCell className="text-right">{formatCurrency(orderData.subtotal)}</TableCell>
+                  <TableCell className="text-right">
+                    {formatCurrency(orderData.subtotal)}
+                  </TableCell>
                 </TableRow>
                 {hasDiscount && (
                   <TableRow>
@@ -302,7 +351,9 @@ export default function OrderSummaryPage() {
             <div className="space-y-4">
               {isDSWD ? (
                 <div className="rounded-md bg-red-50 p-4 text-center">
-                  <p className="text-red-800 font-medium">DSWD Transaction - No Payment Required</p>
+                  <p className="text-red-800 font-medium">
+                    DSWD Transaction - No Payment Required
+                  </p>
                 </div>
               ) : (
                 <>
@@ -317,20 +368,29 @@ export default function OrderSummaryPage() {
                     />
                   </div>
 
-                  {paymentAmount && !isNaN(Number.parseFloat(paymentAmount)) && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <Label>Total</Label>
-                        <div className="text-xl font-bold">{formatCurrency(orderData.total)}</div>
-                      </div>
-                      <div className="space-y-1">
-                        <Label>Change</Label>
-                        <div className={`text-xl font-bold ${change < 0 ? "text-red-500" : ""}`}>
-                          {change < 0 ? "Insufficient" : formatCurrency(change)}
+                  {paymentAmount &&
+                    !isNaN(Number.parseFloat(paymentAmount)) && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <Label>Total</Label>
+                          <div className="text-xl font-bold">
+                            {formatCurrency(orderData.total)}
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label>Change</Label>
+                          <div
+                            className={`text-xl font-bold ${
+                              change < 0 ? "text-red-500" : ""
+                            }`}
+                          >
+                            {change < 0
+                              ? "Insufficient"
+                              : formatCurrency(change)}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </>
               )}
             </div>
@@ -341,6 +401,5 @@ export default function OrderSummaryPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
-

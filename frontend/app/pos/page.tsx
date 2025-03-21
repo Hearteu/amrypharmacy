@@ -1,74 +1,97 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { Checkbox } from "@/components/ui/checkbox"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Search, Plus, Minus, Trash2, FileText, User, CreditCard } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { PrescriptionForm } from "./components/PrescriptionForm"
-import { DSWDForm } from "./components/DSWDForm"
-
-// Sample product data
-const sampleProducts = [
-  { id: 1, name: "Paracetamol 500mg", price: 5.5, category: "Pain Relief" },
-  { id: 2, name: "Amoxicillin 500mg", price: 12.75, category: "Antibiotics" },
-  { id: 3, name: "Cetirizine 10mg", price: 8.25, category: "Allergy" },
-  { id: 4, name: "Vitamin C 500mg", price: 7.0, category: "Vitamins" },
-  { id: 5, name: "Losartan 50mg", price: 15.5, category: "Hypertension" },
-  { id: 6, name: "Metformin 500mg", price: 9.75, category: "Diabetes" },
-  { id: 7, name: "Omeprazole 20mg", price: 11.25, category: "Gastric" },
-  { id: 8, name: "Simvastatin 20mg", price: 14.0, category: "Cholesterol" },
-]
+import { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Search,
+  Plus,
+  Minus,
+  Trash2,
+  FileText,
+  User,
+  CreditCard,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { PrescriptionForm } from "./components/PrescriptionForm";
+import { DSWDForm } from "./components/DSWDForm";
 
 const branches = [
   { id: 1, name: "Asuncion" },
   { id: 2, name: "Talaingod" },
-]
+];
 
 interface Products {
-    product_id: number;
-    full_product_name: string;
-    price: number;
+  product_id: number;
+  full_product_name: string;
+  price: number;
 }
 export default function PosInterface() {
   const [cart, setCart] = useState<
     Array<{
-      product_id: number
-      full_product_name: string
-      price: number
-      quantity: number
+      product_id: number;
+      full_product_name: string;
+      price: number;
+      quantity: number;
     }>
-  >([])
+  >([]);
 
-  const [selectedBranch, setSelectedBranch] = useState("")
-  const [customerType, setCustomerType] = useState("regular")
-  const [hasPrescription, setHasPrescription] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedBranch, setSelectedBranch] = useState("");
+  const [customerType, setCustomerType] = useState("regular");
+  const [hasPrescription, setHasPrescription] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Products[]>([]);
 
-    useEffect(() => {
-      async function fetchSupplierItems() {    
-        try {
-          const response = await fetch(
-            `http://127.0.0.1:8000/pharmacy/products/`
-          );
-          const data: Products[] = await response.json();
-          setProducts(data);
-        } catch (error) {
-          console.error("❌ Error fetching supplier items:", error);
-        }
+  useEffect(() => {
+    async function fetchSupplierItems() {
+      try {
+        const response = await fetch(
+          `http://127.0.0.1:8000/pharmacy/products/`
+        );
+        const data: Products[] = await response.json();
+        setProducts(data);
+      } catch (error) {
+        console.error("❌ Error fetching supplier items:", error);
       }
-    
-      fetchSupplierItems();
-    }, []); 
+    }
+
+    fetchSupplierItems();
+  }, []);
 
   // Customer information for DSWD clients
   const [customerInfo, setCustomerInfo] = useState({
@@ -77,14 +100,16 @@ export default function PosInterface() {
     guaranteeLetterDate: "",
     receivedDate: "",
     invoiceNumber: "",
-  })
+  });
 
   // Discount information
   const [discountInfo, setDiscountInfo] = useState({
+    name: "",
+    address: "",
     type: "", // PWD or Senior
     idNumber: "",
     discountRate: 0.2, // 20% discount
-  })
+  });
 
   // Prescription information
   const [prescriptionInfo, setPrescriptionInfo] = useState({
@@ -93,54 +118,76 @@ export default function PosInterface() {
     PTRNumber: "",
     prescriptionDate: "",
     notes: "",
-  })
+  });
 
   // Add product to cart
   const addToCart = (product: any) => {
-    const existingItem = cart.find((item) => item.product_id === product.product_id)
+    const existingItem = cart.find(
+      (item) => item.product_id === product.product_id
+    );
 
     if (existingItem) {
-      setCart(cart.map((item) => (item.product_id === product.product_id ? { ...item, quantity: item.quantity + 1 } : item)))
+      setCart(
+        cart.map((item) =>
+          item.product_id === product.product_id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        )
+      );
     } else {
-      setCart([...cart, { ...product, quantity: 1 }])
+      setCart([...cart, { ...product, quantity: 1 }]);
     }
-  }
+  };
 
   // Update quantity
   const updateQuantity = (id: number, newQuantity: number) => {
     if (newQuantity <= 0) {
-      setCart(cart.filter((item) => item.product_id !== id))
+      setCart(cart.filter((item) => item.product_id !== id));
     } else {
-      setCart(cart.map((item) => (item.product_id === id ? { ...item, quantity: newQuantity } : item)))
+      setCart(
+        cart.map((item) =>
+          item.product_id === id ? { ...item, quantity: newQuantity } : item
+        )
+      );
     }
-  }
+  };
 
   // Remove item from cart
   const removeItem = (id: number) => {
-    setCart(cart.filter((item) => item.product_id !== id))
-  }
+    setCart(cart.filter((item) => item.product_id !== id));
+  };
 
   // Calculate subtotal
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const subtotal = cart.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
 
   // Calculate discount
-  const discount = (discountInfo.type === "pwd" || discountInfo.type === "senior") 
-  ? parseFloat((subtotal * discountInfo.discountRate).toFixed(2)) 
-  : 0;
+  const discount =
+    discountInfo.type === "pwd" || discountInfo.type === "senior"
+      ? parseFloat((subtotal * discountInfo.discountRate).toFixed(2))
+      : 0;
 
   useEffect(() => {
     if (customerType !== "regular") {
-      setDiscountInfo({ type: "", idNumber: "", discountRate: 0.2 });
+      setDiscountInfo({
+        name: "",
+        address: "",
+        type: "",
+        idNumber: "",
+        discountRate: 0.2,
+      });
     }
   }, [customerType]);
-  
+
   // Calculate total
-  const total = customerType === "dswd" ? 0 : subtotal - discount
+  const total = customerType === "dswd" ? 0 : subtotal - discount;
 
   // Filter products based on search term
   const filteredProducts = products.filter((product) =>
-    product.full_product_name.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+    product.full_product_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const router = useRouter();
 
@@ -159,19 +206,22 @@ export default function PosInterface() {
       total,
       timestamp: new Date(),
     };
-  
+
     // Save order to localStorage
     localStorage.setItem("orderSummary", JSON.stringify(orderData));
-  
+
     // Navigate to order summary page
     router.push("/pos/order-summary");
-  
+
     // Debugging: Log order details
     console.log({
       branch: selectedBranch,
       customerType,
       customerInfo: customerType === "dswd" ? customerInfo : null,
-      discountInfo: customerType === "pwd" || customerType === "senior" ? discountInfo : null,
+      discountInfo:
+        customerType === "pwd" || customerType === "senior"
+          ? discountInfo
+          : null,
       prescription: hasPrescription ? prescriptionInfo : null,
       items: cart,
       subtotal,
@@ -179,7 +229,7 @@ export default function PosInterface() {
       total,
       timestamp: new Date(),
     });
-  
+
     // Clear cart and reset form
     setCart([]);
     setCustomerType("regular");
@@ -192,11 +242,13 @@ export default function PosInterface() {
       invoiceNumber: "",
     });
     setDiscountInfo({
+      name: "",
+      address: "",
       type: "",
       idNumber: "",
       discountRate: 0.2,
     });
-    setPrescriptionInfo({ 
+    setPrescriptionInfo({
       doctorName: "",
       PTRNumber: "",
       PRCNumber: "",
@@ -204,7 +256,6 @@ export default function PosInterface() {
       notes: "",
     });
   };
-  
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 p-4">
@@ -234,17 +285,21 @@ export default function PosInterface() {
                     onClick={() => addToCart(product)}
                   >
                     <CardHeader className="p-4 pb-2">
-                      <CardTitle className="text-base">{product.full_product_name}</CardTitle>
+                      <CardTitle className="text-base">
+                        {product.full_product_name}
+                      </CardTitle>
                       {/* <CardDescription>{product.category}</CardDescription> */}
                     </CardHeader>
                     <CardFooter className="p-4 pt-2 flex justify-between">
-                      <span className="font-medium">₱{product.price.toFixed(2)}</span>
+                      <span className="font-medium">
+                        ₱{product.price.toFixed(2)}
+                      </span>
                       <Button
                         size="sm"
                         variant="secondary"
                         onClick={(e) => {
-                          e.stopPropagation()
-                          addToCart(product)
+                          e.stopPropagation();
+                          addToCart(product);
                         }}
                       >
                         <Plus className="h-4 w-4 mr-1" /> Add
@@ -279,7 +334,11 @@ export default function PosInterface() {
             </div>
 
             <div className="flex gap-2 mt-4">
-              <Tabs value={customerType} onValueChange={setCustomerType} className="w-full">
+              <Tabs
+                value={customerType}
+                onValueChange={setCustomerType}
+                className="w-full"
+              >
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="regular">Regular</TabsTrigger>
                   <TabsTrigger value="dswd">DSWD</TabsTrigger>
@@ -297,7 +356,10 @@ export default function PosInterface() {
                   </Button>
                 </SheetTrigger>
                 <SheetContent>
-                  <DSWDForm customerInfo={customerInfo} setCustomerInfo={setCustomerInfo} />
+                  <DSWDForm
+                    customerInfo={customerInfo}
+                    setCustomerInfo={setCustomerInfo}
+                  />
                 </SheetContent>
               </Sheet>
             )}
@@ -313,14 +375,44 @@ export default function PosInterface() {
                 <SheetContent>
                   <SheetHeader>
                     <SheetTitle>Discount Information</SheetTitle>
-                    <SheetDescription>Enter PWD or Senior Citizen details</SheetDescription>
+                    <SheetDescription>
+                      Enter PWD or Senior Citizen details
+                    </SheetDescription>
                   </SheetHeader>
                   <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="name">Pateient Name</Label>
+                      <Input
+                        id="name"
+                        value={discountInfo.name}
+                        onChange={(e) =>
+                          setDiscountInfo({
+                            ...discountInfo,
+                            name: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="address">Address</Label>
+                      <Input
+                        id="address"
+                        value={discountInfo.address}
+                        onChange={(e) =>
+                          setDiscountInfo({
+                            ...discountInfo,
+                            address: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
                     <div className="grid gap-2">
                       <Label htmlFor="discount-type">Discount Type</Label>
                       <Select
                         value={discountInfo.type}
-                        onValueChange={(value) => setDiscountInfo({ ...discountInfo, type: value })}
+                        onValueChange={(value) =>
+                          setDiscountInfo({ ...discountInfo, type: value })
+                        }
                       >
                         <SelectTrigger id="discount-type">
                           <SelectValue placeholder="Select type" />
@@ -336,7 +428,12 @@ export default function PosInterface() {
                       <Input
                         id="id-number"
                         value={discountInfo.idNumber}
-                        onChange={(e) => setDiscountInfo({ ...discountInfo, idNumber: e.target.value })}
+                        onChange={(e) =>
+                          setDiscountInfo({
+                            ...discountInfo,
+                            idNumber: e.target.value,
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -348,7 +445,9 @@ export default function PosInterface() {
               <Checkbox
                 id="prescription"
                 checked={hasPrescription}
-                onCheckedChange={(checked) => setHasPrescription(checked as boolean)}
+                onCheckedChange={(checked) =>
+                  setHasPrescription(checked as boolean)
+                }
               />
               <label
                 htmlFor="prescription"
@@ -367,7 +466,10 @@ export default function PosInterface() {
                   </Button>
                 </SheetTrigger>
                 <SheetContent>
-                  <PrescriptionForm prescriptionInfo={prescriptionInfo} setPrescriptionInfo={setPrescriptionInfo} />
+                  <PrescriptionForm
+                    prescriptionInfo={prescriptionInfo}
+                    setPrescriptionInfo={setPrescriptionInfo}
+                  />
                 </SheetContent>
               </Sheet>
             )}
@@ -375,7 +477,9 @@ export default function PosInterface() {
 
           <CardContent className="flex-grow overflow-auto">
             {cart.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">No items in cart. Add products to begin.</div>
+              <div className="text-center py-8 text-muted-foreground">
+                No items in cart. Add products to begin.
+              </div>
             ) : (
               <Table>
                 <TableHeader>
@@ -389,29 +493,39 @@ export default function PosInterface() {
                 <TableBody>
                   {cart.map((item) => (
                     <TableRow key={item.product_id}>
-                      <TableCell className="font-medium">{item.full_product_name}</TableCell>
+                      <TableCell className="font-medium">
+                        {item.full_product_name}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end">
                           <Button
                             variant="outline"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
+                            onClick={() =>
+                              updateQuantity(item.product_id, item.quantity - 1)
+                            }
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
-                          <span className="w-8 text-center">{item.quantity}</span>
+                          <span className="w-8 text-center">
+                            {item.quantity}
+                          </span>
                           <Button
                             variant="outline"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                            onClick={() =>
+                              updateQuantity(item.product_id, item.quantity + 1)
+                            }
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">₱{(item.price * item.quantity).toFixed(2)}</TableCell>
+                      <TableCell className="text-right">
+                        ₱{(item.price * item.quantity).toFixed(2)}
+                      </TableCell>
                       <TableCell className="text-right">
                         <Button
                           variant="ghost"
@@ -445,23 +559,30 @@ export default function PosInterface() {
 
               <div className="flex justify-between font-bold text-lg">
                 <span>Total:</span>
-                <span>{customerType === "dswd" ? "FREE" : `₱${total.toFixed(2)}`}</span>
+                <span>
+                  {customerType === "dswd" ? "FREE" : `₱${total.toFixed(2)}`}
+                </span>
               </div>
 
               <Button
                 className="w-full mt-4"
                 size="lg"
-                disabled={cart.length === 0 || !selectedBranch || (customerType === "dswd" && !customerInfo.name)}
-                onClick={(handleCheckout)}
+                disabled={
+                  cart.length === 0 ||
+                  !selectedBranch ||
+                  (customerType === "dswd" && !customerInfo.name)
+                }
+                onClick={handleCheckout}
               >
                 <CreditCard className="mr-2 h-4 w-4" />
-                {customerType === "dswd" ? "Complete Transaction" : "Proceed to Payment"}
+                {customerType === "dswd"
+                  ? "Complete Transaction"
+                  : "Proceed to Payment"}
               </Button>
             </div>
           </CardFooter>
         </Card>
       </div>
     </div>
-  )
+  );
 }
-
