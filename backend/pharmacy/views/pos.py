@@ -176,19 +176,6 @@ class POS(APIView):
         except Exception as e:
             print(f"❌ Exception: {str(e)}")  # Debugging
             return Response({"error": str(e)}, status=500)
-
- 
-    def put(self, request, pos_id):
-        data = request.data
-        try:
-            response = supabase.table("POS").update(data).eq('pos_id', pos_id).execute()
-
-            if response.data:
-                return Response(response.data, status=200)
-            else:
-                return Response({"error": "POS not found or update failed"}, status=400)
-        except Exception as e:
-            return Response({"error": str(e)}, status=400)
    
     def delete(self, request, pos_id):
         try:
