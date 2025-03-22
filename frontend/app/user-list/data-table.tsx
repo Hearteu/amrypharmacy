@@ -25,8 +25,8 @@ import {
 
 import { Input } from "@/components/ui/input";
 
-import { DataTablePagination } from "@/components/table/DataTablePagination";
-import { DataTableViewOptions } from "@/components/table/DataTableViewOptions";
+import { DataTablePagination } from "@/components/data-table/DataTablePagination";
+import { DataTableViewOptions } from "@/components/data-table/DataTableViewOptions";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -42,8 +42,8 @@ export function DataTable<TData, TValue>({
     []
   );
   const [columnVisibility, setColumnVisibility] =
-  React.useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = React.useState({})
+    React.useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = React.useState({});
 
   const table = useReactTable({
     data,
@@ -70,13 +70,15 @@ export function DataTable<TData, TValue>({
       <div className="flex items-center pt-4">
         <Input
           placeholder="Search Name..."
-          value={(table.getColumn("full_name")?.getFilterValue() as string) ?? ""}
+          value={
+            (table.getColumn("full_name")?.getFilterValue() as string) ?? ""
+          }
           onChange={(event) =>
             table.getColumn("full_name")?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
         />
-        <DataTableViewOptions table={table}/>
+        <DataTableViewOptions table={table} />
       </div>
       {/* Table */}
       <div className="rounded-md border my-4">

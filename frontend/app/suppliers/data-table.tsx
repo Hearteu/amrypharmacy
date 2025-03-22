@@ -24,9 +24,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { DataTableViewOptions } from "@/components/table/DataTableViewOptions";
-import { DataTablePagination } from "@/components/table/DataTablePagination";
-
+import { DataTableViewOptions } from "@/components/data-table/DataTableViewOptions";
+import { DataTablePagination } from "@/components/data-table/DataTablePagination";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -42,8 +41,8 @@ export function DataTable<TData, TValue>({
     []
   );
   const [columnVisibility, setColumnVisibility] =
-  React.useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = React.useState({})
+    React.useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = React.useState({});
 
   const table = useReactTable({
     data,
@@ -72,10 +71,13 @@ export function DataTable<TData, TValue>({
           <Input
             placeholder="Search Item..."
             value={
-              (table.getColumn("supplier_name")?.getFilterValue() as string) ?? ""
+              (table.getColumn("supplier_name")?.getFilterValue() as string) ??
+              ""
             }
             onChange={(event) =>
-              table.getColumn("supplier_name")?.setFilterValue(event.target.value)
+              table
+                .getColumn("supplier_name")
+                ?.setFilterValue(event.target.value)
             }
             className="max-w-sm"
           />

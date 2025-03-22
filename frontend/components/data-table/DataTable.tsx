@@ -25,25 +25,27 @@ import {
 
 import { Input } from "@/components/ui/input";
 
-import { DataTablePagination } from "@/components/table/DataTablePagination";
-import { DataTableViewOptions } from "@/components/table/DataTableViewOptions";
+import { DataTablePagination } from "@/components/data-table/DataTablePagination";
+import { DataTableViewOptions } from "@/components/data-table/DataTableViewOptions";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  search: string;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  search,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
   const [columnVisibility, setColumnVisibility] =
-  React.useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = React.useState({})
+    React.useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = React.useState({});
 
   const table = useReactTable({
     data,
@@ -69,14 +71,14 @@ export function DataTable<TData, TValue>({
       {/* Search */}
       <div className="flex items-center">
         <Input
-          placeholder="Search Product..."
-          value={(table.getColumn("full_product_name")?.getFilterValue() as string) ?? ""}
+          placeholder="Search..."
+          value={(table.getColumn(search)?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
-            table.getColumn("full_product_name")?.setFilterValue(event.target.value)
+            table.getColumn(search)?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
         />
-        <DataTableViewOptions table={table}/>
+        <DataTableViewOptions table={table} />
       </div>
       {/* Table */}
       <div className="rounded-md border my-4">

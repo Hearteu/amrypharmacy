@@ -1,8 +1,8 @@
 "use client"; // Ensure this is at the top to use hooks
 
 import { useState, useEffect } from "react";
-import { DataTable } from "./data-table";
-import { columns } from "./columns";
+import { DataTable } from "../../components/data-table/DataTable";
+import { columns } from "./components/Columns";
 import {
   Dialog,
   DialogContent,
@@ -12,17 +12,10 @@ import {
 } from "@/components/ui/dialog";
 
 import { Button } from "@/components/ui/button";
-import AddProductForm from "@/components/forms/AddProductForm";
 import { PlusCircle } from "lucide-react";
-
-interface Products {
-  product_id: number;
-  full_product_name: string;
-  category: string;
-  price: string;
-  net_content: string;
-  unit: string;
-}
+import { Products } from "../lib/types/inventory/products";
+import { getProductData } from "@/app/lib/services/inventory";
+import AddProductForm from "./components/AddProductForm";
 
 export default function ProducList() {
   const [data, setData] = useState<Products[]>([]);
@@ -30,41 +23,19 @@ export default function ProducList() {
   const [error, setError] = useState<string | null>(null); // Error state
   const [open, setOpen] = useState(false);
 
-  async function getData(): Promise<Products[]> {
+  const refreshData = async () => {
+    console.log("Refreshing data...");
+    setLoading(true);
     try {
-      const prodRes = await fetch("http://127.0.0.1:8000/pharmacy/products/");
-
-      if (!prodRes.ok) {
-        throw new Error("Failed to fetch data");
-      }
-
-      const prodData: Products[] = await prodRes.json();
-
-      const productData: Products[] = prodData.map((product) => ({
-        product_id: product.product_id,
-        full_product_name: product.full_product_name,
-        category: product.category,
-        price: product.price,
-        net_content: product.net_content,
-        unit: product.unit,
-      }));
-
-      return productData;
-    } catch (error) {
+      const productsData = await getProductData();
+      setData(productsData);
+    } catch {
       console.error("Error fetching data", error);
       setError("Failed to load products");
-      return [];
+      setData([]);
     } finally {
       setLoading(false);
     }
-  }
-
-  const refreshData = () => {
-    console.log("Refreshing data...");
-    getData().then((fetchedData) => {
-      setData(fetchedData);
-      setLoading(false);
-    });
   };
 
   const tableColumns = columns(refreshData);
@@ -72,7 +43,7 @@ export default function ProducList() {
   useEffect(() => {
     refreshData();
   }, []);
-  
+
   if (error) return <p>{error}</p>;
 
   return (
@@ -100,8 +71,7 @@ export default function ProducList() {
                   <DialogTitle>Add New Product</DialogTitle>
                 </DialogHeader>
                 <AddProductForm
-                  onSuccess={(data) => {
-                    console.log("Columns", data);
+                  onSuccess={() => {
                     setOpen(false);
                     refreshData();
                   }}
@@ -113,7 +83,11 @@ export default function ProducList() {
             <p className="text-center text-gray-500">Loading...</p>
           ) : (
             <>
-              <DataTable columns={tableColumns} data={data} />
+              <DataTable
+                columns={tableColumns}
+                data={data}
+                search="full_product_name"
+              />
             </>
           )}
         </div>
