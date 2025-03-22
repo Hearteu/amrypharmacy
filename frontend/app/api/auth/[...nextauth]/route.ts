@@ -2,6 +2,13 @@ import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import axios from "axios";
 
+interface JWTTokenProps {
+    token: string;
+    user: string;
+    role_name: string
+    account: string;
+}
+
 export const authOptions = {
     pages: {
         signIn: '/'
@@ -14,13 +21,17 @@ export const authOptions = {
                 username: { label: "Username", type: "text", placeholder: "jsmith" },
                 password: { label: "Password", type: "password" }
             },
-            async authorize(credentials, req) {
+            async authorize(credentials) {
                 // You need to provide your own logic here that takes the credentials
                 // submitted and returns either a object representing a user or value
                 // that is false/null if the credentials are invalid.
                 // e.g. return { id: 1, name: 'J Smith', email: 'jsmith@example.com' }
                 // You can also use the `req` object to obtain additional parameters
                 // (i.e., the request IP address)
+                if (!credentials) {
+                    throw new Error("Missing credentials");
+                }
+
                 const { username, password } = credentials
                 try {
                     const res = await axios.post(
@@ -45,7 +56,7 @@ export const authOptions = {
         strategy: 'jwt'
     },
     callbacks: {
-        async jwt({ token, user, account }) {
+        async jwt({ token, user, account }: JWTTokenProps) {
             if (account) {
                 token.user_id = user.user_id
                 token.username = user.username

@@ -1,9 +1,13 @@
 import { signOut, signIn } from "next-auth/react"
 
-const login = async (credentials: Record<"username" | "password" | "role_name", string> | undefined) => {
+interface Record {
+    username: string;
+    password: string;
+}
+const login = async (credentials: Record | undefined) => {
     try {
         await signOut({ redirect: false })
-        const response = await signIn("django-auth", { redirect: false, username: credentials?.username, password: credentials?.password, role_name: credentials?.role_name })
+        const response = await signIn("django-auth", { redirect: false, username: credentials?.username, password: credentials?.password })
 
         if (response && !response?.ok) {
             throw response
