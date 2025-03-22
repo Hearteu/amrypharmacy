@@ -5,7 +5,12 @@ import { Button } from "@/components/ui/button";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import EditUserForm from "@/components/forms/EditUserForm";
-import { Dialog, DialogContent, DialogHeader, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useState } from "react";
 import { DialogDescription, DialogTitle } from "@radix-ui/react-dialog";
 
@@ -32,25 +37,29 @@ const EditUserDialog = ({ user_id, onSuccess }: EditUserDialogProps) => {
       <DialogTrigger asChild>
         <Button>Edit</Button>
       </DialogTrigger>
-
-      {/* Always keep DialogContent rendered */}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit User Details</DialogTitle>
-          <DialogDescription>Update the user&apos;s information</DialogDescription>
+          <DialogDescription>
+            Update the user&apos;s information
+          </DialogDescription>
         </DialogHeader>
-         <EditUserForm user_id={user_id} onSuccess={(data) => { 
-            console.log("From the columns component", data)
+        <EditUserForm
+          user_id={user_id}
+          onSuccess={(data) => {
+            console.log("From the columns component", data);
             setOpen(false);
-            onSuccess()
-          }
-        } />
+            onSuccess();
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
 };
 
-export const columns: (onSuccess: () => void) => ColumnDef<MergedData>[] = (onSuccess) => [
+export const columns: (onSuccess: () => void) => ColumnDef<MergedData>[] = (
+  onSuccess
+) => [
   {
     id: "select",
     header: ({ table }) => (
@@ -151,10 +160,14 @@ export const columns: (onSuccess: () => void) => ColumnDef<MergedData>[] = (onSu
     id: "actions",
     cell: ({ row }) => {
       const user = row.original;
-      return <EditUserDialog user_id={user.user_id} onSuccess={(data) => {
-        console.log("Data", data)
-        onSuccess()
-      }} />;
+      return (
+        <EditUserDialog
+          user_id={user.user_id}
+          onSuccess={() => {
+            onSuccess();
+          }}
+        />
+      );
     },
-  }
+  },
 ];

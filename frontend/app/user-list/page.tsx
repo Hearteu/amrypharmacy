@@ -1,8 +1,8 @@
 "use client"; // Ensure this is at the top to use hooks
 
 import { useState, useEffect } from "react";
-import { DataTable } from "./data-table";
-import { columns } from "./columns";
+import { DataTable } from "../../components/data-table/DataTable";
+
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import RegisterForm from "@/components/forms/RegisterForm";
 import { PlusCircle } from "lucide-react";
+import { columns } from "./components/columns";
 
 interface User {
   user_id: number;
@@ -143,7 +144,11 @@ export default function UserList() {
             <p className="text-center text-gray-500">Loading...</p>
           ) : (
             <>
-              <DataTable columns={tableColumns} data={data} />
+              <DataTable
+                columns={tableColumns}
+                data={data}
+                search="full_name"
+              />
             </>
           )}
         </div>
