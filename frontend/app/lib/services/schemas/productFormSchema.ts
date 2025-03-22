@@ -47,3 +47,59 @@ export const useProductForm = (productData: ProductDetails | null) => {
 
     return { form, resetForm }
 }
+
+export const medFormSchema = z.object({
+    product_name: z.string().min(2),
+    category_id: z.string(),
+    brand_id: z.string(),
+    current_price: z.string(),
+    dosage_strength: z.string(),
+    dosage_form: z.string(),
+    net_content: z.string(),
+    unit_id: z.string(),
+});
+
+export const useMedProductForm = () => {
+    const medForm = useForm<z.infer<typeof medFormSchema>>({
+        resolver: zodResolver(medFormSchema),
+        defaultValues: {
+            product_name: "",
+            category_id: "",
+            current_price: "",
+            dosage_strength: "",
+            dosage_form: "",
+            net_content: "",
+            unit_id: "",
+        },
+        mode: "onChange",
+    });
+
+    return medForm;
+}
+
+export const nonMedFormSchema = z.object({
+    product_name: z.string().min(2),
+    category_id: z.string(),
+    brand_id: z.string(),
+    current_price: z.string(),
+    net_content: z.string(),
+    unit_id: z.string(),
+});
+
+export const useNonMedProductForm = () => {
+    const nonMedForm = useForm<z.infer<typeof nonMedFormSchema>>({
+        resolver: zodResolver(nonMedFormSchema),
+        defaultValues: {
+            product_name: "",
+            category_id: "",
+            brand_id: "",
+            current_price: "",
+            net_content: "",
+            unit_id: "",
+        },
+        mode: "onChange",
+    });
+
+    return nonMedForm
+}
+

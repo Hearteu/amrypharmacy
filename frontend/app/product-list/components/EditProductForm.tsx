@@ -40,6 +40,7 @@ import { Category } from "@/app/lib/types/inventory/category";
 import { Unit } from "@/app/lib/types/inventory/unit";
 import { getCategory } from "@/app/lib/services/category";
 import { getUnit } from "@/app/lib/services/units";
+import { getProductData } from "@/app/lib/services/inventory";
 
 export default function EditProductForm({
   product_id,
@@ -47,38 +48,6 @@ export default function EditProductForm({
 }: ProductFormProps) {
   const [productData, setProductData] = useState<ProductDetails | null>(null);
   const { form, resetForm } = useProductForm(productData);
-
-  //Fetch product details
-  useEffect(() => {
-    const fetchProductData = async () => {
-      try {
-        const productResponse = await axios.get(
-          `http://127.0.0.1:8000/pharmacy/products/${product_id}/`
-        );
-
-        console.log("Raw API Response:", productResponse.data);
-
-        // Ensure productData is an object, not an array
-        const product = Array.isArray(productResponse.data)
-          ? productResponse.data[0] // If it's an array, get the first item
-          : productResponse.data; // Otherwise, use it directly
-
-        if (product) {
-          setProductData(product);
-          // console.log("Product data set successfully:", product);
-        } else {
-          console.warn("API returned no product data.");
-        }
-      } catch (error) {
-        console.error("Error fetching product:", error);
-      }
-    };
-
-    if (product_id) {
-      console.log(`Fetching product data for product_id: ${product_id}`);
-      fetchProductData(); // ✅ Call the function!
-    }
-  }, [product_id]);
 
   useEffect(() => {
     resetForm();
@@ -96,6 +65,8 @@ export default function EditProductForm({
 
   const refreshData = async () => {
     try {
+      const productData = await getProductData({ product_id });
+      setProductData(productData);
       const brandData = await getBrand();
       setBrands(brandData);
       const catData = await getCategory();

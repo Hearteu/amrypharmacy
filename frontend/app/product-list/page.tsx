@@ -6,6 +6,7 @@ import { columns } from "./components/Columns";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -14,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { Products } from "../lib/types/inventory/products";
-import { getProductData } from "@/app/lib/services/inventory";
+import { getProductsData } from "@/app/lib/services/inventory";
 import AddProductForm from "./components/AddProductForm";
 
 export default function ProducList() {
@@ -27,7 +28,7 @@ export default function ProducList() {
     console.log("Refreshing data...");
     setLoading(true);
     try {
-      const productsData = await getProductData();
+      const productsData = await getProductsData();
       setData(productsData);
     } catch {
       console.error("Error fetching data", error);
@@ -69,6 +70,10 @@ export default function ProducList() {
               <DialogContent className="w-auto">
                 <DialogHeader>
                   <DialogTitle>Add New Product</DialogTitle>
+                  <DialogDescription>
+                    Fill in the details below to add a new product to the
+                    inventory.
+                  </DialogDescription>
                 </DialogHeader>
                 <AddProductForm
                   onSuccess={() => {

@@ -5,10 +5,8 @@ import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { zodResolver } from "@hookform/resolvers/zod";
-import axios, { AxiosResponse } from "axios";
+import axios from "axios";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { useForm } from "react-hook-form";
 import { z } from "zod";
 import {
   Command,
@@ -31,98 +29,61 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { getBrand } from "@/app/lib/services/brand";
+import { getCategory } from "@/app/lib/services/category";
+import { getUnit } from "@/app/lib/services/units";
+import { Brand } from "@/app/lib/types/inventory/brand";
+import { Category } from "@/app/lib/types/inventory/category";
+import { Unit } from "@/app/lib/types/inventory/unit";
+import {
+  medFormSchema,
+  nonMedFormSchema,
+  useMedProductForm,
+  useNonMedProductForm,
+} from "@/app/lib/services/schemas/productFormSchema";
 
-const medFormSchema = z.object({
-  product_name: z.string().min(2),
-  category_id: z.string(),
-  brand_id: z.string(),
-  current_price: z.string(),
-  dosage_strength: z.string(),
-  dosage_form: z.string(),
-  net_content: z.string(),
-  unit_id: z.string(),
-});
-
-const nonMedFormSchema = z.object({
-  product_name: z.string().min(2),
-  category_id: z.string(),
-  brand_id: z.string(),
-  current_price: z.string(),
-  net_content: z.string(),
-  unit_id: z.string(),
-});
-
-interface Unit {
-  unit_id: number;
-  unit: string;
-}
-
-interface Brand {
-  brand_id: number;
-  brand_name: string;
-}
-
-interface Category {
-  category_id: number;
-  category_name: string;
-}
-
-interface AddFormProps {
-  onSuccess: (data: AxiosResponse) => void;
-}
-
-export default function AddProductForm({ onSuccess }: AddFormProps) {
-  const medicineForm = useForm<z.infer<typeof medFormSchema>>({
-    resolver: zodResolver(medFormSchema),
-    defaultValues: {
-      product_name: "",
-      category_id: "",
-      current_price: "",
-      dosage_strength: "",
-      dosage_form: "",
-      net_content: "",
-      unit_id: "",
-    },
-  });
-
-  const nonMedForm = useForm<z.infer<typeof nonMedFormSchema>>({
-    resolver: zodResolver(nonMedFormSchema),
-    defaultValues: {
-      product_name: "",
-      category_id: "",
-      brand_id: "",
-      current_price: "",
-      net_content: "",
-      unit_id: "",
-    },
-  });
+export default function AddProductForm({
+  onSuccess,
+}: {
+  onSuccess: () => void;
+}) {
+  const medicineForm = useMedProductForm();
+  const nonMedForm = useNonMedProductForm();
 
   //For the combobox
-
-  //Fetch  Brand for combobox
 
   const [brands, setBrands] = useState<Brand[]>([]);
   const [brandOpen, setBrandOpen] = useState(false);
   const [inputBrand, setInputBrand] = useState("");
+  const [cats, setCat] = useState<Category[]>([]);
+  const [catOpen, setCatOpen] = useState(false);
+  const [inputCat, setInputCat] = useState("");
+  const [unit, setUnit] = useState<Unit[]>([]);
+  const [measureOpen, setMeasureOpen] = useState(false);
+  const [inputUnit, setInputUnit] = useState("");
 
-  const fetchBrand = async () => {
-    // ✅ Move fetchBrand outside
+  const refreshData = async () => {
     try {
-      const brandRes = await fetch("http://127.0.0.1:8000/pharmacy/brands/");
-      const brandData: Brand[] = await brandRes.json();
+      const brandData = await getBrand();
       setBrands(brandData);
+      const catData = await getCategory();
+      setCat(catData);
+      const unitData = await getUnit();
+      setUnit(unitData);
     } catch (error) {
-      console.error("Error fetching brand data", error);
+      console.error("Error fetching data", error);
+      setBrands([]);
+      setCat([]);
+      setUnit([]);
     }
   };
 
   useEffect(() => {
-    fetchBrand();
+    refreshData();
   }, []);
 
   const addNewBrand = async (brandName: string) => {
     const trimmedBrandName = brandName.trim();
-
     if (
       trimmedBrandName === "" ||
       brands.some(
@@ -142,37 +103,14 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
         );
 
         if (response.status === 201) {
-          await fetchBrand();
           setInputBrand(brandName);
+          await refreshData();
         }
       } catch (error) {
         console.error("❌ Error adding brand:", error);
       }
     }
   };
-
-  //Fetch Category for combobox
-
-  const [cats, setCat] = useState<Category[]>([]);
-  const [catOpen, setCatOpen] = useState(false);
-  const [inputCat, setInputCat] = useState("");
-
-  const fetchCategory = async () => {
-    try {
-      const measurementRes = await fetch(
-        "http://127.0.0.1:8000/pharmacy/product-categories/"
-      );
-      const catData: Category[] = await measurementRes.json();
-
-      setCat(catData);
-    } catch (error) {
-      console.error("Error fetching measurement data:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchCategory();
-  }, []);
 
   const addNewCat = async (catName: string) => {
     const trimmedCatName = catName.trim();
@@ -196,35 +134,14 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
         );
 
         if (response.status === 201) {
-          await fetchCategory();
           setInputCat(catName);
+          await refreshData();
         }
       } catch (error) {
         console.error("❌ Error adding category:", error);
       }
     }
   };
-
-  //Fetch Unit of Measurement combobox
-
-  const [unit, setUnit] = useState<Unit[]>([]);
-  const [measureOpen, setMeasureOpen] = useState(false);
-  const [inputUnit, setInputUnit] = useState("");
-
-  const fetchUnit = async () => {
-    try {
-      const unitRes = await fetch("http://127.0.0.1:8000/pharmacy/unit/");
-      const unitData: Unit[] = await unitRes.json();
-
-      setUnit(unitData);
-    } catch (error) {
-      console.error("Error fetching measurement data:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchUnit();
-  }, []);
 
   const addNewUnit = async (unitName: string) => {
     const trimmedUnitName = unitName.trim();
@@ -247,8 +164,8 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
         );
 
         if (response.status === 201) {
-          await fetchUnit();
           setInputUnit(unitName);
+          await refreshData();
         }
       } catch (error) {
         console.error("❌ Error adding unit:", error);
@@ -256,11 +173,10 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
     }
   };
 
-  const handleBrandKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleBrandKeyDown = async (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" && inputBrand) {
       e.preventDefault();
       addNewBrand(inputBrand);
-      fetchBrand();
     }
   };
 
@@ -268,7 +184,6 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
     if (e.key === "Enter" && inputCat) {
       e.preventDefault();
       addNewCat(inputCat);
-      fetchCategory();
     }
   };
 
@@ -276,7 +191,6 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
     if (e.key === "Enter" && inputUnit) {
       e.preventDefault();
       addNewUnit(inputUnit);
-      fetchUnit();
     }
   };
 
@@ -286,7 +200,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
         "http://127.0.0.1:8000/pharmacy/products/",
         values
       );
-      onSuccess(response.data);
+      onSuccess();
       console.log(response.data);
     } catch (error) {
       console.log("Error adding new product:", error);
@@ -301,10 +215,9 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
     try {
       const response = await axios.post(
         "http://127.0.0.1:8000/pharmacy/products/",
-
         values
       );
-      onSuccess(response.data);
+      onSuccess();
       console.log(response.data);
     } catch (error) {
       console.log("Error adding new product:", error);
