@@ -29,105 +29,154 @@ class POS(APIView):
             return Response({"error": str(e)}, status=500)
         
     def post(self, request):
-        """Create a new POS transaction with detailed customer and discount info"""
+        """Create a new POS transaction with detailed customer, discount, and prescription handling."""
         try:
             data = request.data
             print(f"🟢 Received POS request data: {data}")  # Debugging
-            # return Response({"message": "POS transaction created successfully"}, status=201)
 
             current_year = datetime.now().year
 
-            # Fetch the latest pos_id for the current year
+            # Fetch latest pos_id for invoice number generation
             latest_pos_query = supabase.table("POS").select("pos_id") \
-                .like("pos_id", f"POS-{current_year}-%") \
                 .order("pos_id", desc=True) \
                 .limit(1) \
                 .execute()
 
-            if latest_pos_query.data:
-                latest_pos_id = latest_pos_query.data[0]["pos_id"]
-                last_number = int(latest_pos_id.split("-")[-1])  # Extract last number
-                next_number = f"{last_number + 1:03d}"  # Increment and format as 3 digits
-            else:
-                next_number = "001"  # Start with 001 if no previous transactions exist
-
-            # Generate the new pos_id
-            pos_id = f"POS-{current_year}-{next_number}"
-            print(f"🟢 Generated POS ID: {pos_id}")  # Debugging
+            pos_id = latest_pos_query.data[0]["pos_id"] + 1 if latest_pos_query.data else 1
+            invoice_number = f"POS-{current_year}-{pos_id:03d}"
 
             transaction_date = datetime.fromisoformat(data["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
 
-            customer_insert = supabase.table("Customers").insert({
-                "customer_type": data["customerType"],
-                "customer_name": data["customerInfo"]["name"],
-            }).execute()
+            customer_id = None
+            if data["customerType"] != "regular":
+                # Extract first and last name for Person table
+                name_parts = data["customerInfo"]["name"].split()
+                first_name = " ".join(name_parts[:-1]) if len(name_parts) > 1 else name_parts[0]
+                last_name = name_parts[-1] if len(name_parts) > 1 else ""
 
-            # ✅ Insert into POS table
+                # ✅ Fix: Check if person exists before inserting
+                person_query = supabase.table("Person").select("person_id") \
+                    .eq("first_name", first_name) \
+                    .eq("last_name", last_name) \
+                    .limit(1).execute()
+                if person_query.data:
+                    person_id = person_query.data[0]["person_id"]
+                else:
+                    person_insert = supabase.table("Person").insert({
+                        "first_name": first_name,
+                        "last_name": last_name,
+                        "address": None,
+                        "contact": None,
+                        "email": None
+                    }).execute()
+                    person_id = person_insert.data[0]["person_id"]
+
+                # ✅ Fix: Check if customer type exists before inserting
+                customer_type_query = supabase.table("Customer_Type").select("customer_type_id") \
+                    .eq("description", data["customerType"]).limit(1).execute()
+                if customer_type_query.data:
+                    customer_type_id = customer_type_query.data[0]["customer_type_id"]
+                else:
+                    return Response({"error": "Invalid customer type"}, status=400)
+
+                # Insert into Customers table
+                customer_insert = supabase.table("Customers").insert({
+                    "person_id": person_id,
+                    "id_card_number": data["discountInfo"].get("idNumber"),
+                    "customer_type_id": customer_type_id
+                }).execute()
+                customer_id = customer_insert.data[0]["customer_id"]
+
+            # Insert into POS table
             pos_insert = supabase.table("POS").insert({
-                "pos_id": pos_id,
-                "branch": data["branch"],
-                "guarantee_letter_no": data["customerInfo"].get("guaranteeLetterNo"),
-                "customer_address": data["customerInfo"].get("address"),
-                "invoice_number": data["customerInfo"]["invoiceNumber"],
-                "discount": data["discount"],
-                "discount_type": data["discountInfo"].get("type"),
-                "discount_id_number": data["discountInfo"].get("idNumber"),
-                "discount_rate": data["discountInfo"].get("discountRate"),
-                "subtotal": data["subtotal"],
-                "total": data["total"],
-                "payment_amount": data["paymentAmount"],
-                "change": data["change"],
-                "transaction_date": transaction_date
+                "sale_date": transaction_date,
+                "user_id": None,  # Replace with actual user_id if available
+                "invoice": invoice_number
             }).execute()
 
-            if hasattr(pos_insert, "error") and pos_insert.error:
-                print(f"❌ Error inserting POS: {pos_insert.error}")
-                return Response({"error": str(pos_insert.error)}, status=500)
+            pos_transaction_id = pos_insert.data[0]["pos_id"]
+            print(f"🟢 POS Transaction Created: ID={pos_transaction_id}, Invoice={invoice_number}")  # Debugging
 
-            pos_transaction_id = pos_insert.data[0]["pos_transaction_id"]
-            print(f"🟢 POS Transaction Created: ID={pos_transaction_id}, Custom POS ID={pos_id}")  # Debugging
-
-            # ✅ Insert prescription info (if provided)
+            # Insert Prescription if available
             if "prescriptionInfo" in data:
                 prescription = data["prescriptionInfo"]
-                supabase.table("POS_Prescription").insert({
-                    "pos_transaction_id": pos_transaction_id,
-                    "doctor_name": prescription["doctorName"],
-                    "prescription_number": prescription["prescriptionNumber"],
-                    "prescription_date": datetime.fromisoformat(prescription["prescriptionDate"]).strftime("%Y-%m-%d"),
-                    "notes": prescription.get("notes", "")
+
+                # ✅ Fix: Check if physician exists in Physician table before inserting
+                physician_query = supabase.table("Physician").select("physician_id, person_id") \
+                    .eq("prc_num", prescription["PRCNumber"]) \
+                    .eq("ptr_num", prescription["PTRNumber"]) \
+                    .limit(1).execute()
+
+                if physician_query.data:
+                    # Physician already exists, reuse their ID
+                    physician_id = physician_query.data[0]["physician_id"]
+                    physician_person_id = physician_query.data[0]["person_id"]
+                else:
+                    # Check if doctor exists in Person table (avoid duplicate persons)
+                    person_query = supabase.table("Person").select("person_id") \
+                        .eq("first_name", prescription["doctorName"]).limit(1).execute()
+
+                    if person_query.data:
+                        physician_person_id = person_query.data[0]["person_id"]
+                    else:
+                        # Insert new person for doctor
+                        person_insert = supabase.table("Person").insert({
+                            "first_name": prescription["doctorName"],
+                            "last_name": "",
+                            "address": None,
+                            "contact": None,
+                            "email": None
+                        }).execute()
+                        physician_person_id = person_insert.data[0]["person_id"]
+
+                    # Insert into Physician table
+                    physician_insert = supabase.table("Physician").insert({
+                        "person_id": physician_person_id,
+                        "prc_num": prescription["PRCNumber"],
+                        "ptr_num": prescription["PTRNumber"]
+                    }).execute()
+                    physician_id = physician_insert.data[0]["physician_id"]
+
+                # Insert into Prescription table
+                prescription_insert = supabase.table("Prescription").insert({
+                    "customer_id": customer_id,
+                    "physician_id": physician_id,
+                    "prescription_details": prescription.get("notes", ""),
+                    "date_issued": prescription["prescriptionDate"]
                 }).execute()
-                print(f"🟢 Prescription info added for POS ID: {pos_id}")
 
-            # ✅ Insert line items
+                print(f"🟢 Prescription added for POS ID: {pos_transaction_id}")
+
+            # Insert into POS_Item table
             pos_items = []
-            for index, item in enumerate(data["items"], start=1):
-                print(f"🔹 Processing POS Item {index}: {item}")  # Debugging
-
+            for item in data["items"]:
                 pos_items.append({
-                    "pos_transaction_id": pos_transaction_id,
-                    "product_id": item["id"],
-                    "product_name": item["name"],
-                    "category": item["category"],
-                    "quantity": item["quantity"],
-                    "unit_price": item["price"],
-                    "subtotal": item["quantity"] * item["price"]
+                    "pos_id": pos_transaction_id,
+                    "product_id": item["product_id"],
+                    "price": item["price"],
+                    "quantity_sold": item["quantity"]
                 })
 
             if pos_items:
                 item_insert = supabase.table("POS_Item").insert(pos_items).execute()
-
-                if hasattr(item_insert, "get") and item_insert.get("error"):
-                    print(f"❌ Error inserting POS Items: {item_insert.get('error')}")
-                    return Response({"error": str(item_insert.get('error'))}, status=500)
-
                 print(f"🟢 Successfully inserted {len(pos_items)} items into POS_Item.")
 
-            return Response({"message": "POS transaction created successfully", "pos_id": pos_id}, status=201)
+            # Insert into DSWD_Order if applicable
+            if data["customerType"] == "dswd":
+                dswd_order_insert = supabase.table("DSWD_Order").insert({
+                    "patient_id": customer_id,
+                    "gl_num": data["customerInfo"].get("guaranteeLetterNo"),
+                    "gl_date": data["customerInfo"].get("guaranteeLetterDate"),
+                    "claim_date": data["customerInfo"].get("receivedDate")
+                }).execute()
+                print(f"🟢 DSWD Order added for patient ID: {customer_id}")
+
+            return Response({"message": "POS transaction created successfully", "pos_id": pos_transaction_id}, status=201)
 
         except Exception as e:
             print(f"❌ Exception: {str(e)}")  # Debugging
             return Response({"error": str(e)}, status=500)
+
  
     def put(self, request, pos_id):
         data = request.data
