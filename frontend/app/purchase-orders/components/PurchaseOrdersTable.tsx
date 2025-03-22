@@ -40,8 +40,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DataTableViewOptions } from "@/components/table/DataTableViewOptions";
-import { DataTablePagination } from "@/components/table/DataTablePagination";
+import { DataTableViewOptions } from "@/components/data-table/DataTableViewOptions";
+import { DataTablePagination } from "@/components/data-table/DataTablePagination";
 import axios from "axios";
 import {
   Popover,
@@ -189,7 +189,7 @@ export default function PurchaseOrdersTable() {
     {
       accessorKey: "status_id",
       header: "Status",
-      filterFn: "weakEquals", 
+      filterFn: "weakEquals",
       cell: ({ row }) => {
         const statusId = row.original.status_id;
         const [open, setOpen] = useState(false);
@@ -201,14 +201,14 @@ export default function PurchaseOrdersTable() {
         async function updateStatus(newStatusId: number) {
           try {
             const response = await axios.put(
-                `http://127.0.0.1:8000/pharmacy/purchase-orders/${row.original.purchase_order_id}/`,
-                { purchase_order_status_id: newStatusId },
-                { headers: { "Content-Type": "application/json" } }
-              );
-              setSelectedStatus(newStatusId);
-              row.original.status_id = newStatusId;
-              
-              console.log("✅ Status update response:", row.original.status_id);
+              `http://127.0.0.1:8000/pharmacy/purchase-orders/${row.original.purchase_order_id}/`,
+              { purchase_order_status_id: newStatusId },
+              { headers: { "Content-Type": "application/json" } }
+            );
+            setSelectedStatus(newStatusId);
+            row.original.status_id = newStatusId;
+
+            console.log("✅ Status update response:", row.original.status_id);
           } catch (error) {
             console.error("Error updating status:", error);
           }
@@ -361,8 +361,6 @@ export default function PurchaseOrdersTable() {
     },
     debugTable: true, // Helps with debugging
   });
-
-  
 
   return (
     <div className="space-y-4">

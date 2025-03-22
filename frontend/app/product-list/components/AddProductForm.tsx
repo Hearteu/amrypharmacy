@@ -17,7 +17,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "../ui/command";
+} from "@/components/ui/command";
 import {
   Form,
   FormControl,
@@ -25,8 +25,12 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "../ui/form";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+} from "@/components/ui/form";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const medFormSchema = z.object({
   product_name: z.string().min(2),
@@ -259,7 +263,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
       fetchBrand();
     }
   };
-  
+
   const handleCategoryKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" && inputCat) {
       e.preventDefault();
@@ -267,7 +271,7 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
       fetchCategory();
     }
   };
-  
+
   const handleUnitKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" && inputUnit) {
       e.preventDefault();
@@ -275,7 +279,6 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
       fetchUnit();
     }
   };
-  
 
   const onSubmit = async (values: z.infer<typeof medFormSchema>) => {
     try {
@@ -355,23 +358,26 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          {cats.find((cat) => cat.category_id.toString() == field.value)
-                            ?.category_name || "Select Category"}
+                          {cats.find(
+                            (cat) => cat.category_id.toString() == field.value
+                          )?.category_name || "Select Category"}
                           <ChevronsUpDown className="opacity-50" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-[200px] p-0">
                       <Command>
-                      <CommandInput
-                      placeholder="Search category..."
-                      className="h-9"
-                      value={inputCat}
-                      onValueChange={setInputCat}
-                      onKeyDown={handleCategoryKeyDown}
-                    />
+                        <CommandInput
+                          placeholder="Search category..."
+                          className="h-9"
+                          value={inputCat}
+                          onValueChange={setInputCat}
+                          onKeyDown={handleCategoryKeyDown}
+                        />
                         <CommandList>
-                          <CommandEmpty>Press ENTER to add New Category</CommandEmpty>
+                          <CommandEmpty>
+                            Press ENTER to add New Category
+                          </CommandEmpty>
                           <CommandGroup>
                             {cats.map((cat) => (
                               <CommandItem
@@ -420,11 +426,9 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          {
-                            brands.find(
-                              (brand) => brand.brand_id.toString() == field.value
-                            )?.brand_name || "Select Brand"
-                          }
+                          {brands.find(
+                            (brand) => brand.brand_id.toString() == field.value
+                          )?.brand_name || "Select Brand"}
                           <ChevronsUpDown className="opacity-50" />
                         </Button>
                       </FormControl>
@@ -545,23 +549,26 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          {unit.find((units) => units.unit_id.toString() == field.value)
-                            ?.unit || "Select Unit"}
+                          {unit.find(
+                            (units) => units.unit_id.toString() == field.value
+                          )?.unit || "Select Unit"}
                           <ChevronsUpDown className="opacity-50" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-[200px] p-0">
                       <Command>
-                      <CommandInput
-                      placeholder="Search brand..."
-                      className="h-9"
-                      value={inputBrand}
-                      onValueChange={setInputBrand}
-                      onKeyDown={handleBrandKeyDown}
-                    />
+                        <CommandInput
+                          placeholder="Search brand..."
+                          className="h-9"
+                          value={inputBrand}
+                          onValueChange={setInputBrand}
+                          onKeyDown={handleBrandKeyDown}
+                        />
                         <CommandList>
-                          <CommandEmpty>Press ENTER to add New Brand</CommandEmpty>
+                          <CommandEmpty>
+                            Press ENTER to add New Brand
+                          </CommandEmpty>
                           <CommandGroup>
                             {unit.map((units) => (
                               <CommandItem
@@ -636,21 +643,22 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          {cats.find((cat) => cat.category_id.toString() == field.value)
-                            ?.category_name || "Select Category"}
+                          {cats.find(
+                            (cat) => cat.category_id.toString() == field.value
+                          )?.category_name || "Select Category"}
                           <ChevronsUpDown className="opacity-50" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-[200px] p-0">
                       <Command>
-                      <CommandInput
-                      placeholder="Search category..."
-                      className="h-9"
-                      value={inputCat}
-                      onValueChange={setInputCat}
-                      onKeyDown={handleCategoryKeyDown}
-                    />
+                        <CommandInput
+                          placeholder="Search category..."
+                          className="h-9"
+                          value={inputCat}
+                          onValueChange={setInputCat}
+                          onKeyDown={handleCategoryKeyDown}
+                        />
                         <CommandList>
                           <CommandEmpty>No roles found.</CommandEmpty>
                           <CommandGroup>
@@ -701,11 +709,9 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          {
-                            brands.find(
-                              (brand) => brand.brand_id.toString() == field.value
-                            )?.brand_name || "Select Brand"
-                          }
+                          {brands.find(
+                            (brand) => brand.brand_id.toString() == field.value
+                          )?.brand_name || "Select Brand"}
                           <ChevronsUpDown className="opacity-50" />
                         </Button>
                       </FormControl>
@@ -798,23 +804,26 @@ export default function AddProductForm({ onSuccess }: AddFormProps) {
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          {unit.find((units) => units.unit_id.toString() == field.value)
-                            ?.unit || "Select Unit"}
+                          {unit.find(
+                            (units) => units.unit_id.toString() == field.value
+                          )?.unit || "Select Unit"}
                           <ChevronsUpDown className="opacity-50" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-[200px] p-0">
                       <Command>
-                      <CommandInput
-                      placeholder="Search unit..."
-                      className="h-9"
-                      value={inputUnit}
-                      onValueChange={setInputUnit}
-                      onKeyDown={handleUnitKeyDown}
-                    />
+                        <CommandInput
+                          placeholder="Search unit..."
+                          className="h-9"
+                          value={inputUnit}
+                          onValueChange={setInputUnit}
+                          onKeyDown={handleUnitKeyDown}
+                        />
                         <CommandList>
-                          <CommandEmpty>Press ENTER to Add New Unit</CommandEmpty>
+                          <CommandEmpty>
+                            Press ENTER to Add New Unit
+                          </CommandEmpty>
                           <CommandGroup>
                             {unit.map((units) => (
                               <CommandItem

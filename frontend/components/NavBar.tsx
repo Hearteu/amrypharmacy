@@ -27,8 +27,6 @@ export default function NavBar() {
     fetchSession();
   }, []);
 
-  console.log(session?.user?.role_name);
-
   return (
     <>
       <div className="fixed top-0 left-0 h-full w-64 bg-[#F4F5FC]">

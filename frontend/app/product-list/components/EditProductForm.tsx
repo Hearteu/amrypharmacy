@@ -3,12 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
-
 import { cn } from "@/lib/utils";
-import { zodResolver } from "@hookform/resolvers/zod";
-import axios, { AxiosResponse } from "axios";
+import axios from "axios";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { useForm } from "react-hook-form";
 import { z } from "zod";
 import {
   Command,
@@ -17,7 +14,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "../ui/command";
+} from "@/components/ui/command";
 import {
   Form,
   FormControl,
@@ -25,73 +22,31 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "../ui/form";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-
-const formSchema = z.object({
-  product_name: z
-    .string()
-    .min(2, { message: "Product name must be at least 2 characters long." }),
-  category_id: z.string().nonempty({ message: "Category is required." }),
-  brand_id: z.string().nonempty({ message: "Brand is required." }),
-  current_price: z.string().nonempty({ message: "Current price is required." }),
-  dosage_strength: z.string().optional(),
-  dosage_form: z.string().optional(),
-  net_content: z.string().nonempty({ message: "Net content is required." }),
-  unit_id: z.string().nonempty({ message: "Unit is required." }),
-});
-
-interface Product {
-  product_id: number;
-  brand_id: number;
-  category_id: number;
-  product_name: string;
-  current_price: number;
-  net_content: string;
-  unit_id: number;
-  dosage_strength?: string;
-  dosage_form?: string;
-}
-
-interface Unit {
-  unit_id: number;
-  unit: string;
-}
-
-interface Brand {
-  brand_id: number;
-  brand_name: string;
-}
-
-interface Category {
-  category_id: number;
-  category_name: string;
-}
-
-interface EditProductFormProps {
-  product_id: number;
-  onSuccess: (data: AxiosResponse) => void;
-}
+} from "@/components/ui/form";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  ProductFormSchema,
+  useProductForm,
+} from "@/app/lib/services/schemas/productFormSchema";
+import { ProductDetails } from "@/app/lib/types/inventory/product-details";
+import { ProductFormProps } from "@/app/lib/types/inventory/product-props";
+import { Brand } from "@/app/lib/types/inventory/brand";
+import { getBrand } from "@/app/lib/services/brand";
+import { Category } from "@/app/lib/types/inventory/category";
+import { Unit } from "@/app/lib/types/inventory/unit";
+import { getCategory } from "@/app/lib/services/category";
+import { getUnit } from "@/app/lib/services/units";
 
 export default function EditProductForm({
   product_id,
   onSuccess,
-}: EditProductFormProps) {
-  const [productData, setProductData] = useState<Product | null>(null);
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      product_name: "",
-      category_id: "",
-      current_price: "",
-      dosage_strength: "",
-      dosage_form: "",
-      net_content: "",
-      unit_id: "",
-    },
-    mode: "onChange",
-  });
+}: ProductFormProps) {
+  const [productData, setProductData] = useState<ProductDetails | null>(null);
+  const { form, resetForm } = useProductForm(productData);
 
   //Fetch product details
   useEffect(() => {
@@ -125,49 +80,42 @@ export default function EditProductForm({
     }
   }, [product_id]);
 
-  // Reset form with product details
   useEffect(() => {
-    if (productData) {
-      form.reset({
-        product_name: productData.product_name || "",
-        category_id: String(productData.category_id) || "",
-        current_price: String(productData.current_price) || "",
-        net_content: productData.net_content || "",
-        brand_id: String(productData.brand_id) || "",
-        unit_id: String(productData.unit_id) || "",
-        dosage_form: productData.dosage_form || "",
-        dosage_strength: productData.dosage_strength || "",
-      });
-
-      console.log("Form reset with product data:", productData);
-    }
+    resetForm();
   }, [productData]);
-  //For the combobox
-
-  //Fetch  Brand for combobox
 
   const [brands, setBrands] = useState<Brand[]>([]);
   const [brandOpen, setBrandOpen] = useState(false);
   const [inputBrand, setInputBrand] = useState("");
+  const [cats, setCat] = useState<Category[]>([]);
+  const [catOpen, setCatOpen] = useState(false);
+  const [inputCat, setInputCat] = useState("");
+  const [unit, setUnit] = useState<Unit[]>([]);
+  const [measureOpen, setMeasureOpen] = useState(false);
+  const [inputUnit, setInputUnit] = useState("");
 
-  const fetchBrand = async () => {
-    // ✅ Move fetchBrand outside
+  const refreshData = async () => {
     try {
-      const brandRes = await fetch("http://127.0.0.1:8000/pharmacy/brands/");
-      const brandData: Brand[] = await brandRes.json();
+      const brandData = await getBrand();
       setBrands(brandData);
+      const catData = await getCategory();
+      setCat(catData);
+      const unitData = await getUnit();
+      setUnit(unitData);
     } catch (error) {
-      console.error("Error fetching brand data", error);
+      console.error("Error fetching data", error);
+      setBrands([]);
+      setCat([]);
+      setUnit([]);
     }
   };
 
   useEffect(() => {
-    fetchBrand();
+    refreshData();
   }, []);
 
   const addNewBrand = async (brandName: string) => {
     const trimmedBrandName = brandName.trim();
-
     if (
       trimmedBrandName === "" ||
       brands.some(
@@ -187,37 +135,14 @@ export default function EditProductForm({
         );
 
         if (response.status === 201) {
-          await fetchBrand();
           setInputBrand(brandName);
+          await refreshData();
         }
       } catch (error) {
         console.error("❌ Error adding brand:", error);
       }
     }
   };
-
-  //Fetch Category for combobox
-
-  const [cats, setCat] = useState<Category[]>([]);
-  const [catOpen, setCatOpen] = useState(false);
-  const [inputCat, setInputCat] = useState("");
-
-  const fetchCategory = async () => {
-    try {
-      const measurementRes = await fetch(
-        "http://127.0.0.1:8000/pharmacy/product-categories/"
-      );
-      const catData: Category[] = await measurementRes.json();
-
-      setCat(catData);
-    } catch (error) {
-      console.error("Error fetching measurement data:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchCategory();
-  }, []);
 
   const addNewCat = async (catName: string) => {
     const trimmedCatName = catName.trim();
@@ -241,35 +166,14 @@ export default function EditProductForm({
         );
 
         if (response.status === 201) {
-          await fetchCategory();
           setInputCat(catName);
+          await refreshData();
         }
       } catch (error) {
         console.error("❌ Error adding category:", error);
       }
     }
   };
-
-  //Fetch Unit of Measurement combobox
-
-  const [unit, setUnit] = useState<Unit[]>([]);
-  const [measureOpen, setMeasureOpen] = useState(false);
-  const [inputUnit, setInputUnit] = useState("");
-
-  const fetchUnit = async () => {
-    try {
-      const unitRes = await fetch("http://127.0.0.1:8000/pharmacy/unit/");
-      const unitData: Unit[] = await unitRes.json();
-
-      setUnit(unitData);
-    } catch (error) {
-      console.error("Error fetching measurement data:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchUnit();
-  }, []);
 
   const addNewUnit = async (unitName: string) => {
     const trimmedUnitName = unitName.trim();
@@ -292,8 +196,8 @@ export default function EditProductForm({
         );
 
         if (response.status === 201) {
-          await fetchUnit();
           setInputUnit(unitName);
+          await refreshData();
         }
       } catch (error) {
         console.error("❌ Error adding unit:", error);
@@ -301,38 +205,34 @@ export default function EditProductForm({
     }
   };
 
-  const handleBrandKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleBrandKeyDown = async (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" && inputBrand) {
       e.preventDefault();
       addNewBrand(inputBrand);
-      fetchBrand();
     }
   };
-  
+
   const handleCategoryKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" && inputCat) {
       e.preventDefault();
       addNewCat(inputCat);
-      fetchCategory();
     }
   };
-  
+
   const handleUnitKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" && inputUnit) {
       e.preventDefault();
       addNewUnit(inputUnit);
-      fetchUnit();
     }
   };
-  
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof ProductFormSchema>) => {
     try {
       const response = await axios.put(
         `http://127.0.0.1:8000/pharmacy/products/${product_id}/`,
         values
       );
-      onSuccess(response);
+      onSuccess();
       console.log(response.data);
     } catch (error) {
       console.log("❌ Error adding new product:", error);
@@ -378,8 +278,9 @@ export default function EditProductForm({
                       )}
                     >
                       {
-                        cats.find((cat) => cat.category_id.toString() == field.value)
-                          ?.category_name
+                        cats.find(
+                          (cat) => cat.category_id.toString() == field.value
+                        )?.category_name
                       }
                       <ChevronsUpDown className="opacity-50" />
                     </Button>
@@ -395,7 +296,9 @@ export default function EditProductForm({
                       onKeyDown={handleCategoryKeyDown}
                     />
                     <CommandList>
-                      <CommandEmpty>Press ENTER to Add New Category</CommandEmpty>
+                      <CommandEmpty>
+                        Press ENTER to Add New Category
+                      </CommandEmpty>
                       <CommandGroup>
                         {cats.map((cat) => (
                           <CommandItem
@@ -445,8 +348,9 @@ export default function EditProductForm({
                       )}
                     >
                       {
-                        brands.find((brand) => brand.brand_id.toString() == field.value)
-                          ?.brand_name
+                        brands.find(
+                          (brand) => brand.brand_id.toString() == field.value
+                        )?.brand_name
                       }
                       <ChevronsUpDown className="opacity-50" />
                     </Button>
@@ -566,8 +470,9 @@ export default function EditProductForm({
                         !field.value && "text-muted-foreground"
                       )}
                     >
-                      {unit.find((units) => units.unit_id.toString() == field.value)
-                        ?.unit || "Select Unit"}
+                      {unit.find(
+                        (units) => units.unit_id.toString() == field.value
+                      )?.unit || "Select Unit"}
                       <ChevronsUpDown className="opacity-50" />
                     </Button>
                   </FormControl>

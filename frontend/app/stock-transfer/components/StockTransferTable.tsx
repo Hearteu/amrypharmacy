@@ -19,8 +19,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DataTableViewOptions } from "@/components/table/DataTableViewOptions";
-import { DataTablePagination } from "@/components/table/DataTablePagination";
+import { DataTableViewOptions } from "@/components/data-table/DataTableViewOptions";
+import { DataTablePagination } from "@/components/data-table/DataTablePagination";
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -160,7 +160,9 @@ export default function StockTransferTable() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(stock_transfer.transfer_id)}
+                onClick={() =>
+                  navigator.clipboard.writeText(stock_transfer.transfer_id)
+                }
               >
                 Copy PO number
               </DropdownMenuItem>

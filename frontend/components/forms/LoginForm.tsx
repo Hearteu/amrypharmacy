@@ -17,8 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import Link from "next/link";
-import service from "@/app/lib/session";
-import { getSession } from "next-auth/react";
+import service from "@/app/lib/services/session";
 
 // Define validation schema
 const formSchema = z.object({
