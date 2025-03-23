@@ -113,14 +113,6 @@ export default function LoginForm() {
               </div>
             </form>
           </Form>
-          <div className="py-4">
-            New User?{" "}
-            <Link href="/register" legacyBehavior passHref>
-              <a className="font-bold text-[#2B2F88] hover:underline">
-                Register
-              </a>
-            </Link>
-          </div>
         </div>
       </div>
     </div>

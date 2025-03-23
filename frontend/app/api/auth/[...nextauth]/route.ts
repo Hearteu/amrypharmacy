@@ -11,7 +11,8 @@ interface JWTTokenProps {
 
 export const authOptions = {
     pages: {
-        signIn: '/'
+        signIn: '/',
+        signOut: '/',
     },
     providers: [
         CredentialsProvider({
@@ -66,9 +67,15 @@ export const authOptions = {
             return token
         },
         async session({ session, token }) {
-            session.user = { username: token.username, user_id: token.user_id, role_name: token.role_name }
+            if (token) {
+                session.user = {
+                    username: token.username,
+                    user_id: token.user_id,
+                    role_name: token.role_name
+                }
+            }
             return session
-        }
+        },
     },
 }
 

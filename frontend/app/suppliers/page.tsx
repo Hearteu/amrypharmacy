@@ -11,8 +11,9 @@ import {
 } from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
 import { columns } from "./columns";
-import { DataTable } from "./data-table";
 import { PlusCircle } from "lucide-react";
+import { DataTableLoading } from "@/components/data-table/DataTableLoading";
+import { DataTable } from "@/components/data-table/DataTable";
 
 interface Suppliers {
   supplier_id: number;
@@ -113,10 +114,14 @@ export default function SupplierList() {
             </Dialog>
           </div>
           {loading ? (
-            <p className="text-center text-gray-500">Loading...</p>
+            <DataTableLoading columnCount={tableColumns.length} rowCount={10} />
           ) : (
             <>
-              <DataTable columns={tableColumns} data={supplierData} />
+              <DataTable
+                columns={tableColumns}
+                data={supplierData}
+                search="supplier_name"
+              />
             </>
           )}
         </div>

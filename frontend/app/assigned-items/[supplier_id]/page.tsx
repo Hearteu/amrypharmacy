@@ -9,11 +9,12 @@ import {
 } from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
 import { columns } from "./columns";
-import { DataTable } from "./data-table";
 import { Button } from "@/components/ui/button";
 import AddSupplierItemForm from "@/components/forms/AddSupplierItemForm";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { DataTable } from "@/components/data-table/DataTable";
+import { DataTableLoading } from "@/components/data-table/DataTableLoading";
 
 interface AssignedItems {
   supplier_item_id: number;
@@ -85,16 +86,15 @@ export default function AssignedItemsPage({
                 </Link>
               </Button>
               <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                Items Provided by Supplier:{" "}
-                {supplierItemData[0]?.supplier_name || "Loading..."}
-              </h1>
-              <p className="text-muted-foreground">
-                Assign items to this supplier and manage their product
-                offerings.
-              </p>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  Items Provided by Supplier:{" "}
+                  {supplierItemData[0]?.supplier_name || "Loading..."}
+                </h1>
+                <p className="text-muted-foreground">
+                  Assign items to this supplier and manage their product
+                  offerings.
+                </p>
               </div>
-              
             </div>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
@@ -117,10 +117,14 @@ export default function AssignedItemsPage({
             </Dialog>
           </div>
           {loading ? (
-            <p className="text-center text-gray-500">Loading...</p>
+            <DataTableLoading columnCount={tableColumns.length} rowCount={10} />
           ) : (
             <>
-              <DataTable columns={tableColumns} data={supplierItemData} />
+              <DataTable
+                columns={tableColumns}
+                data={supplierItemData}
+                search="product_name"
+              />
             </>
           )}
         </div>

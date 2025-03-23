@@ -1,37 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
- 
-// 1. Specify protected and public routes
-const protectedRoutes = ['/dashboard', '/product-list']
+import { getToken } from 'next-auth/jwt'
+
+// Include ALL your protected routes
+const protectedRoutes = [
+  '/dashboard',
+  '/product-list',
+  '/pos',
+  '/suppliers',
+  '/purchase-orders',
+  '/stock-transfer',
+  '/user-list'
+  // Add any other protected routes
+]
+
 const publicRoutes = ['/']
- 
+
 export default async function middleware(req: NextRequest) {
-  // 2. Check if the current route is protected or public
   const path = req.nextUrl.pathname
-  const isProtectedRoute = protectedRoutes.includes(path)
-  const isPublicRoute = publicRoutes.includes(path)
- 
-  // 3. Decrypt the session from the cookie
-  const cookie = (await cookies()).get('session')?.value
- 
-  // 4. Redirect to /login if the user is not authenticated
-  if (isProtectedRoute && !cookie) {
-    return NextResponse.redirect(new URL('/', req.nextUrl))
-  }
- 
-  // 5. Redirect to /dashboard if the user is authenticated
-  if (
-    isPublicRoute &&
-    cookie &&
-    !req.nextUrl.pathname.startsWith('/dashboard')
-  ) {
+
+  // Get session token from next-auth
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET
+  })
+
+  // Login page path
+  const loginPath = '/'
+
+  // Check if the path is the login page
+  const isLoginPage = path === loginPath
+
+  // If user is on login page and has token, redirect to dashboard
+  if (isLoginPage && token) {
     return NextResponse.redirect(new URL('/dashboard', req.nextUrl))
   }
- 
+
+  // If user is NOT on login page and has NO token, redirect to login
+  if (!isLoginPage && !token) {
+    // Store the original URL to redirect back after login
+    const url = new URL(loginPath, req.nextUrl)
+    url.searchParams.set('callbackUrl', encodeURI(req.url))
+    return NextResponse.redirect(url)
+  }
+
+  // Otherwise, continue
   return NextResponse.next()
 }
- 
-// Routes Middleware should not run on
+
 export const config = {
   matcher: ['/((?!api|_next/static|_next/image|.*\\.png$).*)'],
 }

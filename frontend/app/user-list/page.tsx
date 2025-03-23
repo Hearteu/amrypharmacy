@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import RegisterForm from "@/components/forms/RegisterForm";
 import { PlusCircle } from "lucide-react";
 import { columns } from "./components/columns";
+import { DataTableLoading } from "@/components/data-table/DataTableLoading";
 
 interface User {
   user_id: number;
@@ -141,7 +142,7 @@ export default function UserList() {
             </Dialog>
           </div>
           {loading ? (
-            <p className="text-center text-gray-500">Loading...</p>
+            <DataTableLoading columnCount={tableColumns.length} rowCount={10} />
           ) : (
             <>
               <DataTable

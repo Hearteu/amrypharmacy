@@ -17,6 +17,7 @@ import { PlusCircle } from "lucide-react";
 import { Products } from "../lib/types/inventory/products";
 import { getProductsData } from "@/app/lib/services/inventory";
 import AddProductForm from "./components/AddProductForm";
+import { DataTableLoading } from "@/components/data-table/DataTableLoading";
 
 export default function ProducList() {
   const [data, setData] = useState<Products[]>([]);
@@ -86,7 +87,7 @@ export default function ProducList() {
             </Dialog>
           </div>
           {loading ? (
-            <p className="text-center text-gray-500">Loading...</p>
+            <DataTableLoading columnCount={tableColumns.length} rowCount={10} />
           ) : (
             <>
               <DataTable
