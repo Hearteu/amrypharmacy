@@ -1,25 +1,11 @@
 import axios from "axios";
+import { z } from "zod";
 import {
   InventorySchema,
   useInventoryForm,
 } from "../../lib/services/schemas/inventorySchema";
-import { z } from "zod";
 
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -29,8 +15,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useState } from "react";
 
 type EditInventoryDialogProps = {
@@ -70,7 +70,7 @@ export default function EditInventoryForm({
 
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/pharmacy/products/${product.product_id}/`,
+        `http://127.0.0.1:8000/pharmacy/stock-items/${product.product_id}/`,
         values
       );
       onSuccess?.(); // Ensure onSuccess is defined before calling it
