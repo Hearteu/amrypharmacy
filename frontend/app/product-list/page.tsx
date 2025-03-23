@@ -30,6 +30,7 @@ export default function ProducList() {
     try {
       const productsData = await getProductsData();
       setData(productsData);
+      console.log(productsData);
     } catch {
       console.error("Error fetching data", error);
       setError("Failed to load products");

@@ -1,3 +1,8 @@
+export interface Stock {
+    location_id: number;
+    location: string;
+    quantity: number;
+}
 export interface Products {
     product_id: number;
     full_product_name: string;
@@ -5,4 +10,5 @@ export interface Products {
     price: string;
     net_content: string;
     unit: string;
+    stock_per_location: Stock[];
 }

@@ -21,6 +21,7 @@ import axios from "axios";
 import { Products } from "../../lib/types/inventory/products";
 import { ProductFormProps } from "@/app/lib/types/inventory/product-props";
 import EditProductDialog from "@/app/product-list/components/EditProductDialog";
+import EditInventoryForm from "./EditInventoryForm";
 
 const deleteItem = async ({ product_id, onSuccess }: ProductFormProps) => {
   try {
@@ -84,6 +85,27 @@ export const columns: (onSuccess: () => void) => ColumnDef<Products>[] = (
     header: "Unit",
   },
   {
+    accessorKey: "talaingod",
+    header: "Talaingod",
+    accessorFn: (row) =>
+      row.stock_per_location?.find((loc) => loc.location_id === 2)?.quantity ||
+      0,
+  },
+  {
+    accessorKey: "asuncion_stockroom",
+    header: "Asuncion - Stockroom",
+    accessorFn: (row) =>
+      row.stock_per_location?.find((loc) => loc.location_id === 3)?.quantity ||
+      0,
+  },
+  {
+    accessorKey: "asuncion_physical",
+    header: "Asuncion - Physical",
+    accessorFn: (row) =>
+      row.stock_per_location?.find((loc) => loc.location_id === 1)?.quantity ||
+      0,
+  },
+  {
     id: "actions",
     cell: ({ row }) => {
       const product = row.original;
@@ -103,6 +125,14 @@ export const columns: (onSuccess: () => void) => ColumnDef<Products>[] = (
                 onSuccess();
               }}
             ></EditProductDialog>
+            <EditInventoryForm
+              product={product}
+              onSuccess={() => {
+                onSuccess();
+                console.log("individual", product);
+              }}
+            />
+            {/* Delete Button */}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive">Delete</Button>
