@@ -28,11 +28,12 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { Session } from "next-auth";
 
 export default function NavBar() {
-  const [session, updateSession] = useState(null);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+  const [session, updateSession] = useState<Session | null>(null);
   const fetchSession = async () => {
     const _session = await getSession();
     updateSession(_session);
@@ -41,7 +42,6 @@ export default function NavBar() {
   useEffect(() => {
     fetchSession();
   }, []);
-
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/product-list", label: "Inventory", icon: Package },

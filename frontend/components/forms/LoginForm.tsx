@@ -109,7 +109,7 @@ export default function LoginForm() {
               />
 
               <div className="grid gap-4">
-                <Button type="submit">Submit</Button>
+                <Button type="submit">Log In</Button>
               </div>
             </form>
           </Form>

@@ -58,6 +58,7 @@ interface PrescriptionInfo {
 }
 
 interface OrderData {
+  user_id: number;
   branch: string;
   customerType: string;
   customerInfo?: CustomerInfo;
@@ -146,15 +147,15 @@ export default function OrderSummaryPage() {
     };
 
     console.log("Submitting transaction:", transactionData);
-    
+
     fetch("http://127.0.0.1:8000/pharmacy/pos/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(transactionData),
     })
-    .then(response => response.json())
-    .then(data => console.log("Order submitted successfully:", data))
-    .catch(error => console.error("Error submitting order:", error));
+      .then((response) => response.json())
+      .then((data) => console.log("Order submitted successfully:", data))
+      .catch((error) => console.error("Error submitting order:", error));
 
     alert("Transaction completed successfully!");
   };

@@ -50,6 +50,8 @@ import {
 import { useRouter } from "next/navigation";
 import { PrescriptionForm } from "./components/PrescriptionForm";
 import { DSWDForm } from "./components/DSWDForm";
+import { getSession } from "next-auth/react";
+import { Session } from "next-auth";
 
 const branches = [
   { id: 1, name: "Asuncion" },
@@ -62,6 +64,16 @@ interface Products {
   price: number;
 }
 export default function PosInterface() {
+  const [session, updateSession] = useState<Session | null>(null);
+  const fetchSession = async () => {
+    const _session = await getSession();
+    updateSession(_session);
+  };
+
+  useEffect(() => {
+    fetchSession();
+  }, []);
+
   const [cart, setCart] = useState<
     Array<{
       product_id: number;
@@ -195,6 +207,7 @@ export default function PosInterface() {
   const handleCheckout = () => {
     // Create order data
     const orderData = {
+      user_id: session?.user?.user_id,
       branch: selectedBranch,
       customerInfo, // ✅ Removed duplicate
       customerType,
