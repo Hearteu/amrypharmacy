@@ -37,17 +37,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
-
-interface StockTransfer {
-  stock_transfer_id: number;
-  transfer_id: string;
-  transfer_date: string;
-  status: string;
-  status_id: number;
-  src_location_name: string;
-  des_location_name: string;
-}
+import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { StockTransfer } from "@/app/lib/types/stock-transfer";
+import { getStockTransfer } from "@/app/lib/services/stock-transfer";
+import { DataTableLoading } from "@/components/data-table/DataTableLoading";
 
 const statusMap: Record<number, string> = {
   1: "Draft",
@@ -67,22 +60,26 @@ const statusColorMap: Record<string, string> = {
 
 export default function StockTransferTable() {
   const [stockTransfer, setStockTransfer] = useState<StockTransfer[]>([]);
+  const [error, setError] = useState<string | null>(null); // Error state
+  const [loading, setLoading] = useState(true); // Loading state
 
-  async function fetchStockTransfer() {
+  const refreshData = async () => {
+    console.log("Refreshing data...");
+    setLoading(true);
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/pharmacy/stock-transfers/"
-      );
-      const data: StockTransfer[] = await response.json();
-      setStockTransfer(data);
-      console.log(data);
-    } catch (error) {
-      console.error("Error fetching stock transfer", error);
+      const poData = await getStockTransfer();
+      setStockTransfer(poData);
+    } catch {
+      console.error("Error fetching data", error);
+      setError("Failed to load products");
+      setStockTransfer([]);
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchStockTransfer();
+    refreshData();
   }, []);
 
   const columns: ColumnDef<StockTransfer>[] = [
@@ -116,32 +113,34 @@ export default function StockTransferTable() {
     },
     {
       accessorKey: "status",
-      header: "Status",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Status
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
       cell: ({ row }) => {
         const statusId = row.original.status_id;
-        const [open, setOpen] = useState(false);
-        const [selectedStatus, setSelectedStatus] = useState(statusId);
-
-        const statusName = statusMap[selectedStatus] ?? "Unknown";
+        const statusName = statusMap[statusId] ?? "Unknown";
         const color = statusColorMap[statusName] ?? "gray";
 
         return (
-          <div>
-            <Badge
-              className={cn("px-2 py-1 rounded-md border", {
-                "bg-gray-100 text-gray-800 border-gray-200": color === "gray",
-                "bg-yellow-100 text-yellow-800 border-yellow-200":
-                  color === "yellow",
-                "bg-orange-100 text-orange-800 border-orange-200":
-                  color === "orange",
-                "bg-green-100 text-green-800 border-green-200":
-                  color === "green",
-                "bg-red-100 text-red-800 border-red-200": color === "red",
-              })}
-            >
-              {statusName}
-            </Badge>
-          </div>
+          <Badge
+            className={cn("px-2 py-1 rounded-md border", {
+              "bg-gray-100 text-gray-800 border-gray-200": color === "gray",
+              "bg-yellow-100 text-yellow-800 border-yellow-200":
+                color === "yellow",
+              "bg-orange-100 text-orange-800 border-orange-200":
+                color === "orange",
+              "bg-green-100 text-green-800 border-green-200": color === "green",
+              "bg-red-100 text-red-800 border-red-200": color === "red",
+            })}
+          >
+            {statusName}
+          </Badge>
         );
       },
     },
@@ -200,7 +199,6 @@ export default function StockTransferTable() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [statusFilter, setStatusFilter] = useState<string>("all"); // ✅ Track selected status
 
   const table = useReactTable({
     data: stockTransfer,
@@ -220,76 +218,76 @@ export default function StockTransferTable() {
     debugTable: true, // Helps with debugging
   });
 
-  return (
-    <>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-x-4">
-          <Input
-            placeholder="Filter purchase orders..."
-            value={
-              (table.getColumn("transfer_id")?.getFilterValue() as string) ?? ""
-            }
-            onChange={(event) =>
-              table.getColumn("transfer_id")?.setFilterValue(event.target.value)
-            }
-            className="max-w-sm"
-          />
+  return loading ? (
+    <DataTableLoading columnCount={columns.length} rowCount={10} />
+  ) : (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-x-4">
+        <Input
+          placeholder="Filter purchase orders..."
+          value={
+            (table.getColumn("transfer_id")?.getFilterValue() as string) ?? ""
+          }
+          onChange={(event) =>
+            table.getColumn("transfer_id")?.setFilterValue(event.target.value)
+          }
+          className="max-w-sm"
+        />
 
-          <DataTableViewOptions table={table} />
-        </div>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    return (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    );
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    Loading...
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        <DataTablePagination table={table} />
+        <DataTableViewOptions table={table} />
       </div>
-    </>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  No Stock Transfer Found
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <DataTablePagination table={table} />
+    </div>
   );
 }

@@ -7,13 +7,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useState } from "react";
 import {
   Dialog,
@@ -24,7 +17,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import ReceiveItemsForm from "./ReceiveItemsForm";
 import clsx from "clsx";
 
@@ -128,6 +120,7 @@ export function LineItemsTable({ lineItems, onSuccess }: LineItemsTableProps) {
                   <DialogTrigger asChild>
                     <Button
                       onClick={() => setOpenDialog(item.purchase_order_item_id)}
+                      disabled={item.purchase_order_item_status !== 1} // Disables if not "1"
                     >
                       Receive Items
                     </Button>

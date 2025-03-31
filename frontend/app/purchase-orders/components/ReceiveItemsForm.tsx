@@ -55,11 +55,19 @@ interface POIStatus {
 const getFormSchema = (orderedQuantity: number | null) =>
   z
     .object({
-      purchase_order_item_status_id: z.string().min(1, "Please select a status."),
+      purchase_order_item_status_id: z
+        .string()
+        .min(1, "Please select a status."),
       expiry_date: z.date().optional(), // Optional initially
-      received_qty: z.coerce.number().min(0, "Received quantity cannot be negative."),
-      expired_qty: z.coerce.number().min(0, "Expired quantity cannot be negative."),
-      damaged_qty: z.coerce.number().min(0, "Damaged quantity cannot be negative."),
+      received_qty: z.coerce
+        .number()
+        .min(0, "Received quantity cannot be negative."),
+      expired_qty: z.coerce
+        .number()
+        .min(0, "Expired quantity cannot be negative."),
+      damaged_qty: z.coerce
+        .number()
+        .min(0, "Damaged quantity cannot be negative."),
     })
     // ✅ General rule: Total received, expired, and damaged should not exceed ordered quantity.
     .refine(
@@ -69,72 +77,120 @@ const getFormSchema = (orderedQuantity: number | null) =>
         return total <= orderedQuantity;
       },
       {
-        message: "Total quantity (Received + Expired + Damaged) cannot be more than the Ordered Quantity.",
-        path: ["received_qty"],
+        message:
+          "Total quantity (Received + Expired + Damaged) cannot be more than the Ordered Quantity.",
+        path: ["purchase_order_item_status_id"],
       }
     )
     // ✅ Status: "2" (Received) - Expired and Damaged must be 0.
-    // .refine(
-    //   (data) => {
-    //     if (data.purchase_order_item_status_id === "2") {
-    //       return data.expired_qty === 0 && data.damaged_qty === 0;
-    //     }
-    //     return true;
-    //   },
-    //   {
-    //     message: "Expired and damaged quantities must be 0 when the order is marked as Received.",
-    //     path: ["expired_qty"],
-    //   }
-    // )
+    .refine(
+      (data) => {
+        if (data.purchase_order_item_status_id === "2") {
+          return data.expired_qty === 0 && data.damaged_qty === 0;
+        }
+        return true;
+      },
+      {
+        message:
+          "Expired and damaged quantities must be 0 when the order is marked as Received.",
+        path: ["purchase_order_item_status_id"],
+      }
+    )
+    .refine(
+      (data) => {
+        if (data.purchase_order_item_status_id === "2") {
+          return data.received_qty === orderedQuantity;
+        }
+        return true;
+      },
+      {
+        message:
+          "Received quantity must be equal to the Ordered Quantity when the order is marked as Received.",
+        path: ["received_qty"],
+      }
+    )
     // ✅ Status: "3" (Partially Received) - Received quantity must NOT be equal to ordered quantity.
     .refine(
       (data) => {
-        if (data.purchase_order_item_status_id === "3" && orderedQuantity !== null) {
+        if (
+          data.purchase_order_item_status_id === "3" &&
+          orderedQuantity !== null
+        ) {
           return data.received_qty !== orderedQuantity;
         }
         return true;
       },
       {
-        message: "Received quantity must be less than the Ordered Quantity for a Partially Received order.",
+        message:
+          "Received quantity must be less than the Ordered Quantity for a Partially Received order.",
         path: ["received_qty"],
+      }
+    )
+    .refine(
+      (data) => {
+        if (
+          data.purchase_order_item_status_id === "3" &&
+          orderedQuantity !== null
+        ) {
+          return (data.damaged_qty ?? 0) > 0 || (data.expired_qty ?? 0) > 0;
+        }
+        return true;
+      },
+      {
+        message:
+          "Either Damaged Quantity or Expired Quantity is required for a Partially Received order.",
+        path: ["purchase_order_item_status_id"],
       }
     )
     // ✅ Status: "4" (Missing) - Received, Expired, and Damaged must all be 0.
     .refine(
       (data) => {
         if (data.purchase_order_item_status_id === "4") {
-          return data.received_qty === 0 && data.expired_qty === 0 && data.damaged_qty === 0;
+          return (
+            data.received_qty === 0 &&
+            data.expired_qty === 0 &&
+            data.damaged_qty === 0
+          );
         }
         return true;
       },
       {
-        message: "This order is marked as Missing. Received, Expired, and Damaged quantities must all be 0.",
-        path: ["received_qty"],
+        message:
+          "This order is marked as Missing. Received, Expired, and Damaged quantities must all be 0.",
+        path: ["purchase_order_item_status_id"],
       }
     )
     // ✅ Status: "5" (Defective) - Received must be 0, but Expired or Damaged should have a value.
     .refine(
       (data) => {
         if (data.purchase_order_item_status_id === "5") {
-          return data.received_qty === 0 && (data.expired_qty > 0 || data.damaged_qty > 0);
+          return (
+            data.received_qty === 0 &&
+            (data.expired_qty > 0 || data.damaged_qty > 0)
+          );
         }
         return true;
       },
       {
-        message: "This order is marked as Defective. Enter Expired or Damaged quantity, and Received must be 0.",
-        path: ["damaged_qty"],
+        message:
+          "This order is marked as Defective. Enter Expired or Damaged quantity, and Received must be 0.",
+        path: ["purchase_order_item_status_id"],
       }
     )
     .refine(
       (data) => {
         if (data.purchase_order_item_status_id === "5") {
-          return data.received_qty === 0 && (data.expired_qty > 0 || data.damaged_qty > 0);
+          return (
+            (data.expired_qty ?? 0) + (data.damaged_qty ?? 0) ===
+            orderedQuantity
+          );
         }
         return true;
       },
       {
-        message: "This order is marked as Defective. Enter Expired or Damaged quantity, and Received must be 0.",
-        path: ["expired_qty"],
+        message:
+          "The total of Expired and Damaged quantities must be equal to the Ordered Quantity",
+        path: ["purchase_order_item_status_id"],
       }
     )
     // ✅ Status: NOT "4" or "5" - Expiry date is required.
@@ -149,17 +205,7 @@ const getFormSchema = (orderedQuantity: number | null) =>
         message: "Please provide an expiry date for this status.",
         path: ["expiry_date"],
       }
-    )
-    // .refine(
-    //   (data) => {
-    //     const statusId = parseInt(data.purchase_order_item_status_id, 10);
-    //     return ![2, 3, 4, 5].includes(statusId);
-    //   },
-    //   {
-    //     message: "You have already recorded received items, you cannot update this form anymore",
-    //     path: ["purchase_order_item_status_id"], // Attach error to status field
-    //   }
-    // );
+    );
 
 type FormValues = z.infer<ReturnType<typeof getFormSchema>>;
 
@@ -261,9 +307,6 @@ export default function ReceiveItemsForm({
 
   async function onSubmit(data: FormValues) {
     setIsSubmitting(true);
-    const statusId = parseInt(data.purchase_order_item_status_id, 10) || null;
-
-    // 🔹 Prevent submission if status is 2, 3, 4, or 5
 
     const formattedData = {
       purchase_order_item_status_id:

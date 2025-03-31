@@ -114,7 +114,7 @@ export default function AddSupplierItemForm({
           <FormField
             control={form.control}
             name="supplier_id"
-            render={({ }) => (
+            render={({}) => (
               <FormItem>
                 <FormLabel>Supplier</FormLabel>
                 <FormControl>
@@ -133,7 +133,7 @@ export default function AddSupplierItemForm({
             name="product_id"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Category</FormLabel>
+                <FormLabel>Products</FormLabel>
                 <Popover open={prodOpen} onOpenChange={setProdOpen}>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -148,7 +148,7 @@ export default function AddSupplierItemForm({
                         {products.find(
                           (product) =>
                             product.product_id.toString() == field.value
-                        )?.full_product_name || "Select Category"}
+                        )?.full_product_name || "Select Product"}
                         <ChevronsUpDown className="opacity-50" />
                       </Button>
                     </FormControl>

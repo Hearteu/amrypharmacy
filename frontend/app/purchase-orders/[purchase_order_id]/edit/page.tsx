@@ -55,19 +55,19 @@ export default function EditPurchaseOrderPage({
           purchase_order_id: response.data.purchase_order_id
             ? String(response.data.purchase_order_id)
             : undefined,
-        
+
           supplier_id: response.data.supplier?.supplier_id
             ? String(response.data.supplier.supplier_id) // ✅ Fix: Extract only the string
             : undefined,
-        
+
           order_date: response.data.order_date
             ? new Date(response.data.order_date)
             : undefined,
-        
+
           expected_delivery_date: response.data.expected_date
             ? new Date(response.data.expected_date)
             : undefined,
-        
+
           lineItems:
             response.data.lineItems?.map((item: any) => ({
               purchase_order_item_id: item.purchase_order_item_id
@@ -75,11 +75,10 @@ export default function EditPurchaseOrderPage({
                 : undefined,
               product_id: String(item.product_id),
               unit_id: String(item.unit_id),
-              ordered_quantity: item.quantity,
+              ordered_qty: item.quantity,
               supplier_price: item.supplier_price,
             })) ?? [],
         };
-        
 
         console.log(
           "🛠️ Formatted Purchase Order (matches useForm defaults):",
