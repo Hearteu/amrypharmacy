@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import axios from "axios";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PurchaseOrderForm from "../../components/PurchaseOrdersForm";
 
 interface LineItems {
   purchase_order_item_id: string;
   product_id: string;
   unit_id: string;
-  ordered_quantity: number;
+  ordered_qty: number;
   supplier_price: number;
 }
 interface PurchaseOrder {
@@ -69,13 +69,13 @@ export default function EditPurchaseOrderPage({
             : undefined,
 
           lineItems:
-            response.data.lineItems?.map((item: any) => ({
+            response.data.lineItems?.map((item: LineItems) => ({
               purchase_order_item_id: item.purchase_order_item_id
                 ? String(item.purchase_order_item_id)
                 : undefined,
               product_id: String(item.product_id),
               unit_id: String(item.unit_id),
-              ordered_qty: item.quantity,
+              ordered_qty: item.ordered_qty,
               supplier_price: item.supplier_price,
             })) ?? [],
         };

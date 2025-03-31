@@ -121,7 +121,7 @@ class PurchaseOrder(APIView):
                         "poi_id": item.get("poi_id", ""),
                         "product_id": product_id,
                         "description": product_name,  # ✅ Includes dosage info if it's a drug
-                        "quantity": item["ordered_qty"],
+                        "ordered_qty": item["ordered_qty"],
                         "supplier_price": supplier_price,
                         "poi_total": poi_total,  # ✅ Renamed total → poi_total
                         "purchase_order_item_status": item["purchase_order_item_status_id"],
