@@ -92,7 +92,8 @@ class POS(APIView):
             # Fetch latest pos_id for invoice generation
             latest_pos_query = supabase.table("POS").select("pos_id") \
                 .order("pos_id", desc=True).limit(1).execute()
-            pos_id = latest_pos_query.data[0]["pos_id"] + 1 if latest_pos_query.data else 1
+
+            pos_id = (latest_pos_query.data[0]["pos_id"] + 1) if latest_pos_query.data else 1
             invoice_number = f"POS-{current_year}-{pos_id:03d}"
             transaction_date = datetime.fromisoformat(data["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
 
@@ -107,19 +108,20 @@ class POS(APIView):
                 person_query = supabase.table("Person").select("person_id") \
                     .eq("first_name", first_name).eq("last_name", last_name).limit(1).execute()
 
-                if person_query.data:
-                    person_id = person_query.data[0]["person_id"]
-                else:
+                person_id = person_query.data[0]["person_id"] if person_query.data else None
+                if not person_id:
                     person_insert = supabase.table("Person").insert({
                         "first_name": first_name, "last_name": last_name
                     }).execute()
-                    person_id = person_insert.data[0]["person_id"]
+                    person_id = person_insert.data[0]["person_id"] if person_insert.data else None
 
                 # Check customer type
                 customer_type_query = supabase.table("Customer_Type").select("customer_type_id") \
                     .eq("description", data["customerType"]).limit(1).execute()
+
                 if not customer_type_query.data:
                     return Response({"error": "Invalid customer type"}, status=400)
+
                 customer_type_id = customer_type_query.data[0]["customer_type_id"]
 
                 # Insert customer
@@ -127,17 +129,18 @@ class POS(APIView):
                     "person_id": person_id, "id_card_number": data["discountInfo"].get("idNumber"),
                     "customer_type_id": customer_type_id
                 }).execute()
-                customer_id = customer_insert.data[0]["customer_id"]
+                customer_id = customer_insert.data[0]["customer_id"] if customer_insert.data else None
 
             # Insert into POS table
             pos_insert = supabase.table("POS").insert({
                 "sale_date": transaction_date, "invoice": invoice_number
             }).execute()
-            pos_transaction_id = pos_insert.data[0]["pos_id"]
+
+            pos_transaction_id = pos_insert.data[0]["pos_id"] if pos_insert.data else None
             print(f"🟢 POS Transaction Created: ID={pos_transaction_id}, Invoice={invoice_number}")
 
             # Insert Prescription if provided
-            if "prescriptionInfo" in data:
+            if "prescriptionInfo" in data and data["prescriptionInfo"].get("doctorName"):
                 prescription = data["prescriptionInfo"]
 
                 # Split doctor name
@@ -149,27 +152,26 @@ class POS(APIView):
                 physician_query = supabase.table("Physician").select("physician_id", "person_id") \
                     .eq("prc_num", prescription["PRCNumber"]).eq("ptr_num", prescription["PTRNumber"]).limit(1).execute()
 
-                if physician_query.data:
-                    physician_id = physician_query.data[0]["physician_id"]
-                else:
+                physician_id = physician_query.data[0]["physician_id"] if physician_query.data else None
+
+                if not physician_id:
                     # Check if person exists for physician
                     person_query = supabase.table("Person").select("person_id") \
                         .eq("first_name", doctor_first_name).eq("last_name", doctor_last_name).limit(1).execute()
 
-                    if person_query.data:
-                        physician_person_id = person_query.data[0]["person_id"]
-                    else:
+                    physician_person_id = person_query.data[0]["person_id"] if person_query.data else None
+                    if not physician_person_id:
                         person_insert = supabase.table("Person").insert({
                             "first_name": doctor_first_name, "last_name": doctor_last_name
                         }).execute()
-                        physician_person_id = person_insert.data[0]["person_id"]
+                        physician_person_id = person_insert.data[0]["person_id"] if person_insert.data else None
 
                     # Insert physician
                     physician_insert = supabase.table("Physician").insert({
                         "person_id": physician_person_id, "prc_num": prescription["PRCNumber"],
                         "ptr_num": prescription["PTRNumber"]
                     }).execute()
-                    physician_id = physician_insert.data[0]["physician_id"]
+                    physician_id = physician_insert.data[0]["physician_id"] if physician_insert.data else None
 
                 # Insert prescription
                 prescription_insert = supabase.table("Prescription").insert({
@@ -181,7 +183,7 @@ class POS(APIView):
 
             # Insert into POS_Item and update Stock_Item
             for item in data["items"]:
-                # Fetch stock item based on product and location
+                # Fetch stock item
                 stock_item_query = supabase.table("Stock_Item").select("stock_item_id", "quantity") \
                     .eq("product_id", item["product_id"]).eq("location_id", data["branch"]).limit(1).execute()
 
@@ -227,7 +229,8 @@ class POS(APIView):
         except Exception as e:
             print(f"❌ Exception: {str(e)}")
             return Response({"error": str(e)}, status=500)
-   
+
+    
     def delete(self, request, pos_id):
         try:
             response = supabase.table("POS").delete().eq('pos_id', pos_id).execute()
