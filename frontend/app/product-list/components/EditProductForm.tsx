@@ -35,11 +35,9 @@ import {
 import { ProductDetails } from "@/app/lib/types/inventory/product-details";
 import { ProductFormProps } from "@/app/lib/types/inventory/product-props";
 import { Brand } from "@/app/lib/types/inventory/brand";
-import { getBrand } from "@/app/lib/services/brand";
+import { getBrand, getCategory, getUnit } from "@/app/lib/services/inventory";
 import { Category } from "@/app/lib/types/inventory/category";
 import { Unit } from "@/app/lib/types/inventory/unit";
-import { getCategory } from "@/app/lib/services/category";
-import { getUnit } from "@/app/lib/services/units";
 import { getProductData } from "@/app/lib/services/inventory";
 
 export default function EditProductForm({

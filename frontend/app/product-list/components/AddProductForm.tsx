@@ -29,9 +29,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { getBrand } from "@/app/lib/services/brand";
-import { getCategory } from "@/app/lib/services/category";
-import { getUnit } from "@/app/lib/services/units";
+import { getBrand, getCategory, getUnit } from "@/app/lib/services/inventory";
 import { Brand } from "@/app/lib/types/inventory/brand";
 import { Category } from "@/app/lib/types/inventory/category";
 import { Unit } from "@/app/lib/types/inventory/unit";

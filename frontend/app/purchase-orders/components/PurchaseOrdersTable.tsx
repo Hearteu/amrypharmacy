@@ -65,6 +65,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { POStatus, PurchaseOrders } from "@/app/lib/types/purchase-order";
+import { getPO, getPOStatus } from "@/app/lib/services/purchase-order";
+import { DataTableLoading } from "@/components/data-table/DataTableLoading";
 
 const statusMap: Record<number, string> = {
   1: "Draft",
@@ -82,56 +85,32 @@ const statusColorMap: Record<string, string> = {
   Cancelled: "red",
 };
 
-interface PurchaseOrders {
-  purchase_order_id: number;
-  po_id: string;
-  supplier: SupplierArray;
-  order_date: string;
-  status: string;
-  status_id: number;
-}
-
-interface SupplierArray {
-  name: string;
-}
-
-interface POStatus {
-  purchase_order_status_id: number;
-  purchase_order_status: string;
-}
-
 export default function PurchaseOrdersTable() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrders[]>([]);
   const [poStatus, setPOStatus] = useState<POStatus[]>([]);
+  const [error, setError] = useState<string | null>(null); // Error state
+  const [loading, setLoading] = useState(true); // Loading state
 
-  async function fetchPO() {
+  const refreshData = async () => {
+    console.log("Refreshing data...");
+    setLoading(true);
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/pharmacy/purchase-orders/"
-      );
-      const data: PurchaseOrders[] = await response.json();
-      setPurchaseOrders(data);
-    } catch (error) {
-      console.error("Error fetching purchase order", error);
+      const poData = await getPO();
+      setPurchaseOrders(poData);
+      const statusData = await getPOStatus();
+      setPOStatus(statusData);
+    } catch {
+      console.error("Error fetching data", error);
+      setError("Failed to load products");
+      setPurchaseOrders([]);
+      setPOStatus([]);
+    } finally {
+      setLoading(false);
     }
-  }
-
-  async function fetchPOStatus() {
-    try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/pharmacy/purchase-order-status/"
-      );
-
-      const data: POStatus[] = await response.json();
-      setPOStatus(data);
-    } catch (error) {
-      console.error("error fetching status", error);
-    }
-  }
+  };
 
   useEffect(() => {
-    fetchPO();
-    fetchPOStatus();
+    refreshData();
   }, []);
 
   async function cancelPurchaseOrder(orderId: number) {
@@ -144,7 +123,7 @@ export default function PurchaseOrdersTable() {
       );
 
       console.log("Purchase order canceled:", response.data);
-      fetchPO();
+      refreshData();
       return response.data;
     } catch (error) {
       console.error("Error canceling purchase order:", error);
@@ -188,27 +167,32 @@ export default function PurchaseOrdersTable() {
     },
     {
       accessorKey: "status_id",
-      header: "Status",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Status
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
       filterFn: "weakEquals",
       cell: ({ row }) => {
-        const statusId = row.original.status_id;
+        const statusId = row.original?.status_id ?? 0;
         const [open, setOpen] = useState(false);
         const [selectedStatus, setSelectedStatus] = useState(statusId);
 
         const statusName = statusMap[selectedStatus] ?? "Unknown";
-        const color = statusColorMap[statusName] ?? "gray";
+        const color = statusColorMap[statusName] ?? "grasy";
 
-        async function updateStatus(newStatusId: number) {
+        async function updateStatus(newStatusId: number): Promise<void> {
           try {
-            const response = await axios.put(
-              `http://127.0.0.1:8000/pharmacy/purchase-orders/${row.original.purchase_order_id}/`,
+            await axios.put(
+              `http://127.0.0.1:8000/pharmacy/purchase-orders/${row.original?.purchase_order_id}/`,
               { purchase_order_status_id: newStatusId },
               { headers: { "Content-Type": "application/json" } }
             );
             setSelectedStatus(newStatusId);
-            row.original.status_id = newStatusId;
-
-            console.log("✅ Status update response:", row.original.status_id);
           } catch (error) {
             console.error("Error updating status:", error);
           }
@@ -283,7 +267,6 @@ export default function PurchaseOrdersTable() {
         );
       },
     },
-
     {
       id: "actions",
       cell: ({ row }) => {
@@ -362,7 +345,9 @@ export default function PurchaseOrdersTable() {
     debugTable: true, // Helps with debugging
   });
 
-  return (
+  return loading ? (
+    <DataTableLoading columnCount={columns.length} rowCount={10} />
+  ) : (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-x-4">
         <Input
@@ -398,8 +383,7 @@ export default function PurchaseOrdersTable() {
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All</SelectItem>{" "}
-            {/* ✅ "All" option to clear filter */}
+            <SelectItem value="all">All</SelectItem>
             {Object.entries(statusMap).map(([id, name]) => (
               <SelectItem key={id} value={id}>
                 {name}
@@ -410,6 +394,7 @@ export default function PurchaseOrdersTable() {
 
         <DataTableViewOptions table={table} />
       </div>
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
