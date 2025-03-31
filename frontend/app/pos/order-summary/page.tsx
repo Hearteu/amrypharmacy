@@ -38,13 +38,17 @@ interface Item {
 }
 
 interface CustomerInfo {
-  name: string;
+  patient_name: string;
+  client_name: string;
   guaranteeLetterNo: string;
-  address: string;
+  guaranteeLetterDate: string;
+  receivedDate: string;
   invoiceNumber: string;
 }
 
 interface DiscountInfo {
+  name: string;
+  address: string;
   type: string;
   idNumber: string;
   discountRate: number;
@@ -52,7 +56,8 @@ interface DiscountInfo {
 
 interface PrescriptionInfo {
   doctorName: string;
-  prescriptionNumber: string;
+  PRCNumber: string;
+  PTRNumber: string;
   prescriptionDate: string;
   notes: string;
 }
@@ -115,10 +120,11 @@ export default function OrderSummaryPage() {
   const hasPrescription =
     orderData.prescriptionInfo &&
     (orderData.prescriptionInfo.doctorName ||
-      orderData.prescriptionInfo.prescriptionNumber);
+      orderData.prescriptionInfo.prescriptionDate);
   const hasCustomerInfo =
     orderData.customerInfo &&
-    (orderData.customerInfo.name || orderData.customerInfo.guaranteeLetterNo);
+    (orderData.customerInfo.patient_name ||
+      orderData.customerInfo.guaranteeLetterNo);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-PH", {
@@ -134,17 +140,29 @@ export default function OrderSummaryPage() {
       return;
     }
 
-    const payment = Number.parseFloat(paymentAmount);
-    if (isNaN(payment) || payment < orderData.total) {
-      alert("Insufficient payment amount.");
-      return;
-    }
+    let transactionData; // Declare it outside the blocks
 
-    const transactionData = {
-      ...orderData,
-      paymentAmount: payment,
-      change,
-    };
+    if (!isDSWD) {
+      const payment = Number.parseFloat(paymentAmount);
+      if (isNaN(payment) || payment < orderData.total) {
+        alert("Insufficient payment amount.");
+        return;
+      }
+
+      // Set transaction data with payment info for regular customers
+      transactionData = {
+        ...orderData,
+        paymentAmount: payment,
+        change,
+      };
+    } else {
+      // For DSWD customers, set payment and change to 0
+      transactionData = {
+        ...orderData,
+        paymentAmount: 0,
+        change: 0,
+      };
+    }
 
     console.log("Submitting transaction:", transactionData);
 
@@ -201,10 +219,10 @@ export default function OrderSummaryPage() {
                     <h3 className="font-medium">Customer Information</h3>
                   </div>
                   <Separator />
-                  {orderData.customerInfo?.name && (
+                  {orderData.customerInfo?.patient_name && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Name:</span>
-                      <span>{orderData.customerInfo.name}</span>
+                      <span>{orderData.customerInfo.patient_name}</span>
                     </div>
                   )}
                   {orderData.customerInfo?.guaranteeLetterNo && (
@@ -213,12 +231,6 @@ export default function OrderSummaryPage() {
                         Guarantee Letter No:
                       </span>
                       <span>{orderData.customerInfo.guaranteeLetterNo}</span>
-                    </div>
-                  )}
-                  {orderData.customerInfo?.address && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Address:</span>
-                      <span>{orderData.customerInfo.address}</span>
                     </div>
                   )}
                   {orderData.customerInfo?.invoiceNumber && (
@@ -245,14 +257,16 @@ export default function OrderSummaryPage() {
                       <span>{orderData.prescriptionInfo.doctorName}</span>
                     </div>
                   )}
-                  {orderData.prescriptionInfo?.prescriptionNumber && (
+                  {orderData.prescriptionInfo?.PRCNumber && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">
-                        Prescription No:
-                      </span>
-                      <span>
-                        {orderData.prescriptionInfo.prescriptionNumber}
-                      </span>
+                      <span className="text-sm font-medium">PRC No:</span>
+                      <span>{orderData.prescriptionInfo.PRCNumber}</span>
+                    </div>
+                  )}
+                  {orderData.prescriptionInfo?.PTRNumber && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">PTR No:</span>
+                      <span>{orderData.prescriptionInfo.PTRNumber}</span>
                     </div>
                   )}
                   {orderData.prescriptionInfo?.prescriptionDate && (

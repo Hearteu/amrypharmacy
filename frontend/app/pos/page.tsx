@@ -107,7 +107,8 @@ export default function PosInterface() {
 
   // Customer information for DSWD clients
   const [customerInfo, setCustomerInfo] = useState({
-    name: "",
+    patient_name: "",
+    client_name: "",
     guaranteeLetterNo: "",
     guaranteeLetterDate: "",
     receivedDate: "",
@@ -133,7 +134,7 @@ export default function PosInterface() {
   });
 
   // Add product to cart
-  const addToCart = (product: any) => {
+  const addToCart = (product: Products) => {
     const existingItem = cart.find(
       (item) => item.product_id === product.product_id
     );
@@ -248,7 +249,8 @@ export default function PosInterface() {
     setCustomerType("regular");
     setHasPrescription(false);
     setCustomerInfo({
-      name: "",
+      patient_name: "",
+      client_name: "",
       guaranteeLetterNo: "",
       guaranteeLetterDate: "",
       receivedDate: "",
@@ -583,7 +585,7 @@ export default function PosInterface() {
                 disabled={
                   cart.length === 0 ||
                   !selectedBranch ||
-                  (customerType === "dswd" && !customerInfo.name)
+                  (customerType === "dswd" && !customerInfo.patient_name)
                 }
                 onClick={handleCheckout}
               >

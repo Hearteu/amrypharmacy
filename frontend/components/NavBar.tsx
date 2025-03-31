@@ -64,6 +64,7 @@ export default function NavBar() {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       <div className="flex flex-col justify-center items-center p-6 pb-2">
+        {/* {session?.user?.role_name !== "admin" && ( */}
         <Link href="/">
           <Image
             src="/images/logo.png"
@@ -74,6 +75,7 @@ export default function NavBar() {
             className="rounded-full"
           />
         </Link>
+        {/* )} */}
         <h1 className="mt-3 text-lg font-bold text-[#303086]">Amry Pharmacy</h1>
         <div className="mt-2 text-center">
           <p className="text-sm font-medium">
