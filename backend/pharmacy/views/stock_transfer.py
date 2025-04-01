@@ -18,14 +18,15 @@ class StockTransfer(APIView):
             query = (
                 supabase.table("Stock_Transfer")
                 .select(
-                    "stock_transfer_id, transfer_id, transfer_date, stock_transfer_status_id, "  # ✅ Added stock_transfer_status_id
+                    "stock_transfer_id, transfer_id, transfer_date, stock_transfer_status_id, "
                     "src_location, des_location, "
-                    "src_location:Location!Stock_Transfer_src_location_fkey(location), "  # ✅ Renamed for clarity
-                    "des_location:Location!Stock_Transfer_des_location_fkey(location), "  # ✅ Renamed for clarity
+                    "src_location_details:Location!Stock_Transfer_src_location_fkey(location), "
+                    "des_location_details:Location!Stock_Transfer_des_location_fkey(location), "
                     "Stock_Transfer_Item(stock_transfer_item_id, product_id, ordered_quantity, "
                     "Products(product_name, Drugs(dosage_form, dosage_strength)))"
                 )
             )
+
 
             if stock_transfer_id is not None:
                 query = query.eq("stock_transfer_id", stock_transfer_id).single()
@@ -45,9 +46,11 @@ class StockTransfer(APIView):
                     "stock_transfer_id": transfer["stock_transfer_id"],
                     "transfer_id": transfer["transfer_id"],
                     "transfer_date": transfer["transfer_date"],
-                    "status_id": transfer["stock_transfer_status_id"],  # ✅ Added here
-                    "src_location_name": transfer.get("src_location", {}).get("location", "Unknown Location"),
-                    "des_location_name": transfer.get("des_location", {}).get("location", "Unknown Location"),
+                    "status_id": transfer["stock_transfer_status_id"],
+                    "src_location_id": transfer["src_location"],  # Location ID
+                    "des_location_id": transfer["des_location"],  # Location ID
+                    "src_location_name": transfer.get("src_location_details", {}).get("location", "Unknown Location"),
+                    "des_location_name": transfer.get("des_location_details", {}).get("location", "Unknown Location"),
                     "transferItems": [
                         {
                             "stock_transfer_item_id": item["stock_transfer_item_id"],
@@ -66,6 +69,7 @@ class StockTransfer(APIView):
                 }
                 for transfer in stock_transfers
             ]
+
 
             return Response(
                 formatted_response[0] if stock_transfer_id else formatted_response, status=200
