@@ -99,9 +99,6 @@ export function StockTransferForm({
   const [selectedBranch, setSelectedBranch] = useState<string | null>(
     initialData?.src_location_id || null
   );
-  const [selectedProducts, setSelectedProducts] = useState<{
-    [key: number]: string | null;
-  }>({});
 
   async function fetchLocations() {
     try {
@@ -114,25 +111,23 @@ export function StockTransferForm({
       );
 
       setLocations(filteredData);
-      console.log("3 location", filteredData);
     } catch (error) {
       console.error("Error fetching locations:", error);
     }
   }
 
-  useEffect(() => {
-    async function fetchProducts() {
-      try {
-        const response = await fetch(
-          "http://127.0.0.1:8000/pharmacy/products/"
-        );
-        const data: Products[] = await response.json();
-        setProducts(data);
-        console.log("products", data);
-      } catch (error) {
-        console.error("Error fetching products:", error);
-      }
+  async function fetchProducts() {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/pharmacy/products/");
+      const data: Products[] = await response.json();
+      setProducts(data);
+      console.log("products", data);
+    } catch (error) {
+      console.error("Error fetching products:", error);
     }
+  }
+
+  useEffect(() => {
     fetchProducts();
     fetchLocations();
   }, []);
@@ -156,21 +151,10 @@ export function StockTransferForm({
     console.log(initialData);
   }, [initialData, form.reset]);
 
+  console.log("initialData", initialData);
   useEffect(() => {
     if (initialData?.src_location_id) {
       setSelectedBranch(initialData.src_location_id);
-    }
-
-    if (initialData?.transferItems) {
-      const initialSelectedProducts = initialData.transferItems.reduce(
-        (acc, item, index) => {
-          acc[index] = item.product_id?.toString() || null;
-          return acc;
-        },
-        {} as { [key: number]: string | null }
-      );
-
-      setSelectedProducts(initialSelectedProducts);
     }
   }, [initialData]);
 
@@ -201,16 +185,12 @@ export function StockTransferForm({
     for (const item of data.transferItems) {
       const availableStock = getStockForBranch(Number(item.product_id));
 
-      console.log(
-        `🔍 Checking: Product ${item.product_id} | Ordered ${item.ordered_quantity} | Available ${availableStock}`
-      );
-
       if (item.ordered_quantity > availableStock) {
         alert(
           `❌ Error: Ordered quantity exceeds available stock for product ${item.product_id}`
         );
         setIsSubmitting(false);
-        return; // Stop submission
+        return;
       }
     }
 
@@ -237,58 +217,6 @@ export function StockTransferForm({
       setIsSubmitting(false);
     }
   }
-
-  const { setError, clearErrors, watch } = form;
-
-  // Watch for changes in transferItems
-  // useEffect(() => {
-  //   const subscription = watch((value) => {
-  //     const transferItems = value?.transferItems ?? []; // Ensure it's an array
-
-  //     transferItems.forEach((item, index) => {
-  //       if (!item) return; // Skip if item is undefined
-
-  //       const availableStock = getStockForBranch(Number(item.product_id))  // Default to 0
-  //       const orderedQuantity = item.ordered_quantity ?? 0; // Default to 0
-
-  //       console.log("Ordered Quantity:", orderedQuantity);
-  //       console.log("Available Stock:", availableStock);
-
-  //       if (orderedQuantity > availableStock) { // Only trigger when greater
-  //         setError(`transferItems.${index}.ordered_quantity`, {
-  //           type: "manual",
-  //           message: "Ordered quantity exceeds available stock",
-  //         });
-  //       } else {
-  //         clearErrors(`transferItems.${index}.ordered_quantity`);
-  //       }
-  //     });
-  //   });
-
-  //   return () => subscription.unsubscribe();
-  // }, [watch]);
-
-  useEffect(() => {
-    const transferItems = form.watch("transferItems") ?? [];
-
-    transferItems.forEach((item, index) => {
-      if (!item) return; // Skip if item is undefined
-
-      const availableStock = item.product_id
-        ? getStockForBranch(Number(item.product_id))
-        : 0;
-      const orderedQuantity = item.ordered_quantity ?? 0;
-
-      if (orderedQuantity > availableStock) {
-        setError(`transferItems.${index}.ordered_quantity`, {
-          type: "manual",
-          message: "Ordered quantity exceeds available stock",
-        });
-      } else {
-        clearErrors(`transferItems.${index}.ordered_quantity`);
-      }
-    });
-  }, [form.watch("transferItems")]); // Only runs when transferItems change
 
   function addItem() {
     const currentItems = form.getValues("transferItems");
@@ -326,7 +254,7 @@ export function StockTransferForm({
                           variant="outline"
                           role="combobox"
                           className={cn(
-                            "justify-between w-[200px]",
+                            "justify-between w-full",
                             !field.value && "text-muted-foreground"
                           )}
                         >
@@ -387,7 +315,7 @@ export function StockTransferForm({
               name="des_location_id"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Supplier</FormLabel>
+                  <FormLabel>Destination Location</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -395,14 +323,14 @@ export function StockTransferForm({
                           variant="outline"
                           role="combobox"
                           className={cn(
-                            "justify-between w-[200px]",
+                            "justify-between w-full",
                             !field.value && "text-muted-foreground"
                           )}
                         >
                           {locations.find(
                             (location) =>
                               location.location_id.toString() === field.value
-                          )?.location || "Select vendor"}
+                          )?.location || "Select destination location"}
                           <ChevronsUpDown className="opacity-50" />
                         </Button>
                       </FormControl>
@@ -491,48 +419,22 @@ export function StockTransferForm({
             />
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-4 ">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-medium">Transfer Items</h3>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addItem}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Item
-              </Button>
             </div>
 
             <div className="space-y-4">
               {form.watch("transferItems").map((item, index) => {
-                const productId = form.watch(
-                  `transferItems.${index}.product_id`
-                );
-                const orderedQuantity =
-                  form.watch(`transferItems.${index}.ordered_quantity`) ?? 0;
-                const availableStock = productId
-                  ? getStockForBranch(Number(productId))
-                  : 0; // Get available stock only if productId exists
-
                 return (
-                  <div key={index} className="flex items-end gap-4">
+                  <div key={index} className="flex items-end gap-4 w-full">
                     <FormField
                       control={form.control}
                       name={`transferItems.${index}.product_id`}
                       render={({ field }) => (
-                        <FormItem className="flex flex-col w-8/12">
+                        <FormItem className="flex flex-col flex-1">
                           <div className="flex flex-row items-center gap-2">
                             <FormLabel>Select Products</FormLabel>
-                            {selectedProducts[index] && (
-                              <p className="text-sm text-gray-500">
-                                Stock Available:{" "}
-                                {getStockForBranch(
-                                  Number(selectedProducts[index])
-                                )}
-                              </p>
-                            )}
                             <FormMessage />
                           </div>
                           <Popover>
@@ -546,17 +448,43 @@ export function StockTransferForm({
                                     !field.value && "text-muted-foreground"
                                   )}
                                 >
-                                  {field.value
-                                    ? products.find(
-                                        (product) =>
-                                          product.product_id.toString() ===
-                                          field.value
-                                      )?.full_product_name
-                                    : "Select product"}
+                                  {(() => {
+                                    const selectedProduct = products.find(
+                                      (product) =>
+                                        product.product_id.toString() ===
+                                        field.value
+                                    );
+                                    const stockForSelectedBranch =
+                                      selectedProduct?.stock_per_location.find(
+                                        (stock) =>
+                                          stock.location_id.toString() ===
+                                          selectedBranch
+                                      );
+
+                                    return selectedProduct ? (
+                                      <div className="flex flex-row gap-4">
+                                        <span>
+                                          {selectedProduct.full_product_name}
+                                        </span>
+                                        {stockForSelectedBranch ? (
+                                          <span className="text-gray-500 text-sm">
+                                            {stockForSelectedBranch.quantity} in
+                                            stock
+                                          </span>
+                                        ) : (
+                                          <span className="text-red-500 text-sm">
+                                            Out of stock
+                                          </span>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      "Select product"
+                                    );
+                                  })()}
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="p-0">
+                            <PopoverContent className="p-0 ">
                               <Command>
                                 <CommandInput placeholder="Search products..." />
                                 <CommandList>
@@ -564,24 +492,45 @@ export function StockTransferForm({
                                     No products found.
                                   </CommandEmpty>
                                   <CommandGroup>
-                                    {products.map((product) => (
-                                      <CommandItem
-                                        key={product.product_id}
-                                        value={product.full_product_name}
-                                        onSelect={() => {
-                                          field.onChange(
-                                            product.product_id.toString()
-                                          );
-                                          setSelectedProducts((prev) => ({
-                                            ...prev,
-                                            [index]:
-                                              product.product_id.toString(),
-                                          }));
-                                        }}
-                                      >
-                                        {product.full_product_name}
-                                      </CommandItem>
-                                    ))}
+                                    {products.map((product) => {
+                                      const stockForSelectedBranch =
+                                        product.stock_per_location.find(
+                                          (stock) =>
+                                            stock.location_id.toString() ===
+                                            selectedBranch
+                                        );
+
+                                      return (
+                                        <CommandItem
+                                          key={product.product_id}
+                                          value={product.full_product_name}
+                                          onSelect={() => {
+                                            field.onChange(
+                                              product.product_id.toString()
+                                            );
+                                          }}
+                                        >
+                                          <div className="flex justify-between w-full">
+                                            <span>
+                                              {product.full_product_name}
+                                            </span>
+                                            {stockForSelectedBranch ? (
+                                              <span className="text-gray-500">
+                                                (
+                                                {
+                                                  stockForSelectedBranch.quantity
+                                                }{" "}
+                                                in stock)
+                                              </span>
+                                            ) : (
+                                              <span className="text-red-500">
+                                                Out of stock
+                                              </span>
+                                            )}
+                                          </div>
+                                        </CommandItem>
+                                      );
+                                    })}
                                   </CommandGroup>
                                 </CommandList>
                               </Command>
@@ -623,6 +572,16 @@ export function StockTransferForm({
               })}
             </div>
           </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-2"
+            onClick={addItem}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Item
+          </Button>
 
           <div className="flex gap-4">
             <Button
