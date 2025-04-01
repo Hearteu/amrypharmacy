@@ -3,18 +3,11 @@
 import { useState } from "react";
 import {
   AlertCircle,
-  ArrowDown,
-  ArrowUp,
   ArrowUpDown,
   Calendar,
-  ChevronDown,
-  Download,
-  FileText,
   MoreHorizontal,
   Package,
-  Printer,
   Search,
-  ShoppingCart,
 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -24,7 +17,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -204,11 +196,6 @@ export function InventoryDashboard() {
         </Alert>
       </div>
 
-      {/* Sales Summary Cards */}
-
-      {/* Report Printing Buttons */}
-
-      {/* Inventory Tables */}
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -307,7 +294,7 @@ export function InventoryDashboard() {
                                 item.daysRemaining <= 7
                                   ? "destructive"
                                   : item.daysRemaining <= 14
-                                  ? "warning"
+                                  ? "secondary"
                                   : "outline"
                               }
                             >
