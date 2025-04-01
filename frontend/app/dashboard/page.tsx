@@ -1,21 +1,15 @@
-import BestSellingTable from "@/components/table/BestSellingTable";
-import LowStockTable from "@/components/table/LowStockTable";
 import SalesSummary from "@/components/SalesSummary";
-import StockReportChart from "@/components/StockReportChart";
-import { Separator } from "@/components/ui/separator";
+import { InventoryDashboard } from "./components/ExpiredItems";
 
 export default function Dashboard() {
   return (
     <>
-      <div className="my-2 mx-4 text-4xl">Dashboard</div>
-      <Separator />
-      <SalesSummary />
-      <Separator className="my-4" />
-      <StockReportChart />
-      <Separator />
-      <BestSellingTable />
-      <Separator />
-      <LowStockTable />
+      <div className="p-4">
+        <h1 className="text-3xl font-bold tracking-tight pb-2">Dashboard</h1>
+        <SalesSummary />
+        <div className="pb-4"></div>
+        <InventoryDashboard />
+      </div>
     </>
   );
 }
