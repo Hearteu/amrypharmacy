@@ -27,7 +27,7 @@ interface StockTransfer {
   stock_transfer_id: number;
   transfer_id: string;
   status_id: number;
-  status: string;
+  stock_transfer_status: string;
   src_location_name: string;
   des_location_name: string;
   transfer_date: string;
@@ -59,6 +59,7 @@ export default function StockTransferPaga({
       );
 
       setStockTransfer(response.data);
+      console.log("stock transfer", response.data);
     } catch (error) {
       console.error("Error fetching stock transfer:", error);
       setError("Failed to load stock transfer.");
@@ -83,14 +84,13 @@ export default function StockTransferPaga({
       console.error("Error acknowledging receipt", error);
     }
   };
-  
 
   if (loading) return <p>Loading stock transfer...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
   return (
     <>
       <div>
-        <div className="container mx-auto py-6 space-y-6">
+        <div className="container mx-auto py-6 space-y-6 px-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center space-x-4">
               <Button variant="outline" size="icon" asChild>
@@ -144,7 +144,7 @@ export default function StockTransferPaga({
               <CardHeader>
                 <CardTitle>Status</CardTitle>
                 <div className="flex items-center gap-2 mt-1">
-                  {stockTransfer?.status}
+                  {stockTransfer?.stock_transfer_status}
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -194,6 +194,7 @@ export default function StockTransferPaga({
                 <Button
                   className="w-full"
                   onClick={acknowledgeTransfer}
+                  disabled={stockTransfer?.status_id === 4}
                 >
                   <CheckCircle className="mr-2 h-4 w-4" />
                   Acknowledge Receipt
