@@ -13,15 +13,9 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import {
-  ArrowUpDown,
-  Check,
-  ChevronsUpDown,
-  MoreHorizontal,
-} from "lucide-react";
+import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -43,31 +37,6 @@ import {
 import { DataTableViewOptions } from "@/components/data-table/DataTableViewOptions";
 import { DataTablePagination } from "@/components/data-table/DataTablePagination";
 import axios from "axios";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { POStatus, PurchaseOrders } from "@/app/lib/types/purchase-order";
-import { getPO, getPOStatus } from "@/app/lib/services/purchase-order";
-import { DataTableLoading } from "@/components/data-table/DataTableLoading";
 
 const statusMap: Record<number, string> = {
   1: "Draft",
@@ -77,17 +46,20 @@ const statusMap: Record<number, string> = {
   5: "Cancelled",
 };
 
-const statusColorMap: Record<string, string> = {
-  Draft: "gray",
-  Ordered: "yellow",
-  Delayed: "orange",
-  Completed: "green",
-  Cancelled: "red",
-};
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { PurchaseOrders } from "@/app/lib/types/purchase-order";
+import { getPO } from "@/app/lib/services/purchase-order";
+import { DataTableLoading } from "@/components/data-table/DataTableLoading";
+import StatusComboBox from "@/app/stock-transfer/components/StatusComboBox";
 
 export default function PurchaseOrdersTable() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrders[]>([]);
-  const [poStatus, setPOStatus] = useState<POStatus[]>([]);
   const [error, setError] = useState<string | null>(null); // Error state
   const [loading, setLoading] = useState(true); // Loading state
 
@@ -97,13 +69,10 @@ export default function PurchaseOrdersTable() {
     try {
       const poData = await getPO();
       setPurchaseOrders(poData);
-      const statusData = await getPOStatus();
-      setPOStatus(statusData);
     } catch {
       console.error("Error fetching data", error);
       setError("Failed to load products");
       setPurchaseOrders([]);
-      setPOStatus([]);
     } finally {
       setLoading(false);
     }
@@ -178,92 +147,14 @@ export default function PurchaseOrdersTable() {
       ),
       filterFn: "weakEquals",
       cell: ({ row }) => {
-        const statusId = row.original?.status_id ?? 0;
-        const [open, setOpen] = useState(false);
-        const [selectedStatus, setSelectedStatus] = useState(statusId);
-
-        const statusName = statusMap[selectedStatus] ?? "Unknown";
-        const color = statusColorMap[statusName] ?? "grasy";
-
-        async function updateStatus(newStatusId: number): Promise<void> {
-          try {
-            await axios.put(
-              `http://127.0.0.1:8000/pharmacy/purchase-orders/${row.original?.purchase_order_id}/`,
-              { purchase_order_status_id: newStatusId },
-              { headers: { "Content-Type": "application/json" } }
-            );
-            setSelectedStatus(newStatusId);
-          } catch (error) {
-            console.error("Error updating status:", error);
-          }
-        }
-
         return (
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                className="w-[130px] justify-between"
-              >
-                <Badge
-                  className={cn("px-2 py-1 rounded-md border", {
-                    "bg-gray-100 text-gray-800 border-gray-200":
-                      color === "gray",
-                    "bg-yellow-100 text-yellow-800 border-yellow-200":
-                      color === "yellow",
-                    "bg-orange-100 text-orange-800 border-orange-200":
-                      color === "orange",
-                    "bg-green-100 text-green-800 border-green-200":
-                      color === "green",
-                    "bg-red-100 text-red-800 border-red-200": color === "red",
-                  })}
-                >
-                  {statusName}
-                </Badge>
-                <ChevronsUpDown className="opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[130px] p-0">
-              <Command>
-                <CommandInput placeholder="Search status..." className="h-9" />
-                <CommandList>
-                  <CommandEmpty>No status found.</CommandEmpty>
-                  <CommandGroup>
-                    {poStatus.map((status) => {
-                      const statusLabel = status.purchase_order_status;
-                      const statusColor = statusColorMap[statusLabel] ?? "gray";
-
-                      return (
-                        <CommandItem
-                          key={status.purchase_order_status_id}
-                          value={statusLabel}
-                          onSelect={() => {
-                            updateStatus(status.purchase_order_status_id);
-                            setOpen(false);
-                          }}
-                        >
-                          <Badge
-                            className={`bg-${statusColor}-100 text-${statusColor}-800 border-${statusColor}-200 px-2 py-1 rounded-md`}
-                          >
-                            {statusLabel}
-                          </Badge>
-                          <Check
-                            className={cn(
-                              "ml-auto",
-                              status.purchase_order_status_id === selectedStatus
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                        </CommandItem>
-                      );
-                    })}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
+          <StatusComboBox
+            statusId={row.original?.status_id ?? 0}
+            purchaseOrderId={row.original?.purchase_order_id}
+            onStatusChange={(newStatus) => {
+              console.log("Status updated to:", newStatus);
+            }}
+          />
         );
       },
     },
