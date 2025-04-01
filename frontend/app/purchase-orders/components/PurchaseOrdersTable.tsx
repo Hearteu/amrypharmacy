@@ -56,7 +56,7 @@ import {
 import { PurchaseOrders } from "@/app/lib/types/purchase-order";
 import { getPO } from "@/app/lib/services/purchase-order";
 import { DataTableLoading } from "@/components/data-table/DataTableLoading";
-import StatusComboBox from "@/app/stock-transfer/components/StatusComboBox";
+import StatusComboBox from "@/app/purchase-orders/components/StatusComboBox";
 
 export default function PurchaseOrdersTable() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrders[]>([]);
