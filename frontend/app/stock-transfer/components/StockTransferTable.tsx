@@ -83,7 +83,7 @@ export default function StockTransferTable() {
     refreshData();
   }, []);
 
-  async function cancelStockTransfer(orderId: string) {
+  async function cancelStockTransfer(orderId: number) {
     console.log(orderId);
     try {
       const response = await axios.put(
@@ -101,7 +101,7 @@ export default function StockTransferTable() {
     }
   }
 
-  async function processingStockTransfer(orderId: string) {
+  async function processingStockTransfer(orderId: number) {
     console.log(orderId);
     try {
       const response = await axios.put(
@@ -119,7 +119,7 @@ export default function StockTransferTable() {
     }
   }
 
-  async function inTransitStockTransfer(orderId: string) {
+  async function inTransitStockTransfer(orderId: number) {
     console.log(orderId);
     try {
       const response = await axios.put(
@@ -232,7 +232,11 @@ export default function StockTransferTable() {
               <DropdownMenuItem>
                 <Link
                   href={`/stock-transfer/${stock_transfer.stock_transfer_id}/edit`}
-                  className="flex w-full"
+                  className={cn(
+                    "flex w-full",
+                    stock_transfer.status_id === 4 &&
+                      "pointer-events-none opacity-50"
+                  )}
                 >
                   Edit
                 </Link>
@@ -240,21 +244,23 @@ export default function StockTransferTable() {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() =>
-                  processingStockTransfer(stock_transfer.transfer_id)
+                  processingStockTransfer(stock_transfer.stock_transfer_id)
                 }
               >
                 Mark as Processing
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() =>
-                  inTransitStockTransfer(stock_transfer.transfer_id)
+                  inTransitStockTransfer(stock_transfer.stock_transfer_id)
                 }
               >
                 Mark as In Transit
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-destructive"
-                onClick={() => cancelStockTransfer(stock_transfer.transfer_id)}
+                onClick={() =>
+                  cancelStockTransfer(stock_transfer.stock_transfer_id)
+                }
               >
                 Cancel Order
               </DropdownMenuItem>
