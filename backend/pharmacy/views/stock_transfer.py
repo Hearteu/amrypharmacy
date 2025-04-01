@@ -19,6 +19,7 @@ class StockTransfer(APIView):
                 supabase.table("Stock_Transfer")
                 .select(
                     "stock_transfer_id, transfer_id, transfer_date, stock_transfer_status_id, "
+                    "Stock_Transfer_Status(stock_transfer_status), "
                     "src_location, des_location, "
                     "src_location_details:Location!Stock_Transfer_src_location_fkey(location), "
                     "des_location_details:Location!Stock_Transfer_des_location_fkey(location), "
@@ -47,6 +48,7 @@ class StockTransfer(APIView):
                     "transfer_id": transfer["transfer_id"],
                     "transfer_date": transfer["transfer_date"],
                     "status_id": transfer["stock_transfer_status_id"],
+                    "stock_transfer_status": transfer.get("Stock_Transfer_Status", {}).get("stock_transfer_status", "Unknown"),  # ✅ Added status name
                     "src_location_id": transfer["src_location"],  # Location ID
                     "des_location_id": transfer["des_location"],  # Location ID
                     "src_location_name": transfer.get("src_location_details", {}).get("location", "Unknown Location"),
