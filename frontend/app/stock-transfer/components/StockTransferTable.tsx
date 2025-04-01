@@ -41,6 +41,7 @@ import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import { StockTransfer } from "@/app/lib/types/stock-transfer";
 import { getStockTransfer } from "@/app/lib/services/stock-transfer";
 import { DataTableLoading } from "@/components/data-table/DataTableLoading";
+import axios from "axios";
 
 const statusMap: Record<number, string> = {
   1: "Draft",
@@ -81,6 +82,60 @@ export default function StockTransferTable() {
   useEffect(() => {
     refreshData();
   }, []);
+
+  async function cancelStockTransfer(orderId: string) {
+    console.log(orderId);
+    try {
+      const response = await axios.put(
+        `http://127.0.0.1:8000/pharmacy/stock-transfer/${orderId}/`,
+        { purchase_order_status_id: 5 },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      console.log("Stock Transfer canceled:", response.data);
+      refreshData();
+      return response.data;
+    } catch (error) {
+      console.error("Error canceling stock transfer:", error);
+      throw error;
+    }
+  }
+
+  async function processingStockTransfer(orderId: string) {
+    console.log(orderId);
+    try {
+      const response = await axios.put(
+        `http://127.0.0.1:8000/pharmacy/stock-transfer/${orderId}/`,
+        { purchase_order_status_id: 2 },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      console.log("Stock Transfer ordered:", response.data);
+      refreshData();
+      return response.data;
+    } catch (error) {
+      console.error("Error canceling stock transfer:", error);
+      throw error;
+    }
+  }
+
+  async function inTransitStockTransfer(orderId: string) {
+    console.log(orderId);
+    try {
+      const response = await axios.put(
+        `http://127.0.0.1:8000/pharmacy/stock-transfer/${orderId}/`,
+        { purchase_order_status_id: 3 },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      console.log("Stock Transfer:", response.data);
+      refreshData();
+      return response.data;
+    } catch (error) {
+      console.error("Error stock transfer:", error);
+      throw error;
+    }
+  }
 
   const columns: ColumnDef<StockTransfer>[] = [
     {
@@ -184,8 +239,22 @@ export default function StockTransferTable() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
+                onClick={() =>
+                  processingStockTransfer(stock_transfer.transfer_id)
+                }
+              >
+                Mark as Processing
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  inTransitStockTransfer(stock_transfer.transfer_id)
+                }
+              >
+                Mark as In Transit
+              </DropdownMenuItem>
+              <DropdownMenuItem
                 className="text-destructive"
-                // onClick={() => cancelPurchaseOrder(po.purchase_order_id)}
+                onClick={() => cancelStockTransfer(stock_transfer.transfer_id)}
               >
                 Cancel Order
               </DropdownMenuItem>

@@ -46,6 +46,14 @@ const statusMap: Record<number, string> = {
   5: "Cancelled",
 };
 
+const statusColorMap: Record<string, string> = {
+  Draft: "gray",
+  Ordered: "yellow",
+  Delayed: "orange",
+  Completed: "green",
+  Cancelled: "red",
+};
+
 import {
   Select,
   SelectContent,
@@ -56,7 +64,8 @@ import {
 import { PurchaseOrders } from "@/app/lib/types/purchase-order";
 import { getPO } from "@/app/lib/services/purchase-order";
 import { DataTableLoading } from "@/components/data-table/DataTableLoading";
-import StatusComboBox from "@/app/purchase-orders/components/StatusComboBox";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export default function PurchaseOrdersTable() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrders[]>([]);
@@ -92,6 +101,24 @@ export default function PurchaseOrdersTable() {
       );
 
       console.log("Purchase order canceled:", response.data);
+      refreshData();
+      return response.data;
+    } catch (error) {
+      console.error("Error canceling purchase order:", error);
+      throw error;
+    }
+  }
+
+  async function orderPurchaseOrder(orderId: number) {
+    console.log(orderId);
+    try {
+      const response = await axios.put(
+        `http://127.0.0.1:8000/pharmacy/purchase-orders/${orderId}/`,
+        { purchase_order_status_id: 2 },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      console.log("Purchase order ordered:", response.data);
       refreshData();
       return response.data;
     } catch (error) {
@@ -147,14 +174,24 @@ export default function PurchaseOrdersTable() {
       ),
       filterFn: "weakEquals",
       cell: ({ row }) => {
+        const statusId = row.original.status_id;
+        const statusName = statusMap[statusId] ?? "Unknown";
+        const color = statusColorMap[statusName] ?? "gray";
+
         return (
-          <StatusComboBox
-            statusId={row.original?.status_id ?? 0}
-            purchaseOrderId={row.original?.purchase_order_id}
-            onStatusChange={(newStatus) => {
-              console.log("Status updated to:", newStatus);
-            }}
-          />
+          <Badge
+            className={cn("px-2 py-1 rounded-md border", {
+              "bg-gray-100 text-gray-800 border-gray-200": color === "gray",
+              "bg-yellow-100 text-yellow-800 border-yellow-200":
+                color === "yellow",
+              "bg-orange-100 text-orange-800 border-orange-200":
+                color === "orange",
+              "bg-green-100 text-green-800 border-green-200": color === "green",
+              "bg-red-100 text-red-800 border-red-200": color === "red",
+            })}
+          >
+            {statusName}
+          </Badge>
         );
       },
     },
@@ -195,6 +232,12 @@ export default function PurchaseOrdersTable() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              {/* to be changed */}
+              <DropdownMenuItem
+                onClick={() => orderPurchaseOrder(po.purchase_order_id)}
+              >
+                Mark as Ordered
+              </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-destructive"
                 onClick={() => cancelPurchaseOrder(po.purchase_order_id)}
