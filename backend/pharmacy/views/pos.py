@@ -183,35 +183,83 @@ class POS(APIView):
 
             # Insert into POS_Item and update Stock_Item
             for item in data["items"]:
-                # Fetch stock item
-                stock_item_query = supabase.table("Stock_Item").select("stock_item_id", "quantity") \
+                # Fetch stock item (location-specific)
+                stock_item_query = supabase.table("Stock_Item").select("stock_item_id") \
                     .eq("product_id", item["product_id"]).eq("location_id", data["branch"]).limit(1).execute()
 
-                if stock_item_query.data:
-                    stock_item = stock_item_query.data[0]
-                    stock_item_id = stock_item["stock_item_id"]
-                    new_quantity = max(0, stock_item["quantity"] - item["quantity"])  # Prevent negative stock
+                if not stock_item_query.data:
+                    print(f"⚠️ Stock item not found for product {item['product_id']} at location {data['branch']}")
+                    continue  # Skip item
 
-                    # Update stock item
-                    supabase.table("Stock_Item").update({"quantity": new_quantity}) \
-                        .eq("stock_item_id", stock_item_id).execute()
+                stock_item_id = stock_item_query.data[0]["stock_item_id"]
 
-                    # Insert stock transaction
+                # Deduct stock item quantity
+                current_quantity_query = supabase.table("Stock_Item").select("quantity") \
+                    .eq("stock_item_id", stock_item_id).limit(1).execute()
+
+                if not current_quantity_query.data:
+                    print(f"⚠️ Failed to fetch current quantity for stock item {stock_item_id}")
+                    continue  # Skip item
+
+                current_quantity = current_quantity_query.data[0]["quantity"]
+                new_quantity = current_quantity - item["quantity"]
+
+                stock_item_update = supabase.table("Stock_Item").update({
+                    "quantity": new_quantity
+                }).eq("stock_item_id", stock_item_id).execute()
+
+                if not stock_item_update.data:
+                    print(f"⚠️ Failed to update stock item {stock_item_id} for product {item['product_id']}")
+                    continue  # Skip item
+
+                print(f"🟢 Stock item {stock_item_id} updated for product {item['product_id']} with new quantity {new_quantity}")
+
+                # Fetch stock batches sorted by FIFO (oldest expiry first)
+                expiry_query = (
+                    supabase.table("Expiration")
+                    .select("expiration_id, expiry_date, quantity")
+                    .eq("stock_item_id", stock_item_id)
+                    .gt("quantity", 0)  # Ignore fully used stock
+                    .order("expiry_date", desc=False)  # FIFO order
+                    .execute()
+                )
+
+                remaining_qty = item["quantity"]
+
+                for batch in expiry_query.data:
+                    batch_id = batch["expiration_id"]
+                    available_qty = batch["quantity"]
+
+                    if remaining_qty <= 0:
+                        break  # Stop if order is fulfilled
+
+                    if available_qty >= remaining_qty:
+                        # Deduct from this batch only
+                        new_qty = available_qty - remaining_qty
+                        remaining_qty = 0
+                    else:
+                        # Use full batch and move to next
+                        new_qty = 0
+                        remaining_qty -= available_qty
+
+                    # Update batch quantity
+                    supabase.table("Expiration").update({"quantity": new_qty}).eq("expiration_id", batch_id).execute()
+
+                    # Log stock transaction
                     supabase.table("Stock_Transaction").insert({
                         "transaction_date": transaction_date, "transaction_type": "POS",
                         "src_location": data["branch"], "des_location": None,
                         "stock_item_id": stock_item_id, "reference_id": pos_transaction_id,
-                        "quantity_change": -item["quantity"],
-                        "expiry_date": None
+                        "quantity_change": -min(item["quantity"], available_qty),
+                        # "expiry_date": batch["expiry_date"]
                     }).execute()
-                else:
-                    print(f"⚠️ Stock item not found for product {item['product_id']} at location {data['branch']}")
 
-                # Insert into POS_Item
+                # Insert into POS_Item (even if stock is insufficient, for tracking)
                 supabase.table("POS_Item").insert({
                     "pos_id": pos_transaction_id, "product_id": item["product_id"],
                     "price": item["price"], "quantity_sold": item["quantity"]
                 }).execute()
+
 
             print(f"🟢 Successfully inserted {len(data['items'])} items into POS_Item.")
 
