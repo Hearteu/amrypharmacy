@@ -1,30 +1,31 @@
-"use client";
+import { Button } from "@/components/ui/button";
+import PurchaseOrdersTable from "./components/PurchaseOrdersTable";
+import Link from "next/link";
+import { PlusCircle } from "lucide-react";
 
-import { useState } from "react";
-import { columns } from "./columns";
-import { DataTable } from "./data-table";
-
-interface PurchaseOrder{
-    purchase_order_id: number;
-    supplier_name: string;
-    date: number;
-}
-
-export default function PurchaseOrderList() {
-//   const [loading, setLoading] = useState(true); 
-  const [poData, setPoData] = useState<PurchaseOrder[]>([]);
-
-
+export default function PurchaseOrders() {
   return (
-    <>
-      <div className="p-4">
-        <div id="inventory" className="min-h-screen w-full pt-8 pr-4">
-          <div className="flex flex-row justify-between">
-            <h2 className="text-xl font-semibold p-4">Purchase Order History</h2>
+    <div className="p-4">
+      <div className="container mx-auto py-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Purchase Orders
+            </h1>
+            <p className="text-muted-foreground">
+              Manage and track your purchase orders
+            </p>
           </div>
-            <DataTable columns={columns} data={poData} />
+          <Button asChild>
+            <Link href="/purchase-orders/create">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              New Purchase Order
+            </Link>
+          </Button>
         </div>
+
+        <PurchaseOrdersTable />
       </div>
-    </>
+    </div>
   );
 }

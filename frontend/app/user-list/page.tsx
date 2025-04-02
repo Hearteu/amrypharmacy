@@ -1,8 +1,8 @@
 "use client"; // Ensure this is at the top to use hooks
 
 import { useState, useEffect } from "react";
-import { DataTable } from "./data-table";
-import { columns } from "./columns";
+import { DataTable } from "../../components/data-table/DataTable";
+
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,9 @@ import {
 
 import { Button } from "@/components/ui/button";
 import RegisterForm from "@/components/forms/RegisterForm";
+import { PlusCircle } from "lucide-react";
+import { columns } from "./components/columns";
+import { DataTableLoading } from "@/components/data-table/DataTableLoading";
 
 interface User {
   user_id: number;
@@ -91,47 +94,66 @@ export default function UserList() {
   }
 
   const refreshData = () => {
-    console.log("Refreshing data")
+    console.log("Refreshing data");
     getData().then((fetchedData) => {
       setData(fetchedData);
       setLoading(false);
     });
-  }
+  };
 
-  const tableColumns = columns(refreshData)
+  const tableColumns = columns(refreshData);
 
   useEffect(() => {
-    refreshData()
+    refreshData();
   }, []);
 
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      {loading ? (
-        <p className="text-center text-gray-500">Loading...</p>
-      ) : (
-        <>
-        <div className="w-full grid justify-items-end pt-4 pr-4">
-          <Dialog open={open} onOpenChange={setOpen}>
+      <div className="p-4">
+        <div className="container mx-auto py-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">User List</h1>
+              <p className="text-muted-foreground">
+                Manage users, assign roles, edit details, and remove accounts.
+              </p>
+            </div>
+            <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline">Add User</Button>
+                <Button className="bg-primary text-white hover:bg-primary/90">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add New User
+                </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>Add User</DialogTitle>
                 </DialogHeader>
-                <RegisterForm onSuccess={(data) => {
-                  console.log("From the columns component", data)
-                  setOpen(false);
-                  refreshData();
-                  }}/>
+                <RegisterForm
+                  onSuccess={(data) => {
+                    console.log("From the columns component", data);
+                    setOpen(false);
+                    refreshData();
+                  }}
+                />
               </DialogContent>
             </Dialog>
+          </div>
+          {loading ? (
+            <DataTableLoading columnCount={tableColumns.length} rowCount={10} />
+          ) : (
+            <>
+              <DataTable
+                columns={tableColumns}
+                data={data}
+                search="full_name"
+              />
+            </>
+          )}
         </div>
-        <DataTable columns={tableColumns} data={data} />
-        </>
-      )}
+      </div>
     </>
   );
 }

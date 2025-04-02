@@ -14,7 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosResponse } from "axios";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { TypeOf, z } from "zod";
+import { z } from "zod";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Check, ChevronsUpDown } from "lucide-react";
 import {
@@ -51,15 +51,30 @@ interface EditUserFormProps {
   onSuccess: (data: AxiosResponse) => void;
 }
 
+interface Person {
+  person_id: "";
+  first_name: "";
+  last_name: "";
+  address: "";
+  contact: "";
+  email: "";
+}
+
+interface User{
+  user_id: "";
+  username: "";
+  person_id: "";
+  role_id: "";
+}
 interface Role {
   role_id: number;
   role_name: string;
 }
 
 export default function EditUserForm({ user_id, onSuccess }: EditUserFormProps) {
-  const [userData, setUserData] = useState<any>(null);
-  const [personData, setPersonData] = useState<any>(null);
-  const [roleData, setRoleData] = useState<any>(null);
+  const [userData, setUserData] = useState<User | null>(null);
+  const [personData, setPersonData] = useState<Person | null>(null);
+  const [roleData, setRoleData] = useState<Role | null>(null);
   const [open, setOpen] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -117,6 +132,8 @@ export default function EditUserForm({ user_id, onSuccess }: EditUserFormProps) 
             setRoleData(roleResponse.data[0]); // ✅ Extract first object
           }
         }
+
+        console.log(userData)
       } catch (error) {
         console.error(error);
       }
@@ -137,6 +154,7 @@ export default function EditUserForm({ user_id, onSuccess }: EditUserFormProps) 
         console.log("Fetched Roles:", rolesData); // Log the fetched data
 
         setRoles(rolesData);
+        console.log(userData)
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -283,7 +301,7 @@ export default function EditUserForm({ user_id, onSuccess }: EditUserFormProps) 
                         )}
                       >
                         {
-                          roles.find((role) => role.role_id == field.value)
+                          roles.find((role) => role.role_id.toString() == field.value)
                             ?.role_name
                         }
                         <ChevronsUpDown className="opacity-50" />

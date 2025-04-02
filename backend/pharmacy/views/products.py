@@ -11,14 +11,14 @@ supabase = get_supabase_client()
 
 class Products(APIView):
     def get(self, request, product_id=None):
-        # Base query
+        # Base query including stock items
         query = supabase.table("Products").select(
             "product_id, product_name, current_price, net_content, "
             "Brand(brand_id, brand_name), Product_Category(category_id, category_name), "
-            "Unit(unit_id, unit), Drugs(dosage_strength, dosage_form)"
+            "Unit(unit_id, unit), Drugs(dosage_strength, dosage_form), "
+            "Stock_Item(stock_item_id, location_id, quantity, Location(location))"
         )
 
-        # If a specific product_id is provided, filter the query
         if product_id:
             query = query.eq("product_id", product_id)
 
@@ -27,14 +27,40 @@ class Products(APIView):
         products = response.data
 
         if product_id:
-            # If product_id is provided, return a single product
             if not products:
                 return Response({"error": "Product not found"}, status=404)
 
             product = products[0]  # Get the first (and only) result
             drug_info = product.get("Drugs", {})
+            stock_items = product.get("Stock_Item", [])
 
-            # Check if it's a drug
+            stock_per_location = []
+            for item in stock_items:
+                stock_item_id = item["stock_item_id"]
+
+                # ✅ Fetch Expiration details sorted by nearest expiry
+                expiry_query = (
+                    supabase.table("Expiration")
+                    .select("expiry_date, quantity")
+                    .eq("stock_item_id", stock_item_id)
+                    .gt("quantity", 0)  # Ignore fully used stock
+                    .order("expiry_date", desc=False)  # Sort FIFO (ascending order)
+                    .execute()
+                )
+                
+                expiry_data = expiry_query.data or []
+
+                stock_per_location.append({
+                    "location_id": item["location_id"],
+                    "location": item["Location"]["location"],
+                    "total_quantity": item["quantity"],
+                    "expiry_details": [
+                        {"expiry_date": exp["expiry_date"], "quantity": exp["quantity"]}
+                        for exp in expiry_data
+                    ]  # FIFO order maintained
+                })
+
+            # ✅ Check if it's a drug
             if isinstance(drug_info, dict) and drug_info:
                 return Response({
                     "product_id": product.get("product_id"),
@@ -45,7 +71,8 @@ class Products(APIView):
                     "dosage_strength": drug_info.get("dosage_strength", "").strip(),
                     "dosage_form": drug_info.get("dosage_form", "").strip(),
                     "net_content": product.get("net_content", "").strip(),
-                    "unit_id": product.get("Unit", {}).get("unit_id")
+                    "unit_id": product.get("Unit", {}).get("unit_id"),
+                    "stock_per_location": stock_per_location
                 })
             else:
                 return Response({
@@ -55,22 +82,49 @@ class Products(APIView):
                     "brand_id": product.get("Brand", {}).get("brand_id"),
                     "current_price": product.get("current_price", 0),
                     "net_content": product.get("net_content", "").strip(),
-                    "unit_id": product.get("Unit", {}).get("unit_id")
+                    "unit_id": product.get("Unit", {}).get("unit_id"),
+                    "stock_per_location": stock_per_location
                 })
 
-        # If no product_id is provided, return the list
+        # If no product_id, return a list of products
         formatted_products = []
         for product in products:
             brand_name = product.get("Brand", {}).get("brand_name", "").strip()
             category_name = product.get("Product_Category", {}).get("category_name", "").strip()
             unit_name = product.get("Unit", {}).get("unit", "").strip()
             drug_info = product.get("Drugs", {})
+            stock_items = product.get("Stock_Item", [])
 
-            # Check if it's a drug (exists in Drugs table and has data)
+            stock_per_location = []
+            for item in stock_items:
+                stock_item_id = item["stock_item_id"]
+
+                # ✅ Fetch Expiration details sorted by nearest expiry
+                expiry_query = (
+                    supabase.table("Expiration")
+                    .select("expiry_date, quantity")
+                    .eq("stock_item_id", stock_item_id)
+                    .gt("quantity", 0)  # Ignore fully used stock
+                    .order("expiry_date", desc=False)  # Sort FIFO (ascending order)
+                    .execute()
+                )
+
+                expiry_data = expiry_query.data or []
+
+                stock_per_location.append({
+                    "location_id": item["location_id"],
+                    "location": item["Location"]["location"],
+                    "total_quantity": item["quantity"],
+                    "expiry_details": [
+                        {"expiry_date": exp["expiry_date"], "quantity": exp["quantity"]}
+                        for exp in expiry_data
+                    ]  # FIFO order maintained
+                })
+
             if isinstance(drug_info, dict) and drug_info:
                 dosage_strength = drug_info.get("dosage_strength", "").strip()
                 dosage_form = drug_info.get("dosage_form", "").strip()
-                full_name = f"{product['product_name']} {dosage_strength} {dosage_form} {brand_name}"
+                full_name = f"{product['product_name']} {dosage_strength} {dosage_form} ({brand_name})"
             else:
                 full_name = f"{product['product_name']} {product['net_content']} per {unit_name} ({brand_name})"
 
@@ -80,18 +134,19 @@ class Products(APIView):
                 "category": category_name,
                 "price": product["current_price"],
                 "net_content": product["net_content"],
-                "unit": unit_name
+                "unit": unit_name,
+                "stock_per_location": stock_per_location
             })
 
         return Response(formatted_products)
-       
-        
+
+    
     def post(self, request):
         data = request.data
         print(data)
 
         try:
-            # Insert into Products table
+            # ✅ Step 1: Insert into Products table
             product_response = supabase.table("Products").insert({
                 "product_name": data["product_name"],
                 "category_id": data["category_id"],
@@ -104,13 +159,30 @@ class Products(APIView):
             if not product_response.data:
                 return Response({"error": "Products insertion failed"}, status=400)
 
-            # Get the generated product_id
+            # ✅ Step 2: Get the generated product_id
             product_id = product_response.data[0]["product_id"]
 
-            # Check if it's a drug (has dosage_strength and dosage_form)
+            # ✅ Step 3: Insert into Stock_Item table for locations 1, 2, and 3 (Initial quantity = 0)
+            stock_items = []
+            for location_id in [1, 2, 3]:
+                stock_item_response = supabase.table("Stock_Item").insert({
+                    "product_id": product_id,
+                    "location_id": location_id,  # Assigning predefined locations
+                    "quantity": 0
+                }).execute()
+
+                if stock_item_response.data:
+                    stock_items.append(stock_item_response.data[0])
+                else:
+                    print(f"⚠️ Failed to initialize Stock_Item for location {location_id}")
+
+            if not stock_items:
+                return Response({"error": "Failed to initialize stock items for locations"}, status=400)
+
+            # ✅ Step 4: If it's a drug, insert into Drugs table
             if "dosage_strength" in data and "dosage_form" in data:
                 drug_response = supabase.table("Drugs").insert({
-                    "product_id": product_id,  # FK to Products
+                    "product_id": product_id,
                     "dosage_strength": data["dosage_strength"],
                     "dosage_form": data["dosage_form"]
                 }).execute()
@@ -118,12 +190,15 @@ class Products(APIView):
                 if not drug_response.data:
                     return Response({"error": "Drugs insertion failed"}, status=400)
 
-            return Response({"message": "Product added successfully", "product": product_response.data}, status=201)
+            return Response({
+                "message": "Product added successfully",
+                "product": product_response.data,
+                "stock_items": stock_items  # Includes initialized locations
+            }, status=201)
 
         except Exception as e:
             return Response({"error": str(e)}, status=400)
 
- 
     def put(self, request, product_id=None):
         data = request.data
         print(data)

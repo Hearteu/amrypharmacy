@@ -15,7 +15,6 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-
 # Load environment variables from .env file
 load_dotenv()
 
@@ -61,7 +60,6 @@ REST_FRAMEWORK = {
 
 from datetime import timedelta
 
-
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),  # Token expires in 30 mins
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Refresh token valid for 7 days
@@ -82,6 +80,7 @@ MIDDLEWARE = [
 
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',  # Next.js URL
+    'http://localhost:3001',  # Next.js URL
 ]
 
 ROOT_URLCONF = 'backend.urls'
