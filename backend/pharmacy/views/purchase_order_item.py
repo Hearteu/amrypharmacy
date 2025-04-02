@@ -121,7 +121,7 @@ class POI(APIView):
 
             # ✅ Step 5: Validate before inserting stock transaction
             total_qty_handled = to_receive + expired_qty + damaged_qty
-            if total_qty_handled == ordered_qty:
+            if total_qty_handled == ordered_qty and status != 1:
                 # ✅ Step 6: Insert a Stock Transaction (Now with a valid stock_item_id)
                 transaction_data = {
                     "stock_item_id": stock_item_id,  # Now we have a valid stock_item_id
@@ -131,10 +131,20 @@ class POI(APIView):
                     "des_location": des_location_id,
                     "quantity_change": to_receive,
                     "transaction_date": datetime.now(timezone.utc).isoformat(),  # UTC timestamp
-                    "expiry_date": expiry_date  # ✅ Add expiry date here
+                    # "expiry_date": expiry_date
                 }
-
                 transaction_response = supabase.table("Stock_Transaction").insert(transaction_data).execute()
+
+                if expiry_date:
+                    expiration_data = {
+                        "stock_item_id": stock_item_id,
+                        "expiry_date": expiry_date,
+                        "quantity": to_receive,  # Received quantity per expiry date
+                    }
+                    
+                    expiration_response = supabase.table("Expiration").insert(expiration_data).execute()
+                    if hasattr(expiration_response, "error") and expiration_response.error:
+                        print(f"❌ Error inserting Expiration record: {expiration_response.error}")
 
                 # ✅ Step 7: Update Stock_Item quantity
                 supabase.table("Stock_Item").update({"quantity": new_quantity}) \
@@ -142,7 +152,7 @@ class POI(APIView):
 
                 print(f"🟢 Successfully updated POI {purchase_order_item_id}, added Stock Transaction, and updated Stock Item")
             else:
-                print(f"⚠️ Stock transaction skipped: {total_qty_handled} ≠ {ordered_qty}")
+                print(f"⚠️ Stock transaction skipped: {total_qty_handled} ≠ {ordered_qty} or status is still {status} which is pending")
 
             return Response({"message": "Purchase Order Item updated successfully"}, status=200)
 
