@@ -204,6 +204,7 @@ class POS(APIView):
                 current_quantity = current_quantity_query.data[0]["quantity"]
                 new_quantity = current_quantity - item["quantity"]
 
+                # Update Stock_Item quantity
                 stock_item_update = supabase.table("Stock_Item").update({
                     "quantity": new_quantity
                 }).eq("stock_item_id", stock_item_id).execute()
@@ -214,7 +215,19 @@ class POS(APIView):
 
                 print(f"🟢 Stock item {stock_item_id} updated for product {item['product_id']} with new quantity {new_quantity}")
 
-                # Fetch stock batches sorted by FIFO (oldest expiry first)
+                # Insert stock transaction log (general deduction, outside FIFO logic)
+                supabase.table("Stock_Transaction").insert({
+                    "transaction_date": transaction_date,
+                    "transaction_type": "POS",
+                    "src_location": data["branch"],
+                    "des_location": None,
+                    "stock_item_id": stock_item_id,
+                    "reference_id": pos_transaction_id,
+                    "quantity_change": -item["quantity"],
+                    "expiry_date": None  # This will be handled in FIFO logic separately
+                }).execute()
+
+                # Handle FIFO expiration tracking
                 expiry_query = (
                     supabase.table("Expiration")
                     .select("expiration_id, expiry_date, quantity")
@@ -245,14 +258,18 @@ class POS(APIView):
                     # Update batch quantity
                     supabase.table("Expiration").update({"quantity": new_qty}).eq("expiration_id", batch_id).execute()
 
-                    # Log stock transaction
+                    # Log stock transaction for this batch (FIFO tracking)
                     supabase.table("Stock_Transaction").insert({
-                        "transaction_date": transaction_date, "transaction_type": "POS",
-                        "src_location": data["branch"], "des_location": None,
-                        "stock_item_id": stock_item_id, "reference_id": pos_transaction_id,
+                        "transaction_date": transaction_date,
+                        "transaction_type": "POS",
+                        "src_location": data["branch"],
+                        "des_location": None,
+                        "stock_item_id": stock_item_id,
+                        "reference_id": pos_transaction_id,
                         "quantity_change": -min(item["quantity"], available_qty),
-                        # "expiry_date": batch["expiry_date"]
+                        "expiry_date": batch["expiry_date"]
                     }).execute()
+
 
                 # Insert into POS_Item (even if stock is insufficient, for tracking)
                 supabase.table("POS_Item").insert({
