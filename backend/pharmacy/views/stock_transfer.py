@@ -12,72 +12,26 @@ supabase = get_supabase_client()
 #Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
 
 class StockTransfer(APIView):
-    def get(self, request, stock_transfer_id=None):
+    def get(self, request, direction, location_id):
+        """
+        Get stock transfers filtered by location.
+        direction: 'src' or 'des'
+        """
         try:
-            # ✅ Query Stock_Transfer with explicit foreign key relationships
-            query = (
-                supabase.table("Stock_Transfer")
-                .select(
-                    "stock_transfer_id, transfer_id, transfer_date, stock_transfer_status_id, "
-                    "Stock_Transfer_Status(stock_transfer_status), "
-                    "src_location, des_location, "
-                    "src_location_details:Location!Stock_Transfer_src_location_fkey(location), "
-                    "des_location_details:Location!Stock_Transfer_des_location_fkey(location), "
-                    "Stock_Transfer_Item(stock_transfer_item_id, product_id, ordered_quantity, "
-                    "Products(product_name, Drugs(dosage_form, dosage_strength)))"
-                )
-            )
+            if direction not in ["src", "des"]:
+                return Response({"error": "Invalid direction. Use 'src' or 'des'."}, status=400)
 
+            column = "src_location" if direction == "src" else "des_location"
 
-            if stock_transfer_id is not None:
-                query = query.eq("stock_transfer_id", stock_transfer_id).single()
+            transactions = supabase.table("Stock_Transaction").select("*") \
+                .eq(column, location_id) \
+                .order("transaction_date", desc=True) \
+                .execute()
 
-            response = query.execute()
-
-            if not response.data:
-                return Response({"error": "No Stock Transfer found"}, status=404)
-
-            stock_transfers = (
-                [response.data] if isinstance(response.data, dict) else response.data
-            )
-
-            # ✅ Format response properly
-            formatted_response = [
-                {
-                    "stock_transfer_id": transfer["stock_transfer_id"],
-                    "transfer_id": transfer["transfer_id"],
-                    "transfer_date": transfer["transfer_date"],
-                    "status_id": transfer["stock_transfer_status_id"],
-                    "stock_transfer_status": transfer.get("Stock_Transfer_Status", {}).get("stock_transfer_status", "Unknown"),  # ✅ Added status name
-                    "src_location_id": transfer["src_location"],  # Location ID
-                    "des_location_id": transfer["des_location"],  # Location ID
-                    "src_location_name": transfer.get("src_location_details", {}).get("location", "Unknown Location"),
-                    "des_location_name": transfer.get("des_location_details", {}).get("location", "Unknown Location"),
-                    "transferItems": [
-                        {
-                            "stock_transfer_item_id": item["stock_transfer_item_id"],
-                            "product_id": item["product_id"],
-                            "ordered_quantity": item["ordered_quantity"],
-                            "product_name": (
-                                f"{item['Products']['product_name']} "
-                                f"{item['Products']['Drugs']['dosage_form']} "
-                                f"{item['Products']['Drugs']['dosage_strength']}".strip()
-                                if item.get("Products", {}).get("Drugs")
-                                else item["Products"]["product_name"]
-                            ),
-                        }
-                        for item in transfer.get("Stock_Transfer_Item", [])
-                    ],
-                }
-                for transfer in stock_transfers
-            ]
-
-
-            return Response(
-                formatted_response[0] if stock_transfer_id else formatted_response, status=200
-            )
+            return Response(transactions.data, status=200)
 
         except Exception as e:
+            print(f"❌ Error fetching stock transfers: {str(e)}")
             return Response({"error": str(e)}, status=500)
 
         

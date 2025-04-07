@@ -68,6 +68,7 @@ urlpatterns = [
 ] + [
     # Explicitly define PUT route for supplier-items
     path("supplier-items/edit/<int:supplier_item_id>/", SupplierItem.as_view(), name="edit-supplier-item"),
+    path("stock-transfer-<str:direction>/<int:location_id>/", StockTransfer.as_view()),
 ] + [
     path("login/", UserLoginView.as_view(), name="login"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
