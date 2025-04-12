@@ -1,5 +1,7 @@
 "use client";
 
+import type React from "react";
+
 import { useState } from "react";
 import {
   AlertCircle,
@@ -47,6 +49,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Label } from "@/components/ui/label";
 
 // Sample data for items expiring this month
 const initialExpiringItems = [
@@ -137,15 +140,15 @@ const initialLowStockItems = [
   },
 ];
 
-// Sample sales data
-
 export function InventoryDashboard() {
   const [expiringItems, setExpiringItems] = useState(initialExpiringItems);
   const [lowStockItems, setLowStockItems] = useState(initialLowStockItems);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [stockOutQuantity, setStockOutQuantity] = useState<number>(0);
   const [isStockOutDialogOpen, setIsStockOutDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("expiring");
+  const [quantityError, setQuantityError] = useState("");
 
   // Filter items based on search query and active tab
   const filteredExpiringItems = expiringItems.filter(
@@ -162,14 +165,56 @@ export function InventoryDashboard() {
       item.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Set initial stock out quantity when an item is selected
+  const handleSelectItem = (item: any) => {
+    setSelectedItem(item);
+    setStockOutQuantity(item.quantity);
+    setQuantityError("");
+  };
+
+  // Validate and update stock out quantity
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Number.parseInt(e.target.value);
+
+    if (isNaN(value) || value < 0) {
+      setQuantityError("Quantity must be a positive number");
+      return;
+    }
+
+    if (selectedItem && value > selectedItem.quantity) {
+      setQuantityError(
+        `Cannot exceed current quantity (${selectedItem.quantity})`
+      );
+      return;
+    }
+
+    setStockOutQuantity(value);
+    setQuantityError("");
+  };
+
   // Handle stock out action
   const handleStockOut = () => {
-    if (selectedItem) {
-      setExpiringItems(
-        expiringItems.filter((item) => item.id !== selectedItem.id)
-      );
+    if (selectedItem && stockOutQuantity >= 0) {
+      if (stockOutQuantity === selectedItem.quantity) {
+        // Remove the item completely if all units are stocked out
+        setExpiringItems(
+          expiringItems.filter((item) => item.id !== selectedItem.id)
+        );
+      } else {
+        // Update the quantity if only some units are stocked out
+        setExpiringItems(
+          expiringItems.map((item) => {
+            if (item.id === selectedItem.id) {
+              return { ...item, quantity: item.quantity - stockOutQuantity };
+            }
+            return item;
+          })
+        );
+      }
+
       setIsStockOutDialogOpen(false);
       setSelectedItem(null);
+      setStockOutQuantity(0);
     }
   };
 
@@ -309,7 +354,10 @@ export function InventoryDashboard() {
                               }
                               onOpenChange={(open) => {
                                 setIsStockOutDialogOpen(open);
-                                if (!open) setSelectedItem(null);
+                                if (!open) {
+                                  setSelectedItem(null);
+                                  setQuantityError("");
+                                }
                               }}
                             >
                               <DropdownMenu>
@@ -324,7 +372,7 @@ export function InventoryDashboard() {
                                   <DropdownMenuSeparator />
                                   <DialogTrigger asChild>
                                     <DropdownMenuItem
-                                      onClick={() => setSelectedItem(item)}
+                                      onClick={() => handleSelectItem(item)}
                                     >
                                       Stock Out
                                     </DropdownMenuItem>
@@ -343,12 +391,12 @@ export function InventoryDashboard() {
                                     Stock Out Confirmation
                                   </DialogTitle>
                                   <DialogDescription>
-                                    Are you sure you want to stock out this item
-                                    before it expires?
+                                    Please confirm the quantity of items to
+                                    stock out.
                                   </DialogDescription>
                                 </DialogHeader>
                                 <div className="py-4">
-                                  <div className="grid grid-cols-2 gap-4">
+                                  <div className="grid grid-cols-2 gap-4 mb-4">
                                     <div>
                                       <p className="text-sm font-medium text-muted-foreground">
                                         Item ID
@@ -367,7 +415,7 @@ export function InventoryDashboard() {
                                     </div>
                                     <div>
                                       <p className="text-sm font-medium text-muted-foreground">
-                                        Quantity
+                                        Current Quantity
                                       </p>
                                       <p className="text-sm">
                                         {selectedItem?.quantity}
@@ -382,6 +430,37 @@ export function InventoryDashboard() {
                                       </p>
                                     </div>
                                   </div>
+
+                                  <div className="space-y-2">
+                                    <Label htmlFor="stock-out-quantity">
+                                      Quantity to Stock Out
+                                    </Label>
+                                    <Input
+                                      id="stock-out-quantity"
+                                      type="number"
+                                      min="1"
+                                      max={selectedItem?.quantity}
+                                      value={stockOutQuantity}
+                                      onChange={handleQuantityChange}
+                                      className={
+                                        quantityError ? "border-red-500" : ""
+                                      }
+                                    />
+                                    {quantityError && (
+                                      <p className="text-sm text-red-500">
+                                        {quantityError}
+                                      </p>
+                                    )}
+                                    <p className="text-sm text-muted-foreground">
+                                      {stockOutQuantity ===
+                                      selectedItem?.quantity
+                                        ? "This will remove the item completely from inventory."
+                                        : `${
+                                            selectedItem?.quantity -
+                                            stockOutQuantity
+                                          } units will remain in inventory.`}
+                                    </p>
+                                  </div>
                                 </div>
                                 <DialogFooter>
                                   <Button
@@ -395,6 +474,9 @@ export function InventoryDashboard() {
                                   <Button
                                     variant="destructive"
                                     onClick={handleStockOut}
+                                    disabled={
+                                      !!quantityError || stockOutQuantity <= 0
+                                    }
                                   >
                                     Confirm Stock Out
                                   </Button>
@@ -502,8 +584,6 @@ export function InventoryDashboard() {
           </Tabs>
         </CardContent>
       </Card>
-
-      {/* Recent Sales Transactions */}
     </div>
   );
 }
