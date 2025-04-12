@@ -30,36 +30,41 @@ class UserList(APIView):
     
     def post(self, request):
         user_data = request.data.copy()
-        # Extract password separately
+        # Extract password and location_id separately
         password = user_data.pop("password", None)
+        location_id = user_data.pop("location_id", None)  # Extract for Users table
 
         try:
             # Insert into Person table first
             person = supabase.table("Person").insert([user_data]).execute()
-            
+
             if person.data and password:
                 person_id = person.data[0]['person_id']  # Retrieve generated person_id
                 first_name = user_data.get("first_name", "").strip()
                 last_name = user_data.get("last_name", "").strip()
+
                 # Generate initials for all first names
                 first_initials = "".join([word[0] for word in first_name.split()]) if first_name else ""
                 username = (first_initials + last_name).lower() if first_initials and last_name else f"user_{person_id}"
 
                 hashed_password = make_password(password)
 
+                # Insert into Users table (including location_id)
                 user = supabase.table("Users").insert([{
-                    "person_id": person_id,  # Reference person_id as person_id
+                    "person_id": person_id,
                     "username": username,
-                    "password": hashed_password
+                    "password": hashed_password,
+                    "location_id": location_id  # Add FK reference here
                 }]).execute()
 
                 return Response({"message": "User created successfully"}, status=201)
-            
+
             return Response({"error": "Failed to create user"}, status=400)
-        
+
         except Exception as e:
             print("Error:", str(e))
             return Response({"error": str(e)}, status=400)
+
     
     def put(self, request, user_id):
         print(request.data)
@@ -73,6 +78,7 @@ class UserList(APIView):
             "password",
             "person_id",
             "role_id",
+            "location_id",  # ✅ Include location_id
         ]
         persons_fields = [
             "person_id",
@@ -120,7 +126,7 @@ class UserList(APIView):
             if password:  # Only update password if provided
                 user_data["password"] = make_password(password)
 
-            # Update Users table
+            # Update Users table (with optional location_id)
             user_update = supabase.table("Users").update(user_data).eq("user_id", user_id).execute()
             print(user_update)
 
@@ -131,6 +137,7 @@ class UserList(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=400)
+
 
     def delete(self, request, user_id):
         try:
