@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PlusCircle } from "lucide-react";
 import { IncomingTransfersList } from "./components/IncomingTransfers";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
@@ -14,8 +14,33 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { OutgoingTransfersList } from "./components/OutgoingTransfers";
+import { useEffect, useState } from "react";
+import { StockTransfer } from "../lib/types/stock-transfer";
+import {
+  getIncomingStockTransfer,
+  getOutgoingStockTransfer,
+} from "../lib/services/stock-transfer";
 
 export default function StockTransferList() {
+  const [incomingGrouped, setIncomingGrouped] = useState<
+    Record<string, StockTransfer[]>
+  >({});
+  const [outgoingGrouped, setOutgoingGrouped] = useState<
+    Record<string, StockTransfer[]>
+  >({});
+  const [activeIncomingTab, setActiveIncomingTab] = useState("intransit");
+  const [activeOutgoingTab, setActiveOutgoingTab] = useState("intransit");
+
+  useEffect(() => {
+    async function load() {
+      const incoming = await getIncomingStockTransfer("2");
+      const outgoing = await getOutgoingStockTransfer("2");
+      setIncomingGrouped(incoming);
+      setOutgoingGrouped(outgoing);
+    }
+    load();
+  }, []);
+
   return (
     <>
       <div className="p-4">
@@ -52,25 +77,36 @@ export default function StockTransferList() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="pending">
+            <Tabs
+              value={activeIncomingTab}
+              onValueChange={setActiveIncomingTab}
+            >
               <TabsList className="mb-4">
-                <TabsTrigger value="pending">Pending</TabsTrigger>
-                <TabsTrigger value="in_transit">In Transit</TabsTrigger>
+                <TabsTrigger value="intransit">In Transit</TabsTrigger>
+                <TabsTrigger value="delayed">Delayed</TabsTrigger>
                 <TabsTrigger value="received">Received</TabsTrigger>
-                <TabsTrigger value="completed">Completed</TabsTrigger>
+                <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
               </TabsList>
-              <TabsContent value="pending">
-                <IncomingTransfersList status="pending" />
-              </TabsContent>
-              <TabsContent value="in_transit">
-                <IncomingTransfersList status="in_transit" />
-              </TabsContent>
-              <TabsContent value="received">
-                <IncomingTransfersList status="received" />
-              </TabsContent>
-              <TabsContent value="completed">
-                <IncomingTransfersList status="completed" />
-              </TabsContent>
+              {activeIncomingTab === "intransit" && (
+                <IncomingTransfersList
+                  data={incomingGrouped["intransit"] || []}
+                />
+              )}
+              {activeIncomingTab === "delayed" && (
+                <IncomingTransfersList
+                  data={incomingGrouped["delayed"] || []}
+                />
+              )}
+              {activeIncomingTab === "received" && (
+                <IncomingTransfersList
+                  data={incomingGrouped["received"] || []}
+                />
+              )}
+              {activeIncomingTab === "cancelled" && (
+                <IncomingTransfersList
+                  data={incomingGrouped["cancelled"] || []}
+                />
+              )}
             </Tabs>
           </CardContent>
         </Card>
@@ -83,25 +119,36 @@ export default function StockTransferList() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="draft">
+            <Tabs
+              value={activeOutgoingTab}
+              onValueChange={setActiveOutgoingTab}
+            >
               <TabsList className="mb-4">
-                <TabsTrigger value="draft">Draft</TabsTrigger>
-                <TabsTrigger value="ordered">Ordered</TabsTrigger>
-                <TabsTrigger value="in_progress">In Progress</TabsTrigger>
-                <TabsTrigger value="completed">Completed</TabsTrigger>
+                <TabsTrigger value="intransit">In Transit</TabsTrigger>
+                <TabsTrigger value="delayed">Delayed</TabsTrigger>
+                <TabsTrigger value="received">Received</TabsTrigger>
+                <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
               </TabsList>
-              <TabsContent value="draft">
-                <OutgoingTransfersList status="draft" />
-              </TabsContent>
-              <TabsContent value="ordered">
-                <OutgoingTransfersList status="ordered" />
-              </TabsContent>
-              <TabsContent value="in_progress">
-                <OutgoingTransfersList status="in_progress" />
-              </TabsContent>
-              <TabsContent value="completed">
-                <OutgoingTransfersList status="completed" />
-              </TabsContent>
+              {activeOutgoingTab === "intransit" && (
+                <OutgoingTransfersList
+                  data={outgoingGrouped["intransit"] || []}
+                />
+              )}
+              {activeOutgoingTab === "delayed" && (
+                <OutgoingTransfersList
+                  data={outgoingGrouped["delayed"] || []}
+                />
+              )}
+              {activeOutgoingTab === "received" && (
+                <OutgoingTransfersList
+                  data={outgoingGrouped["received"] || []}
+                />
+              )}
+              {activeOutgoingTab === "cancelled" && (
+                <OutgoingTransfersList
+                  data={outgoingGrouped["cancelled"] || []}
+                />
+              )}
             </Tabs>
           </CardContent>
         </Card>
