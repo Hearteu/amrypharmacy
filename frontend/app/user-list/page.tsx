@@ -14,8 +14,8 @@ import {
 import { Button } from "@/components/ui/button";
 import RegisterForm from "@/components/forms/RegisterForm";
 import { PlusCircle } from "lucide-react";
-import { columns } from "./components/columns";
 import { DataTableLoading } from "@/components/data-table/DataTableLoading";
+import { columns } from "./components/Columns";
 
 interface User {
   user_id: number;
