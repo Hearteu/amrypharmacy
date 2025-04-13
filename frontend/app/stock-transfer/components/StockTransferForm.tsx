@@ -69,6 +69,9 @@ const transferSchema = z.object({
   transfer_date: z.date({
     required_error: "Please select a date",
   }),
+  expected_date: z.date({
+    required_error: "Please select a date",
+  }),
   transferItems: z
     .array(
       z.object({
@@ -139,6 +142,7 @@ export function StockTransferForm({
       des_location_id: "",
       stock_transfer_id: undefined,
       transfer_date: new Date(),
+      expected_date: new Date(),
       transferItems: [{ product_id: "", ordered_quantity: 1 }],
     },
   });
@@ -411,7 +415,51 @@ export function StockTransferForm({
                     </PopoverContent>
                   </Popover>
                   <FormDescription>
-                    The date when the transfer will take place
+                    The date when the stock is scheduled to leave the source
+                    location.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="expected_date"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Expected Delivery Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormDescription>
+                    The estimated date when the stock is expected to arrive at
+                    the destination location.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

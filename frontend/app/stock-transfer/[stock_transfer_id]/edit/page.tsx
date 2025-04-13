@@ -16,6 +16,7 @@ interface LineItems {
 interface StockTransfer {
   stock_transfer_id: string;
   transfer_date: Date;
+  expected_date: Date;
   src_location_id: string;
   des_location_id: string;
   transferItems: LineItems[];
@@ -63,6 +64,10 @@ export default function EditPurchaseOrderPage({
             : undefined,
 
           transfer_date: response.data.transfer_date
+            ? new Date(response.data.transfer_date)
+            : undefined,
+
+          expected_date: response.data.transfer_date
             ? new Date(response.data.transfer_date)
             : undefined,
 
