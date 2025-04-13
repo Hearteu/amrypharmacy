@@ -13,16 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { useState } from "react";
 import { DialogDescription, DialogTitle } from "@radix-ui/react-dialog";
-
-interface MergedData {
-  user_id: number;
-  username: string;
-  full_name: string;
-  address: string;
-  contact: string | null;
-  email: string | null;
-  role_name: string | null;
-}
+import { Users } from "@/app/lib/types/persons";
 
 interface EditUserDialogProps {
   user_id: number;
@@ -57,7 +48,7 @@ const EditUserDialog = ({ user_id, onSuccess }: EditUserDialogProps) => {
   );
 };
 
-export const columns: (onSuccess: () => void) => ColumnDef<MergedData>[] = (
+export const columns: (onSuccess: () => void) => ColumnDef<Users>[] = (
   onSuccess
 ) => [
   {
@@ -151,6 +142,20 @@ export const columns: (onSuccess: () => void) => ColumnDef<MergedData>[] = (
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Role
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
+  },
+  {
+    accessorKey: "location",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Location
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
