@@ -14,16 +14,46 @@ supabase = get_supabase_client()
 class UserList(APIView):
     def get(self, request, user_id=None):
         try:
-            query = supabase.table('Users').select('*')
+            # Join Person, User_Role, and Location
+            query = supabase.table("Users").select(
+                "user_id, username, role_id, location_id, person_id, "
+                "Person(first_name, last_name, address, contact, email), "
+                "User_Role(role_name), "
+                "Location(location)"
+            )
+
             if user_id is not None:
-                query = query.eq('user_id', user_id)
-            
+                query = query.eq("user_id", user_id)
+
             response = query.execute()
 
             if not response.data:
                 return Response({"error": "No Users found"}, status=404)
 
-            return Response(response.data, status=200)
+            users = response.data if isinstance(response.data, list) else [response.data]
+
+            formatted_users = []
+            for user in users:
+                formatted = {
+                    "user_id": user.get("user_id"),
+                    "username": user.get("username"),
+                    "person_id": user.get("person_id"),
+                    "first_name": (user.get("Person") or {}).get("first_name"),
+                    "last_name": (user.get("Person") or {}).get("last_name"),
+                    "address": (user.get("Person") or {}).get("address"),
+                    "contact": (user.get("Person") or {}).get("contact"),
+                    "email": (user.get("Person") or {}).get("email"),
+                    "role_id": user.get("role_id"),
+                    "role_name": (user.get("User_Role") or {}).get("role_name"),
+                    "location_id": user.get("location_id"),
+                    "location": (user.get("Location") or {}).get("location"),
+                }
+                formatted_users.append(formatted)
+
+            return Response(
+                formatted_users if user_id is None else formatted_users[0],
+                status=200
+            )
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
