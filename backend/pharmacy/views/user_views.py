@@ -34,12 +34,16 @@ class UserList(APIView):
 
             formatted_users = []
             for user in users:
+                person = user.get("Person") or {}
+                first_name = person.get("first_name", "")
+                last_name = person.get("last_name", "")
                 formatted = {
                     "user_id": user.get("user_id"),
                     "username": user.get("username"),
                     "person_id": user.get("person_id"),
                     "first_name": (user.get("Person") or {}).get("first_name"),
                     "last_name": (user.get("Person") or {}).get("last_name"),
+                    "full_name": f"{first_name} {last_name}".strip(),
                     "address": (user.get("Person") or {}).get("address"),
                     "contact": (user.get("Person") or {}).get("contact"),
                     "email": (user.get("Person") or {}).get("email"),
