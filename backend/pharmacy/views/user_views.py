@@ -67,6 +67,7 @@ class UserList(APIView):
         # Extract password and location_id separately
         password = user_data.pop("password", None)
         location_id = user_data.pop("location_id", None)  # Extract for Users table
+        role_id = user_data.pop("role_id", None)  # Extract for Users table
 
         try:
             # Insert into Person table first
@@ -88,6 +89,7 @@ class UserList(APIView):
                     "person_id": person_id,
                     "username": username,
                     "password": hashed_password,
+                    "role_id": role_id,  # Add FK reference here
                     "location_id": location_id  # Add FK reference here
                 }]).execute()
 
@@ -190,13 +192,15 @@ class UserLoginView(APIView):
         username = request.data.get("username")
         password = request.data.get("password")
         
-        # Fetch user details including role_id
-        user_response = supabase.table("Users").select("user_id, password, role_id, username").eq("username", username).execute()
+        # Fetch user details including location and role_id
+        user_response = supabase.table("Users").select(
+            "user_id, password, role_id, username, location_id, Location(location)"
+        ).eq("username", username).execute()
         
         if not user_response.data:
             return Response({"error": "User not found"}, status=404)
 
-        user = user_response.data[0]  # Get the first user record
+        user = user_response.data[0]
 
         if not check_password(password, user["password"]):
             return Response({"error": "Invalid password"}, status=400)
@@ -205,15 +209,23 @@ class UserLoginView(APIView):
         role_response = supabase.table("User_Role").select("role_name").eq("role_id", user["role_id"]).execute()
         role_name = role_response.data[0]["role_name"] if role_response.data else None
 
+        location_id = user.get("location_id")
+        location = user.get("Location", {}).get("location")  # Safe access
+
+        # Add custom claims to token
         refresh = RefreshToken()
         refresh["user_id"] = user["user_id"]
         refresh["username"] = user["username"]
-        refresh["role_name"] = role_name  # Add role_name to token
+        refresh["role_name"] = role_name
+        refresh["location_id"] = location_id
+        refresh["location"] = location
 
         return Response({
             "user_id": user["user_id"],
             "username": user["username"],
             "role_name": role_name,
+            "location_id": location_id,
+            "location": location,
             "access": str(refresh.access_token),
             "refresh": str(refresh),
         })
