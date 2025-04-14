@@ -7,6 +7,8 @@ declare module "next-auth" {
             username: string;
             role_id: number;  // ✅ Add role_id
             role_name: string;
+            location_id: number;
+            location: string;
             email?: string;
             image?: string;
         };

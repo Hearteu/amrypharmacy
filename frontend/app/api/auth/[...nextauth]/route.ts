@@ -6,6 +6,8 @@ interface JWTTokenProps {
     token: string;
     user: string;
     role_name: string
+    location_id: string;
+    location: string;
     account: string;
 }
 
@@ -62,6 +64,8 @@ export const authOptions = {
                 token.user_id = user.user_id
                 token.username = user.username
                 token.role_name = user.role_name
+                token.location = user.location
+                token.location_id = user.location_id
             }
 
             return token
@@ -71,7 +75,9 @@ export const authOptions = {
                 session.user = {
                     username: token.username,
                     user_id: token.user_id,
-                    role_name: token.role_name
+                    role_name: token.role_name,
+                    location_id: token.location_id,
+                    location: token.location
                 }
             }
             return session
