@@ -45,18 +45,20 @@ import axios from "axios";
 
 const statusMap: Record<number, string> = {
   1: "Draft",
-  2: "Processing ",
-  3: "In Transit",
+  2: "In Transit",
+  3: "Delayed",
   4: "Completed",
   5: "Cancelled",
+  6: "Processing",
 };
 
 const statusColorMap: Record<string, string> = {
   Draft: "gray",
-  Ordered: "yellow",
+  "In Transit": "yellow",
   Delayed: "orange",
   Completed: "green",
   Cancelled: "red",
+  Processing: "blue",
 };
 
 export default function StockTransferTable() {
@@ -106,7 +108,7 @@ export default function StockTransferTable() {
     try {
       const response = await axios.put(
         `http://127.0.0.1:8000/pharmacy/stock-transfer/${orderId}/`,
-        { purchase_order_status_id: 2 },
+        { purchase_order_status_id: 6 },
         { headers: { "Content-Type": "application/json" } }
       );
 
@@ -124,7 +126,7 @@ export default function StockTransferTable() {
     try {
       const response = await axios.put(
         `http://127.0.0.1:8000/pharmacy/stock-transfer/${orderId}/`,
-        { purchase_order_status_id: 3 },
+        { purchase_order_status_id: 2 },
         { headers: { "Content-Type": "application/json" } }
       );
 
@@ -192,6 +194,7 @@ export default function StockTransferTable() {
                 color === "orange",
               "bg-green-100 text-green-800 border-green-200": color === "green",
               "bg-red-100 text-red-800 border-red-200": color === "red",
+              "bg-blue-100 text-blue-800 border-blue-200": color === "blue",
             })}
           >
             {statusName}
