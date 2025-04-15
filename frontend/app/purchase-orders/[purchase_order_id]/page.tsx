@@ -19,6 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import clsx from "clsx";
 import { PurchaseOrder } from "@/app/lib/types/purchase-order";
 import { ExportPOPDF } from "../components/POExportButton";
+import PurchaseOrderSkeleton from "../components/PurchaseOrderSkeleton";
 
 const statusColorMap: Record<string, string> = {
   Draft: "bg-gray-500",
@@ -59,7 +60,7 @@ export default function PurchaseOrderPage({
     fetchPurchaseOrderData();
   }, []);
 
-  if (loading) return <p>Loading purchase order...</p>;
+  if (loading) return <PurchaseOrderSkeleton />;
   if (error) return <p className="text-red-500">{error}</p>;
 
   return (
