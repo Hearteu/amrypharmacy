@@ -27,7 +27,6 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
 import { Session } from "next-auth";
 
 export default function NavBar() {
@@ -51,8 +50,6 @@ export default function NavBar() {
     { href: "/stock-transfer", label: "Stock Transfer", icon: ArrowLeftRight },
     { href: "/user-list", label: "List of Users", icon: Users },
   ];
-
-  const router = useRouter();
 
   const handleSignOut = async () => {
     await signOut({

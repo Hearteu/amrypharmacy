@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import ReceiveItemsForm from "./ReceiveItemsForm";
 import clsx from "clsx";
+import { PurchaseOrderItem } from "@/app/lib/types/purchase-order";
 
 const statusColorMap: Record<string, string> = {
   Pending: "bg-gray-500",
@@ -28,36 +29,12 @@ const statusColorMap: Record<string, string> = {
   Defective: "bg-red-500",
 };
 interface LineItemsTableProps {
-  lineItems: LineItem[];
+  lineItems: PurchaseOrderItem[];
   onStatusChange?: (id: string, status: string) => void;
   onSuccess: () => void;
 }
 
-interface LineItem {
-  purchase_order_item_id: number;
-  poi_id: string;
-  description: string;
-  quantity: number;
-  supplier_price: number;
-  poi_total: number;
-  purchase_order_item_status: number;
-  po_item_status: string;
-  received_qty: number;
-  expired_qty: number;
-  damaged_qty: number;
-}
-
 export function LineItemsTable({ lineItems, onSuccess }: LineItemsTableProps) {
-  //change this with the data
-  //   const [items, setItems] = useState(
-  //     lineItems.map((item) => ({
-  //       ...item,
-  //       status: item.status || "pending",
-  //       receivedQuantity: item.receivedQuantity || 0,
-  //       issues: item.issues || { expired: 0, damaged: 0, notes: "" },
-  //     }))
-  //   );
-
   const [openDialog, setOpenDialog] = useState<number | null>(null);
 
   return (
@@ -79,7 +56,7 @@ export function LineItemsTable({ lineItems, onSuccess }: LineItemsTableProps) {
           {lineItems.map((item) => (
             <TableRow key={item.purchase_order_item_id}>
               <TableCell>{item.description}</TableCell>
-              <TableCell className="text-right">{item.quantity}</TableCell>
+              <TableCell className="text-right">{item.ordered_qty}</TableCell>
               {/* replace this with received quantity */}
               <TableCell className="text-right">{item.received_qty}</TableCell>
               {/* replace this with issues */}
@@ -137,8 +114,8 @@ export function LineItemsTable({ lineItems, onSuccess }: LineItemsTableProps) {
                     <ReceiveItemsForm
                       purchase_order_item_id={item.purchase_order_item_id}
                       onSuccess={() => {
-                        onSuccess(); // ✅ Execute the function properly
-                        setOpenDialog(null); // ✅ Close the dialog
+                        onSuccess();
+                        setOpenDialog(null);
                       }}
                     />
                   </DialogContent>
