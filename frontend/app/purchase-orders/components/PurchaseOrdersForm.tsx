@@ -33,6 +33,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -58,16 +59,12 @@ interface Supplier {
   supplier_name: string;
 }
 
-interface Units {
-  unit_id: number;
-  unit: string;
-}
-
 const formSchema = z.object({
   purchase_order_id: z.string().optional(),
   supplier_id: z.string().min(1, "Supplier is required"),
   order_date: z.date(),
   expected_delivery_date: z.date(),
+  notes: z.string(),
   lineItems: z
     .array(
       z.object({
@@ -96,7 +93,6 @@ export default function PurchaseOrderForm({
     initialData?.supplier_id || null
   );
   const [items, setItems] = useState<SupplierItem[]>([]);
-  const [units, setUnits] = useState<Units[]>([]);
 
   // Fetch suppliers
   useEffect(() => {
@@ -112,19 +108,6 @@ export default function PurchaseOrderForm({
       }
     }
     fetchSuppliers();
-  }, []);
-
-  useEffect(() => {
-    async function fetchUnits() {
-      try {
-        const response = await fetch("http://127.0.0.1:8000/pharmacy/unit/");
-        const data: Units[] = await response.json();
-        setUnits(data);
-      } catch (error) {
-        console.error("Error fetching Units", error);
-      }
-    }
-    fetchUnits();
   }, []);
 
   // Fetch supplier items based on selected supplier
@@ -161,6 +144,7 @@ export default function PurchaseOrderForm({
       supplier_id: "",
       order_date: new Date(),
       expected_delivery_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      notes: "",
       lineItems: [
         { product_id: "", unit_id: "", ordered_qty: 1, supplier_price: 0 },
       ],
@@ -397,6 +381,23 @@ export default function PurchaseOrderForm({
                     )}
                   />
                 </div>
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Enter any additional notes or instructions"
+                          className="resize-none"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
 
@@ -414,7 +415,7 @@ export default function PurchaseOrderForm({
                   <div className="space-y-2">
                     <div className="text-sm font-medium">Total Amount</div>
                     <div className="text-2xl font-bold">
-                      ${total.toFixed(2)}
+                      ₱{total.toFixed(2)}
                     </div>
                   </div>
                 </div>
@@ -436,7 +437,7 @@ export default function PurchaseOrderForm({
                     key={index}
                     className="grid grid-cols-12 gap-4 items-end"
                   >
-                    <div className="col-span-5">
+                    <div className="col-span-8">
                       <FormField
                         control={form.control}
                         name={`lineItems.${index}.product_id`}
@@ -496,66 +497,6 @@ export default function PurchaseOrderForm({
                         )}
                       />
                     </div>
-
-                    <div className="col-span-3">
-                      <FormField
-                        control={form.control}
-                        name={`lineItems.${index}.unit_id`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Unit</FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant="outline"
-                                    role="combobox"
-                                    className={cn(
-                                      "justify-between w-full",
-                                      !field.value && "text-muted-foreground"
-                                    )}
-                                  >
-                                    {field.value
-                                      ? units.find(
-                                          (unit) =>
-                                            unit.unit_id.toString() ===
-                                            field.value
-                                        )?.unit
-                                      : "Select unit"}
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="p-0">
-                                <Command>
-                                  <CommandInput placeholder="Search units..." />
-                                  <CommandList>
-                                    <CommandEmpty>No unit found.</CommandEmpty>
-                                    <CommandGroup>
-                                      {units.map((unit) => (
-                                        <CommandItem
-                                          key={unit.unit_id}
-                                          value={unit.unit}
-                                          onSelect={() => {
-                                            form.setValue(
-                                              `lineItems.${index}.unit_id`,
-                                              unit.unit_id.toString()
-                                            );
-                                          }}
-                                        >
-                                          {unit.unit}
-                                        </CommandItem>
-                                      ))}
-                                    </CommandGroup>
-                                  </CommandList>
-                                </Command>
-                              </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
                     <div className="col-span-1">
                       <FormField
                         control={form.control}
@@ -575,6 +516,7 @@ export default function PurchaseOrderForm({
                     <div className="col-span-2">
                       <FormField
                         control={form.control}
+                        disabled
                         name={`lineItems.${index}.supplier_price`}
                         render={({ field }) => (
                           <FormItem>

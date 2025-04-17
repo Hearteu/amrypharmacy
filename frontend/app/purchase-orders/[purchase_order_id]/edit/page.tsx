@@ -19,6 +19,7 @@ interface PurchaseOrder {
   supplier_id: string;
   order_date: Date;
   expected_delivery_date: Date;
+  notes: string;
   lineItems: LineItems[];
 }
 
@@ -68,6 +69,8 @@ export default function EditPurchaseOrderPage({
             ? new Date(response.data.expected_date)
             : undefined,
 
+          notes: response.data.notes ? String(response.data.notes) : undefined,
+
           lineItems:
             response.data.lineItems?.map((item: LineItems) => ({
               purchase_order_item_id: item.purchase_order_item_id
@@ -96,7 +99,7 @@ export default function EditPurchaseOrderPage({
 
   console.log(purchaseOrder);
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto py-6 space-y-6 p-4">
       <div className="flex items-center gap-2">
         <Button variant="outline" size="icon" asChild>
           <Link href={"/purchase-orders/"}>
