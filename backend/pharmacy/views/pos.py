@@ -14,72 +14,69 @@ supabase = get_supabase_client()
 class POS(APIView):
     def get(self, request, pos_id=None):
         try:
-            # Fetch POS transactions
+            order_type = request.query_params.get("order_type")  # e.g., 'DSWD', 'senior citizen'
+
+            # Base POS query
             query = supabase.table('POS').select('*')
+
             if pos_id is not None:
                 query = query.eq('pos_id', pos_id)
-            
+
+            if order_type is not None:
+                query = query.ilike('order_type', order_type.lower())
+
             pos_response = query.execute()
 
             if not pos_response.data:
-                return Response({"error": "No POS found"}, status=404)
+                return Response({"error": "No POS records found"}, status=404)
 
-            pos_data = pos_response.data
+            formatted_pos_data = []
 
-            # Fetch POS Items with Product Details
-            formatted_pos_data = []  # ✅ Store formatted POS transactions
-
-            for pos in pos_data:
-                pos_items_query = (
+            for pos in pos_response.data:
+                items_response = (
                     supabase.table('POS_Item')
-                    .select("*, Products(*, Drugs(*))")  # Fetch product & drug details
+                    .select("*, Products(*, Drugs(*))")
                     .eq("pos_id", pos["pos_id"])
                     .execute()
                 )
 
-                pos_items = pos_items_query.data if pos_items_query.data else []
-                total_amount = 0  # Track total amount per POS
-
-                # Process items to build full product names
+                items = items_response.data if items_response.data else []
+                total_amount = 0
                 formatted_items = []
-                for item in pos_items:
-                    product = item.get("Products", {})
-                    drugs = product.get("Drugs", {}) if "Drugs" in product else {}
 
-                    # Construct full product name
-                    dosage_info = f" {drugs.get('dosage_form', '')} {drugs.get('dosage_strength', '')}".strip() if drugs else ""
-                    full_product_name = f"{product.get('product_name', 'Unknown Product')} {dosage_info}"
+                for item in items:
+                    product = item.get("Products") or {}
+                    drugs = product.get("Drugs") or {}
 
-                    # Calculate total for this item
+                    dosage = f"{drugs.get('dosage_form', '')} {drugs.get('dosage_strength', '')}".strip()
+                    full_name = f"{product.get('product_name', 'Unknown Product')} {dosage}".strip()
+
                     item_total = item["quantity_sold"] * item["price"]
-                    total_amount += item_total  # Add to total POS amount
+                    total_amount += item_total
 
                     formatted_items.append({
                         "pos_item_id": item["pos_item_id"],
                         "product_id": product.get("product_id", "N/A"),
-                        "full_product_name": full_product_name,
-                        "quantity": item["quantity_sold"],  # ✅ Changed from `quantity`
+                        "full_product_name": full_name,
+                        "quantity": item["quantity_sold"],
                         "price": item["price"],
-                        "total_price": item_total  # ✅ Individual item total
+                        "total_price": item_total
                     })
 
-                # ✅ Construct POS dictionary with total_amount first
-                formatted_pos = {
+                formatted_pos_data.append({
                     "pos_id": pos["pos_id"],
                     "sale_date": pos.get("sale_date"),
                     "user_id": pos.get("user_id"),
-                    "invoice": pos["invoice"],
-                    "total_amount": total_amount,  # ✅ Ensuring this is before "items"
+                    "invoice": pos.get("invoice"),
+                    "order_type": pos.get("order_type"),
+                    "total_amount": total_amount,
                     "items": formatted_items
-                }
+                })
 
-                formatted_pos_data.append(formatted_pos)
-
-            return Response(formatted_pos_data if pos_id is None else formatted_pos_data[0], status=200)
+            return Response(formatted_pos_data[0] if pos_id else formatted_pos_data, status=200)
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
-
         
     def post(self, request):
         """Create a new POS transaction, update stock, and record stock transactions."""
@@ -133,7 +130,7 @@ class POS(APIView):
 
             # Insert into POS table
             pos_insert = supabase.table("POS").insert({
-                "sale_date": transaction_date, "invoice": invoice_number, "user_id": data["user_id"], "order_type": data["customerType"]
+                "sale_date": transaction_date, "invoice": invoice_number, "user_id": data["user_id"], "order_type": data["customerType"], "customer_id": customer_id
             }).execute()
 
             pos_transaction_id = pos_insert.data[0]["pos_id"] if pos_insert.data else None
