@@ -133,7 +133,7 @@ class POS(APIView):
 
             # Insert into POS table
             pos_insert = supabase.table("POS").insert({
-                "sale_date": transaction_date, "invoice": invoice_number, "user_id": data["user_id"]
+                "sale_date": transaction_date, "invoice": invoice_number, "user_id": data["user_id"], "order_type": data["customerType"]
             }).execute()
 
             pos_transaction_id = pos_insert.data[0]["pos_id"] if pos_insert.data else None
