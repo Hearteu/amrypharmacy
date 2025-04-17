@@ -20,6 +20,8 @@ import {
   getIncomingStockTransfer,
   getOutgoingStockTransfer,
 } from "../lib/services/stock-transfer";
+import { Session } from "../lib/types/session";
+import { getSession } from "next-auth/react";
 
 export default function StockTransferList() {
   const [incomingGrouped, setIncomingGrouped] = useState<
@@ -30,16 +32,29 @@ export default function StockTransferList() {
   >({});
   const [activeIncomingTab, setActiveIncomingTab] = useState("intransit");
   const [activeOutgoingTab, setActiveOutgoingTab] = useState("intransit");
+  const [session, updateSession] = useState<Session | null>(null);
+  const fetchSession = async () => {
+    const _session: Session | null = await getSession();
+    updateSession(_session);
+  };
+
+  const load = async (location: string) => {
+    const outgoing = await getOutgoingStockTransfer(location);
+    const incoming = await getIncomingStockTransfer(location);
+    setIncomingGrouped(incoming);
+    setOutgoingGrouped(outgoing);
+  };
 
   useEffect(() => {
-    async function load() {
-      const incoming = await getIncomingStockTransfer("2");
-      const outgoing = await getOutgoingStockTransfer("2");
-      setIncomingGrouped(incoming);
-      setOutgoingGrouped(outgoing);
-    }
-    load();
+    fetchSession();
   }, []);
+
+  useEffect(() => {
+    const location = session?.user?.location_id?.toString();
+    if (location) {
+      load(location);
+    }
+  }, [session]);
 
   return (
     <>
@@ -71,7 +86,9 @@ export default function StockTransferList() {
       <div className="p-4 space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle>Incoming Stock Transfers</CardTitle>
+            <CardTitle>
+              Incoming Stock Transfers for {session?.user?.location} Branch
+            </CardTitle>
             <CardDescription>
               Review and process stock transfers sent to your branch
             </CardDescription>
@@ -113,7 +130,9 @@ export default function StockTransferList() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Outgoing Transfer Requests</CardTitle>
+            <CardTitle>
+              Outgoing Stock Transfers for {session?.user?.location} Branch
+            </CardTitle>
             <CardDescription>
               Track transfer requests you&apos;ve sent to other locations
             </CardDescription>

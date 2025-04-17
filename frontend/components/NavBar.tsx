@@ -49,6 +49,7 @@ export default function NavBar() {
     { href: "/purchase-orders", label: "Purchase Orders", icon: ClipboardList },
     { href: "/stock-transfer", label: "Stock Transfer", icon: ArrowLeftRight },
     { href: "/user-list", label: "List of Users", icon: Users },
+    { href: "/transactions", label: "Transaction History", icon: Users },
   ];
 
   const handleSignOut = async () => {
