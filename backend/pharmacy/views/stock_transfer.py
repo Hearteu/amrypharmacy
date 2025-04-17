@@ -70,7 +70,10 @@ class StockTransfer(APIView):
                 query = query.eq("stock_transfer_id", stock_transfer_id).single()
             elif direction in ["src", "des"] and location_id:
                 location_column = "src_location" if direction == "src" else "des_location"
-                query = query.eq(location_column, location_id)
+                if location_id == 8:
+                    query = query.in_(location_column, [1, 3])
+                else:
+                    query = query.eq(location_column, location_id)
 
             response = query.execute()
 
