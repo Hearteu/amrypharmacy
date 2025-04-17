@@ -2,15 +2,6 @@ import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import axios from "axios";
 
-interface JWTTokenProps {
-    token: string;
-    user: string;
-    role_name: string
-    location_id: string;
-    location: string;
-    account: string;
-}
-
 export const authOptions = {
     pages: {
         signIn: '/',
@@ -59,7 +50,7 @@ export const authOptions = {
         strategy: 'jwt'
     },
     callbacks: {
-        async jwt({ token, user, account }: JWTTokenProps) {
+        async jwt({ token, user, account }) {
             if (account) {
                 token.user_id = user.user_id
                 token.username = user.username

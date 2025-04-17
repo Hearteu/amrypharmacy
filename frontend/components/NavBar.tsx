@@ -27,14 +27,14 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { Session } from "next-auth";
+import { Session } from "@/app/lib/types/session";
 
 export default function NavBar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const [session, updateSession] = useState<Session | null>(null);
   const fetchSession = async () => {
-    const _session = await getSession();
+    const _session: Session | null = await getSession();
     updateSession(_session);
   };
 

@@ -51,7 +51,7 @@ import { useRouter } from "next/navigation";
 import { PrescriptionForm } from "../components/PrescriptionForm";
 import { DSWDForm } from "../components/DSWDForm";
 import { getSession } from "next-auth/react";
-import { Session } from "next-auth";
+import { Session } from "@/app/lib/types/session";
 
 const branches = [
   { id: 1, name: "Asuncion" },
@@ -64,10 +64,10 @@ interface Products {
   price: number;
 }
 export default function PosInterface() {
-  const [session, updateSession] = useState<Session | null>(null);
+  const [session, updateSession] = useState<Session>();
   const fetchSession = async () => {
     const _session = await getSession();
-    updateSession(_session);
+    if (_session) updateSession(_session);
   };
 
   useEffect(() => {
@@ -83,11 +83,21 @@ export default function PosInterface() {
     }>
   >([]);
 
-  const [selectedBranch, setSelectedBranch] = useState("");
   const [customerType, setCustomerType] = useState("regular");
   const [hasPrescription, setHasPrescription] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Products[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState<string | undefined>(
+    undefined
+  );
+
+  useEffect(() => {
+    if (session?.user?.location_id) {
+      const locationId = session?.user?.location_id.toString();
+      const defaultBranch = locationId === "8" ? "1" : locationId;
+      setSelectedBranch(defaultBranch);
+    }
+  }, [session]);
 
   useEffect(() => {
     async function fetchSupplierItems() {
