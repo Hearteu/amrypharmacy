@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ..supabase_client import get_supabase_client
+import traceback
 
 supabase = get_supabase_client()
 
@@ -33,49 +34,61 @@ class POS(APIView):
             formatted_pos_data = []
 
             for pos in pos_response.data:
-                items_response = (
-                    supabase.table('POS_Item')
-                    .select("*, Products(*, Drugs(*))")
-                    .eq("pos_id", pos["pos_id"])
-                    .execute()
-                )
+                try:
+                    # Fetch POS items with nested product/drug details
+                    items_response = (
+                        supabase.table('POS_Item')
+                        .select("*, Products(*, Drugs(*))")
+                        .eq("pos_id", pos["pos_id"])
+                        .execute()
+                    )
 
-                items = items_response.data if items_response.data else []
-                total_amount = 0
-                formatted_items = []
+                    items = items_response.data if items_response.data else []
+                    total_amount = 0
+                    formatted_items = []
 
-                for item in items:
-                    product = item.get("Products") or {}
-                    drugs = product.get("Drugs") or {}
+                    for item in items:
+                        product = item.get("Products") or {}
+                        drugs = product.get("Drugs") or {}
 
-                    dosage = f"{drugs.get('dosage_form', '')} {drugs.get('dosage_strength', '')}".strip()
-                    full_name = f"{product.get('product_name', 'Unknown Product')} {dosage}".strip()
+                        dosage = f"{drugs.get('dosage_form', '')} {drugs.get('dosage_strength', '')}".strip()
+                        full_name = f"{product.get('product_name', 'Unknown Product')} {dosage}".strip()
 
-                    item_total = item["quantity_sold"] * item["price"]
-                    total_amount += item_total
+                        item_total = item["quantity_sold"] * item["price"]
+                        total_amount += item_total
 
-                    formatted_items.append({
-                        "pos_item_id": item["pos_item_id"],
-                        "product_id": product.get("product_id", "N/A"),
-                        "full_product_name": full_name,
-                        "quantity": item["quantity_sold"],
-                        "price": item["price"],
-                        "total_price": item_total
+                        formatted_items.append({
+                            "pos_item_id": item["pos_item_id"],
+                            "product_id": product.get("product_id", "N/A"),
+                            "full_product_name": full_name,
+                            "quantity": item["quantity_sold"],
+                            "price": item["price"],
+                            "total_price": item_total
+                        })
+
+                    formatted_pos_data.append({
+                        "pos_id": pos["pos_id"],
+                        "sale_date": pos.get("sale_date"),
+                        "user_id": pos.get("user_id"),
+                        "invoice": pos.get("invoice"),
+                        "order_type": pos.get("order_type"),
+                        "total_amount": total_amount,
+                        "items": formatted_items
                     })
 
-                formatted_pos_data.append({
-                    "pos_id": pos["pos_id"],
-                    "sale_date": pos.get("sale_date"),
-                    "user_id": pos.get("user_id"),
-                    "invoice": pos.get("invoice"),
-                    "order_type": pos.get("order_type"),
-                    "total_amount": total_amount,
-                    "items": formatted_items
-                })
+                except Exception as item_error:
+                    print(f"[ERROR] Failed to process POS ID {pos['pos_id']}:")
+                    print(traceback.format_exc())
+                    continue  # Skip this broken POS record
+
+            if not formatted_pos_data:
+                return Response({"error": "No valid POS records found"}, status=404)
 
             return Response(formatted_pos_data[0] if pos_id else formatted_pos_data, status=200)
 
         except Exception as e:
+            print("=== ERROR in POS GET ===")
+            print(traceback.format_exc())
             return Response({"error": str(e)}, status=500)
         
     def post(self, request):
