@@ -30,13 +30,13 @@ export const getTransaction = async (pos_id: string): Promise<Transaction> => {
 
 export const getTransactionsType = async (type: string) => {
     const response = await fetch(
-        `http://127.0.0.1:8000/pharmacy/pos/${type}/`
+        `http://127.0.0.1:8000/pharmacy/pos/?order_type=${type}`
     );
 
     if (!response.ok) {
         throw new Error("Failed to fetch data");
     }
     const data: Transaction[] = await response.json();
-
+    console.log("types", data)
     return data;
 }

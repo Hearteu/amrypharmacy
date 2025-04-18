@@ -44,6 +44,18 @@ export function OutgoingTransfersList({ data }: OutgoingTransfersListProps) {
       ),
     },
     {
+      accessorKey: "src_location_name",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Destination
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+    },
+    {
       accessorKey: "des_location_name",
       header: ({ column }) => (
         <Button
@@ -67,19 +79,6 @@ export function OutgoingTransfersList({ data }: OutgoingTransfersListProps) {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => row.getValue("status"),
-    },
-    {
-      id: "actions",
-      cell: ({ row }) => (
-        <Button variant="ghost" size="sm" asChild>
-          <Link
-            href={`/pharmacy/outgoing-transfers/${row.original.stock_transfer_id}`}
-          >
-            <Eye className="mr-2 h-4 w-4" />
-            View
-          </Link>
-        </Button>
-      ),
     },
   ];
 

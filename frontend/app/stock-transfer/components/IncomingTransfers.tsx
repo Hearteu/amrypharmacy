@@ -56,6 +56,18 @@ export function IncomingTransfersList({ data }: IncomingTransfersListProps) {
       ),
     },
     {
+      accessorKey: "des_location_name",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Destination
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+    },
+    {
       accessorKey: "transfer_date",
       header: "Transfer Date",
       cell: ({ row }) => {
@@ -72,9 +84,7 @@ export function IncomingTransfersList({ data }: IncomingTransfersListProps) {
       id: "actions",
       cell: ({ row }) => (
         <Button variant="ghost" size="sm" asChild>
-          <Link
-            href={`/pharmacy/incoming-transfers/${row.original.stock_transfer_id}`}
-          >
+          <Link href={`/stock-transfer/${row.original.stock_transfer_id}`}>
             <Eye className="mr-2 h-4 w-4" />
             View
           </Link>

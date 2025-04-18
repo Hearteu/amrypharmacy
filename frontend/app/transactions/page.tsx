@@ -10,26 +10,37 @@ import {
 } from "@/components/ui/card";
 
 import { Transaction } from "@/app/lib/types/transactions";
-import { getTransactions } from "@/app/lib/services/transactions";
+import {
+  getTransactions,
+  getTransactionsType,
+} from "@/app/lib/services/transactions";
 import { DataTableLoading } from "@/components/data-table/DataTableLoading";
 import { DataTable } from "@/components/data-table/DataTable";
 import { columns } from "./components/Columns";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DataTableError } from "@/components/data-table/DataTableError";
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [selectedTransaction, setSelectedTransaction] = useState("regular");
   const [loading, setLoading] = useState(true); // Loading state
   const [error, setError] = useState<string | null>(null);
+
+  const [activeTab, setActiveTab] = useState("all");
 
   const refreshData = async () => {
     setLoading(true);
     try {
-      const transactions = await getTransactions();
-      setTransactions(transactions);
+      if (activeTab === "all") {
+        const transactions = await getTransactions();
+        setTransactions(transactions);
+      } else {
+        const transactions = await getTransactionsType(activeTab);
+        setTransactions(transactions);
+        console.log("tyepe", transactions);
+      }
     } catch (error) {
       setError("Failed to load");
       console.error("Error fetching data", error);
-
       console.log(error);
       setTransactions([]);
     } finally {
@@ -41,31 +52,55 @@ export default function Transactions() {
 
   useEffect(() => {
     refreshData();
-  }, []);
+  }, [activeTab]);
 
-  if (error) return <p>{error}</p>;
+  //   if (error) return <p>No data found {error}</p>;
+
+  const tabOptions = [
+    { value: "all", label: "All" },
+    { value: "regular", label: "Regular" },
+    { value: "dswd", label: "DSWD" },
+    { value: "pwd", label: "PWD" },
+    { value: "senior citizen", label: "Senior Citizen" },
+  ] as const;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Transaction History</CardTitle>
-        <CardDescription>View and manage past transactions</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div>
-          {loading ? (
-            <DataTableLoading columnCount={tableColumns.length} />
-          ) : (
-            <>
-              <DataTable
-                columns={tableColumns}
-                data={transactions}
-                search="invoice"
-              />
-            </>
-          )}
+    <>
+      <div className="p-4">
+        <div className="container mx-auto py-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                Transaction History
+              </h1>
+              <p className="text-muted-foreground">View past transactions</p>
+            </div>
+          </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-4">
+              {tabOptions.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value}>
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            <div>
+              {loading ? (
+                <DataTableLoading columnCount={tableColumns.length} />
+              ) : error ? (
+                <DataTableError message="Failed to load data." />
+              ) : (
+                <DataTable
+                  columns={tableColumns}
+                  data={transactions}
+                  search="invoice"
+                />
+              )}
+            </div>
+          </Tabs>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </>
   );
 }
