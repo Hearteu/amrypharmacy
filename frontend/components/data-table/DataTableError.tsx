@@ -41,6 +41,11 @@ export function DataTableError({
       <div className="rounded-md border my-4 p-8 flex flex-col items-center justify-center text-center text-muted-foreground gap-4">
         <AlertTriangle className="w-10 h-10 text-destructive" />
         <p className="text-sm">{message}</p>
+        {onRetry && (
+          <Button onClick={onRetry} variant="default">
+            Try Again
+          </Button>
+        )}
       </div>
 
       {/* Pagination with disabled buttons */}

@@ -24,11 +24,11 @@ export default function Transactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true); // Loading state
   const [error, setError] = useState<string | null>(null);
-
   const [activeTab, setActiveTab] = useState("all");
 
   const refreshData = async () => {
     setLoading(true);
+    setError(null);
     try {
       if (activeTab === "all") {
         const transactions = await getTransactions();
@@ -39,6 +39,7 @@ export default function Transactions() {
         console.log("tyepe", transactions);
       }
     } catch (error) {
+      setTransactions([]);
       setError("Failed to load");
       console.error("Error fetching data", error);
       console.log(error);
@@ -89,7 +90,7 @@ export default function Transactions() {
               {loading ? (
                 <DataTableLoading columnCount={tableColumns.length} />
               ) : error ? (
-                <DataTableError message="Failed to load data." />
+                <DataTableError message="No Transactions Found" />
               ) : (
                 <DataTable
                   columns={tableColumns}

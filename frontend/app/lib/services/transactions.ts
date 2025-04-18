@@ -1,6 +1,6 @@
 import { Transaction } from "../types/transactions";
 
-export const getTransactions = async () => {
+export const getTransactions = async (location_id?: string) => {
 
     const response = await fetch(
         "http://127.0.0.1:8000/pharmacy/pos/"
@@ -28,7 +28,7 @@ export const getTransaction = async (pos_id: string): Promise<Transaction> => {
 };
 
 
-export const getTransactionsType = async (type: string) => {
+export const getTransactionsType = async (type: string, location_id?: string) => {
     const response = await fetch(
         `http://127.0.0.1:8000/pharmacy/pos/?order_type=${type}`
     );
