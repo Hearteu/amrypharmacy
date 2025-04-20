@@ -1,14 +1,17 @@
 # views.py
 
-from datetime import datetime
+import traceback
+from datetime import date, datetime
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ..supabase_client import get_supabase_client
-import traceback
 
 supabase = get_supabase_client()
+
+def safe_date(value):
+    return value.isoformat() if isinstance(value, (date, datetime)) else value
 
 #Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
 
@@ -110,7 +113,7 @@ class POS(APIView):
             customer_id = None
             if data["customerType"] != "regular":
                 # Split customer name
-                name_parts = data["customerInfo"]["name"].split()
+                name_parts = data["customerInfo"]["patient_name"].split()
                 first_name = " ".join(name_parts[:-1]) if len(name_parts) > 1 else name_parts[0]
                 last_name = name_parts[-1] if len(name_parts) > 1 else ""
 
@@ -126,20 +129,30 @@ class POS(APIView):
                     person_id = person_insert.data[0]["person_id"] if person_insert.data else None
 
                 # Check customer type
-                customer_type_query = supabase.table("Customer_Type").select("customer_type_id") \
-                    .eq("description", data["customerType"]).limit(1).execute()
+                customer_type_query = supabase.table("Customer_Type").select("customer_type_id").ilike("description", data["customerType"]).limit(1).execute()
+
+                print(f"🧪 Checking customer type: {data['customerType']}")
+                print(f"🧪 Customer type lookup result: {customer_type_query.data}")
 
                 if not customer_type_query.data:
                     return Response({"error": "Invalid customer type"}, status=400)
 
                 customer_type_id = customer_type_query.data[0]["customer_type_id"]
 
-                # Insert customer
-                customer_insert = supabase.table("Customers").insert({
-                    "person_id": person_id, "id_card_number": data["discountInfo"].get("idNumber"),
-                    "customer_type_id": customer_type_id
-                }).execute()
-                customer_id = customer_insert.data[0]["customer_id"] if customer_insert.data else None
+                # Check if this person is already a customer
+                existing_customer_query = supabase.table("Customers").select("customer_id") \
+                    .eq("person_id", person_id).limit(1).execute()
+
+                if existing_customer_query.data:
+                    customer_id = existing_customer_query.data[0]["customer_id"]
+                else:
+                    # Insert customer
+                    customer_insert = supabase.table("Customers").insert({
+                        "person_id": person_id,
+                        "id_card_number": data["discountInfo"].get("idNumber"),
+                        "customer_type_id": customer_type_id
+                    }).execute()
+                    customer_id = customer_insert.data[0]["customer_id"] if customer_insert.data else None
 
             # Insert into POS table
             pos_insert = supabase.table("POS").insert({
@@ -195,7 +208,7 @@ class POS(APIView):
             for item in data["items"]:
                 # Fetch stock item (location-specific)
                 stock_item_query = supabase.table("Stock_Item").select("stock_item_id") \
-                    .eq("product_id", item["product_id"]).eq("location_id", data["branch"]).limit(1).execute()
+                    .eq("product_id", item["product_id"]).eq("location_id", int(data["branch"])).limit(1).execute()
 
                 if not stock_item_query.data:
                     print(f"⚠️ Stock item not found for product {item['product_id']} at location {data['branch']}")
@@ -290,19 +303,39 @@ class POS(APIView):
 
             print(f"🟢 Successfully inserted {len(data['items'])} items into POS_Item.")
 
+            
             # Insert into DSWD_Order if applicable
-            if data["customerType"] == "dswd":
-                supabase.table("DSWD_Order").insert({
-                    "patient_id": customer_id, "gl_num": data["customerInfo"].get("guaranteeLetterNo"),
-                    "gl_date": data["customerInfo"].get("guaranteeLetterDate"),
-                    "claim_date": data["customerInfo"].get("receivedDate")
-                }).execute()
-                print(f"🟢 DSWD Order added for patient ID: {customer_id}")
+            if data["customerType"].upper() == "DSWD":
+                # Parse the string to proper ISO format or datetime object (depending on Supabase expectation)
+                gl_date = datetime.fromisoformat(data["customerInfo"].get("guaranteeLetterDate")).date()
+                claim_date = datetime.fromisoformat(data["customerInfo"].get("receivedDate")).date()
+                try:
+                    print("🛠 Payload to Supabase:", {
+                        "customer_id": customer_id,
+                        "gl_num": data["customerInfo"].get("guaranteeLetterNo"),
+                        "gl_date": safe_date(gl_date),
+                        "claim_date": safe_date(claim_date),
+                        "invoice": data["customerInfo"].get("invoiceNumber")
+                    })
+                    response = supabase.table("Dswd_Order").insert({
+                        "customer_id": customer_id,
+                        "gl_num": data["customerInfo"].get("guaranteeLetterNo"),
+                        "gl_date": safe_date(gl_date),
+                        "claim_date": safe_date(claim_date),
+                        "invoice": data["customerInfo"].get("invoiceNumber")
+                    }).execute()
+                    
+                    print("🧾 Supabase Response:", response)
+                    print(f"🟢 DSWD Order added for patient ID: {customer_id}")
+                except Exception as e:
+                    print("❌ Supabase Insert Error:", e)
 
             return Response({"message": "POS transaction created successfully", "pos_id": pos_transaction_id}, status=201)
 
         except Exception as e:
-            print(f"❌ Exception: {str(e)}")
+            import traceback
+            print("❌ Exception:", str(e))
+            traceback.print_exc()
             return Response({"error": str(e)}, status=500)
 
     
