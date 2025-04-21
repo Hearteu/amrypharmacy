@@ -11,13 +11,17 @@ supabase = get_supabase_client()
 #Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
 
 class StockTransaction(APIView):
-    def get(self, request, stock_transaction_id=None):
+    def get(self, request, stock_transaction_id=None, transaction_type=None): 
         try:
             # Fetch Stock_Transaction records
             query = supabase.table('Stock_Transaction').select('*')
+            
             if stock_transaction_id is not None:
                 query = query.eq('stock_transaction_id', stock_transaction_id)
-            
+
+            if transaction_type is not None:
+                query = query.eq('transaction_type', transaction_type)
+
             stock_transactions = query.execute()
 
             if not stock_transactions.data:
