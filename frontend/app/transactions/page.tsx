@@ -1,14 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
 import { Transaction } from "@/app/lib/types/transactions";
 import {
   getTransactions,

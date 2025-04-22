@@ -226,7 +226,10 @@ export default function PurchaseOrdersTable() {
               <DropdownMenuItem>
                 <Link
                   href={`/purchase-orders/${po.purchase_order_id}/edit`}
-                  className="flex w-full"
+                  className={cn(
+                    "flex w-full",
+                    po.status_id !== 1 && "pointer-events-none opacity-50"
+                  )}
                 >
                   Edit
                 </Link>

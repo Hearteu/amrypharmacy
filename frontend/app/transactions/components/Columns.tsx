@@ -6,9 +6,9 @@ import ViewTransactionDetails from "./ViewTransactionDetails";
 import { Button } from "@/components/ui/button";
 import { ArrowUpDown } from "lucide-react";
 
-export const columns: (onSuccess: () => void) => ColumnDef<Transaction>[] = (
-  onSuccess
-) => [
+export const columns: (
+  onSuccess: () => void
+) => ColumnDef<Transaction>[] = () => [
   {
     accessorKey: "invoice",
     header: "Invoice",
