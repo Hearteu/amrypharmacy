@@ -11,74 +11,63 @@ supabase = get_supabase_client()
 #Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
 
 class StockTransaction(APIView):
-    def get(self, request, stock_transaction_id=None, transaction_type=None, branch=None, order_type=None):
+    def get(self, request):
         try:
-            # Fetch Stock_Transaction records
+            transaction_type = request.query_params.get('transaction_type')
+            order_type = request.query_params.get('order_type')
+            branch = request.query_params.get('branch')
+
             query = supabase.table('Stock_Transaction').select('*')
 
-            if stock_transaction_id is not None:
-                query = query.eq('stock_transaction_id', stock_transaction_id)
+            # Filter by transaction_type = POS (case-insensitive)
+            if transaction_type:
+                query = query.ilike('transaction_type', transaction_type)
 
-            if transaction_type is not None:
-                query = query.filter('LOWER(transaction_type)', 'eq', transaction_type.lower())
-
+            # Apply the query
             stock_transactions = query.execute()
 
             if not stock_transactions.data:
                 return Response({"error": "No Stock_Transaction found"}, status=404)
 
-            transactions = stock_transactions.data
-
-            # If filtering POS-specific logic
-            if transaction_type and transaction_type.lower() == 'pos':
+            # Filter branch (after fetch since Supabase doesn't support OR natively in client)
+            filtered_transactions = []
+            for txn in stock_transactions.data:
                 if branch:
-                    transactions = [t for t in transactions if t['src_location'].lower() == branch.lower()]
+                    if str(txn.get('src_location')) != branch and str(txn.get('des_location')) != branch:
+                        continue
 
-                # Extract POS reference IDs
-                pos_ids = [t['reference_id'] for t in transactions if t.get('reference_id') is not None]
+                # Filter order_type for POS only
+                if order_type and txn.get('transaction_type', '').lower() == 'pos':
+                    pos = supabase.table('POS').select('order_type').eq('pos_id', txn['reference_id']).single().execute()
+                    if pos.data is None or pos.data.get('order_type', '').lower() != order_type.lower():
+                        continue
 
-                if pos_ids:
-                    pos_query = supabase.table('POS').select('*').in_('pos_id', pos_ids)
-                    pos_records = pos_query.execute().data
+                filtered_transactions.append(txn)
 
-                    # Filter by order_type if provided
-                    if order_type:
-                        pos_records = [
-                            pos for pos in pos_records 
-                            if pos.get('order_type', '').lower() == order_type.lower()
-                        ]
+            if not filtered_transactions:
+                return Response({"error": "No Stock_Transaction matched filters"}, status=404)
 
-                    # Retain only transactions linked to filtered POS records
-                    valid_pos_ids = set(pos['pos_id'] for pos in pos_records)
-                    transactions = [t for t in transactions if t['reference_id'] in valid_pos_ids]
+            # Get unique stock_item_ids
+            stock_item_ids = list(set(txn['stock_item_id'] for txn in filtered_transactions))
 
-            if not transactions:
-                return Response({"error": "No matching Stock_Transaction after POS/order_type filter"}, status=404)
+            stock_items = supabase.table('Stock_Item').select('*').in_('stock_item_id', stock_item_ids).execute()
+            stock_item_map = {item['stock_item_id']: item for item in stock_items.data}
 
-            # Continue processing: fetch Stock_Item and Product info
-            stock_item_ids = list(set(st['stock_item_id'] for st in transactions))
+            # Get product_ids
+            product_ids = list(set(item['product_id'] for item in stock_items.data))
+            products = supabase.table('Products').select('*').in_('product_id', product_ids).execute()
+            product_map = {prod['product_id']: prod for prod in products.data}
 
-            stock_items = supabase.table('Stock_Item').select('*').in_('stock_item_id', stock_item_ids).execute().data
-            product_ids = list(set(si['product_id'] for si in stock_items))
+            # Attach related data
+            for txn in filtered_transactions:
+                stock_item = stock_item_map.get(txn['stock_item_id'])
+                txn['stock_item'] = stock_item
+                txn['product'] = product_map.get(stock_item['product_id']) if stock_item else None
 
-            products = supabase.table('Products').select('*').in_('product_id', product_ids).execute().data
-
-            # Mapping
-            stock_item_map = {si['stock_item_id']: si for si in stock_items}
-            product_map = {p['product_id']: p for p in products}
-
-            # Attach stock item and product details
-            for transaction in transactions:
-                stock_item = stock_item_map.get(transaction['stock_item_id'])
-                if stock_item:
-                    transaction['stock_item'] = stock_item
-                    transaction['product'] = product_map.get(stock_item['product_id'], {})
-
-            return Response(transactions, status=200)
+            return Response(filtered_transactions, status=200)
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
-
 
 
     def post(self, request):
