@@ -19,56 +19,82 @@ class StockTransaction(APIView):
 
             query = supabase.table('Stock_Transaction').select('*')
 
-            # Filter by transaction_type = POS (case-insensitive)
             if transaction_type:
                 query = query.ilike('transaction_type', transaction_type)
 
-            # Apply the query
             stock_transactions = query.execute()
 
             if not stock_transactions.data:
                 return Response({"error": "No Stock_Transaction found"}, status=404)
 
-            # Filter branch (after fetch since Supabase doesn't support OR natively in client)
             filtered_transactions = []
+            pos_ids = set()
+
             for txn in stock_transactions.data:
                 if branch:
-                    if str(txn.get('src_location')) != branch and str(txn.get('des_location')) != branch:
+                    if str(txn.get('src_location')) != branch:
                         continue
 
-                # Filter order_type for POS only
-                if order_type and txn.get('transaction_type', '').lower() == 'pos':
-                    pos = supabase.table('POS').select('order_type').eq('pos_id', txn['reference_id']).single().execute()
-                    if pos.data is None or pos.data.get('order_type', '').lower() != order_type.lower():
-                        continue
+                if txn.get('transaction_type', '').lower() == 'pos':
+                    pos_ids.add(txn['reference_id'])
 
                 filtered_transactions.append(txn)
 
             if not filtered_transactions:
                 return Response({"error": "No Stock_Transaction matched filters"}, status=404)
 
-            # Get unique stock_item_ids
-            stock_item_ids = list(set(txn['stock_item_id'] for txn in filtered_transactions))
+            # Fetch all related POS records
+            pos_list = supabase.table('POS').select('*').in_('pos_id', list(pos_ids)).execute().data
+            pos_map = {pos['pos_id']: pos for pos in pos_list}
 
-            stock_items = supabase.table('Stock_Item').select('*').in_('stock_item_id', stock_item_ids).execute()
-            stock_item_map = {item['stock_item_id']: item for item in stock_items.data}
+            # Filter by order_type if provided
+            if order_type:
+                filtered_transactions = [
+                    txn for txn in filtered_transactions
+                    if txn['transaction_type'].lower() != 'pos'
+                    or (
+                        txn['reference_id'] in pos_map and
+                        pos_map[txn['reference_id']].get('order_type', '').lower() == order_type.lower()
+                    )
+                ]
 
-            # Get product_ids
-            product_ids = list(set(item['product_id'] for item in stock_items.data))
-            products = supabase.table('Products').select('*').in_('product_id', product_ids).execute()
-            product_map = {prod['product_id']: prod for prod in products.data}
+            # Get unique prescription_ids from POS
+            prescription_ids = [pos['prescription_id'] for pos in pos_list if 'prescription_id' in pos and pos['prescription_id']]
+            prescriptions = supabase.table('Prescription').select('*').in_('prescription_id', prescription_ids).execute().data
+            prescription_map = {p['prescription_id']: p for p in prescriptions}
 
-            # Attach related data
+            # Get unique customer_ids from Prescription
+            customer_ids = [p['customer_id'] for p in prescriptions if 'customer_id' in p and p['customer_id']]
+            customers = supabase.table('Customers').select('*').in_('customer_id', customer_ids).execute().data
+            customer_map = {c['customer_id']: c for c in customers}
+
+            # Get unique person_ids from Customers
+            person_ids = [c['person_id'] for c in customers if 'person_id' in c and c['person_id']]
+            person = supabase.table('Person').select('*').in_('person_id', person_ids).execute().data
+            person_map = {p['person_id']: p for p in person}
+
+            # Attach data
             for txn in filtered_transactions:
-                stock_item = stock_item_map.get(txn['stock_item_id'])
-                txn['stock_item'] = stock_item
-                txn['product'] = product_map.get(stock_item['product_id']) if stock_item else None
+                txn.pop('stock_item', None)  # Remove stock_item if present
+                pos = pos_map.get(txn['reference_id'])
+                txn['pos'] = pos
+
+                if pos and pos.get('prescription_id'):
+                    prescription = prescription_map.get(pos['prescription_id'])
+                    txn['prescription'] = prescription
+
+                    if prescription and prescription.get('customer_id'):
+                        customer = customer_map.get(prescription['customer_id'])
+                        txn['customer'] = customer
+
+                        if customer and customer.get('person_id'):
+                            person = person_map.get(customer['person_id'])
+                            txn['person'] = person
 
             return Response(filtered_transactions, status=200)
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
-
 
     def post(self, request):
         data = request.data
