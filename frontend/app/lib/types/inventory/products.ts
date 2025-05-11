@@ -10,5 +10,7 @@ export interface Products {
     price: string;
     net_content: string;
     unit: string;
+    location_id: number;
+    quantity: number;
     stock_per_location: Stock[];
 }

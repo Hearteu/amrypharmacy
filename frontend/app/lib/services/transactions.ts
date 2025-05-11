@@ -4,6 +4,8 @@ export const getTransactions = async (location_id?: string) => {
 
     const response = await fetch(
         "http://127.0.0.1:8000/pharmacy/pos/"
+        // `http://127.0.0.1:8000/pharmacy/stock-transactions/?transaction_type=POS&branch=${location_id}`
+
     );
 
     if (!response.ok) {

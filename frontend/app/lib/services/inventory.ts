@@ -65,3 +65,16 @@ export const getUnit = async () => {
     return unitData
 
 };
+
+export const getLowStock = async () => {
+    const lowRes = await fetch("http://127.0.0.1:8000/pharmacy/stock-items/?threshold=10");
+    if (!lowRes.ok) {
+        throw new Error("Failed to fetch data");
+    }
+
+    const lowData: Products[] = await lowRes.json();
+    return lowData
+
+};
+
+// http://127.0.0.1:8000/pharmacy/stock-items/?threshold=10
