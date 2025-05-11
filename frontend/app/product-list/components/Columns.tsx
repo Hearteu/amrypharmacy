@@ -88,22 +88,22 @@ export const columns: (onSuccess: () => void) => ColumnDef<Products>[] = (
     accessorKey: "talaingod",
     header: "Talaingod",
     accessorFn: (row) =>
-      row.stock_per_location?.find((loc) => loc.location_id === 2)?.quantity ||
-      0,
+      row.stock_per_location?.find((loc) => loc.location_id === 2)
+        ?.total_quantity || 0,
   },
   {
     accessorKey: "asuncion_stockroom",
     header: "Asuncion - Stockroom",
     accessorFn: (row) =>
-      row.stock_per_location?.find((loc) => loc.location_id === 3)?.quantity ||
-      0,
+      row.stock_per_location?.find((loc) => loc.location_id === 3)
+        ?.total_quantity || 0,
   },
   {
     accessorKey: "asuncion_physical",
     header: "Asuncion - Physical",
     accessorFn: (row) =>
-      row.stock_per_location?.find((loc) => loc.location_id === 1)?.quantity ||
-      0,
+      row.stock_per_location?.find((loc) => loc.location_id === 1)
+        ?.total_quantity || 0,
   },
   {
     id: "actions",

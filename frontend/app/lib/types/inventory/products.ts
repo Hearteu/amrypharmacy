@@ -1,7 +1,14 @@
+export interface ExpiryDetail {
+    expiry_date: string;
+    quantity: number;
+}
+
 export interface Stock {
     location_id: number;
     location: string;
     quantity: number;
+    total_quantity?: number;
+    expiry_details?: ExpiryDetail[];
 }
 export interface Products {
     product_id: number;
