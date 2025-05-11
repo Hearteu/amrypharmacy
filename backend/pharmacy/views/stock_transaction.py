@@ -18,36 +18,34 @@ class StockTransaction(APIView):
             branch = request.query_params.get('branch')
 
             query = supabase.table('Stock_Transaction').select('*')
-
             if transaction_type:
                 query = query.ilike('transaction_type', transaction_type)
 
             stock_transactions = query.execute()
-
             if not stock_transactions.data:
                 return Response({"error": "No Stock_Transaction found"}, status=404)
 
             filtered_transactions = []
             pos_ids = set()
+            src_location_ids = set()
 
             for txn in stock_transactions.data:
-                if branch:
-                    if str(txn.get('src_location')) != branch:
-                        continue
-
+                if branch and str(txn.get('src_location')) != branch:
+                    continue
                 if txn.get('transaction_type', '').lower() == 'pos':
                     pos_ids.add(txn['reference_id'])
-
+                if txn.get('src_location'):
+                    src_location_ids.add(txn['src_location'])
                 filtered_transactions.append(txn)
 
             if not filtered_transactions:
                 return Response({"error": "No Stock_Transaction matched filters"}, status=404)
 
-            # Fetch all related POS records
+            # POS
             pos_list = supabase.table('POS').select('*').in_('pos_id', list(pos_ids)).execute().data
             pos_map = {pos['pos_id']: pos for pos in pos_list}
 
-            # Filter by order_type if provided
+            # Filter by order_type
             if order_type:
                 filtered_transactions = [
                     txn for txn in filtered_transactions
@@ -58,43 +56,110 @@ class StockTransaction(APIView):
                     )
                 ]
 
-            # Get unique prescription_ids from POS
-            prescription_ids = [pos['prescription_id'] for pos in pos_list if 'prescription_id' in pos and pos['prescription_id']]
+            # POS Items
+            pos_item_data = supabase.table('POS_Item').select('*, Products(*, Drugs(*))').in_('pos_id', list(pos_ids)).execute().data
+            pos_items_by_pos = {}
+            for item in pos_item_data:
+                pos_id = item['pos_id']
+                product = item.get("Products") or {}
+                drugs = product.get("Drugs") or {}
+                dosage = f"{drugs.get('dosage_form', '')} {drugs.get('dosage_strength', '')}".strip()
+                full_name = f"{product.get('product_name', 'Unknown Product')} {dosage}".strip()
+                total_price = item["quantity_sold"] * item["price"]
+                formatted_item = {
+                    "pos_item_id": item["pos_item_id"],
+                    "product_id": product.get("product_id", "N/A"),
+                    "full_product_name": full_name,
+                    "quantity": item["quantity_sold"],
+                    "price": item["price"],
+                    "total_price": total_price
+                }
+                pos_items_by_pos.setdefault(pos_id, []).append(formatted_item)
+
+            # Prescriptions
+            prescription_ids = [pos['prescription_id'] for pos in pos_list if pos.get('prescription_id')]
             prescriptions = supabase.table('Prescription').select('*').in_('prescription_id', prescription_ids).execute().data
             prescription_map = {p['prescription_id']: p for p in prescriptions}
 
-            # Get unique customer_ids from Prescription
-            customer_ids = [p['customer_id'] for p in prescriptions if 'customer_id' in p and p['customer_id']]
+            # Customers
+            customer_ids = [p['customer_id'] for p in prescriptions if p.get('customer_id')]
             customers = supabase.table('Customers').select('*').in_('customer_id', customer_ids).execute().data
             customer_map = {c['customer_id']: c for c in customers}
 
-            # Get unique person_ids from Customers
-            person_ids = [c['person_id'] for c in customers if 'person_id' in c and c['person_id']]
-            person = supabase.table('Person').select('*').in_('person_id', person_ids).execute().data
-            person_map = {p['person_id']: p for p in person}
+            # Persons for customers
+            person_ids = [c['person_id'] for c in customers if c.get('person_id')]
+            persons = supabase.table('Person').select('*').in_('person_id', person_ids).execute().data
+            person_map = {p['person_id']: p for p in persons}
 
-            # Attach data
+            # Physicians and their persons
+            physician_ids = [p['physician_id'] for p in prescriptions if p.get('physician_id')]
+            physicians = supabase.table('Physician').select('*').in_('physician_id', physician_ids).execute().data
+            physician_map = {d['physician_id']: d for d in physicians}
+
+            physician_person_ids = [d['person_id'] for d in physicians if d.get('person_id')]
+            physician_persons = supabase.table('Person').select('*').in_('person_id', physician_person_ids).execute().data
+            physician_person_map = {p['person_id']: p for p in physician_persons}
+
+            # Locations
+            locations = supabase.table('Location').select('*').in_('location_id', list(src_location_ids)).execute().data
+            location_map = {l['location_id']: l['location'] for l in locations}
+
+            # Attach related data
             for txn in filtered_transactions:
-                txn.pop('stock_item', None)  # Remove stock_item if present
+                txn.pop('stock_item', None)
+
+                # Location name
+                txn['src_location_name'] = location_map.get(txn.get('src_location'))
+
+                # POS
                 pos = pos_map.get(txn['reference_id'])
-                txn['pos'] = pos
+                if pos:
+                    pos['pos_items'] = pos_items_by_pos.get(pos['pos_id'], [])
+                    if "pos_items" in pos:
+                        pos["total_amount"] = round(sum(item.get("total_price", 0) for item in pos["pos_items"]), 2)
+                    txn['pos'] = pos
+                    
+                    # Prescription
+                    if pos.get('prescription_id'):
+                        prescription = prescription_map.get(pos['prescription_id'])
+                        if prescription:
+                            # Physician
+                            if prescription.get('physician_id'):
+                                physician = physician_map.get(prescription['physician_id'])
+                                if physician:
+                                    phys_person_id = physician.get("person_id")
+                                    person = physician_person_map.get(phys_person_id) if phys_person_id in physician_person_map else {}
+                                    physician.update({
+                                        "name": f"{person.get('first_name', '')} {person.get('last_name', '')}".strip(),
+                                        "address": person.get("address"),
+                                        "contact": person.get("contact"),
+                                        "email": person.get("email")
+                                    })
+                                    physician.pop("person_id", None)
+                                    prescription["physician"] = physician
+                            txn["prescription"] = prescription
 
-                if pos and pos.get('prescription_id'):
-                    prescription = prescription_map.get(pos['prescription_id'])
-                    txn['prescription'] = prescription
-
-                    if prescription and prescription.get('customer_id'):
-                        customer = customer_map.get(prescription['customer_id'])
-                        txn['customer'] = customer
-
-                        if customer and customer.get('person_id'):
-                            person = person_map.get(customer['person_id'])
-                            txn['person'] = person
+                            # Customer
+                            if prescription.get('customer_id'):
+                                customer = customer_map.get(prescription['customer_id'])
+                                if customer:
+                                    person_id = customer.get("person_id")
+                                    person = person_map.get(person_id) if person_id in person_map else {}
+                                    customer.update({
+                                        "name": f"{person.get('first_name', '')} {person.get('last_name', '')}".strip(),
+                                        "address": person.get("address"),
+                                        "contact": person.get("contact"),
+                                        "email": person.get("email")
+                                    })
+                                    customer.pop("person_id", None)
+                                    txn["customer"] = customer
 
             return Response(filtered_transactions, status=200)
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
+
 
     def post(self, request):
         data = request.data
