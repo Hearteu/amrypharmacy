@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StockTransfer } from "@/app/lib/types/stock-transfer";
+import { DataTablePagination } from "@/components/data-table/DataTablePagination";
 
 interface IncomingTransfersListProps {
   data: StockTransfer[];
@@ -153,30 +154,7 @@ export function IncomingTransfersList({ data }: IncomingTransfersListProps) {
         </Table>
       </div>
 
-      <div className="flex items-center justify-end space-x-2">
-        <div className="flex-1 text-sm text-muted-foreground">
-          Showing {table.getFilteredRowModel().rows.length} of {data.length}{" "}
-          transfers
-        </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+      <DataTablePagination table={table} />
     </div>
   );
 }

@@ -71,10 +71,10 @@ export function LineItemsTable({ lineItems, onSuccess }: LineItemsTableProps) {
                 )}
               </TableCell>
               <TableCell className="text-right">
-                ${item.supplier_price.toFixed(2)}
+                ₱{item.supplier_price.toFixed(2)}
               </TableCell>
               <TableCell className="text-right">
-                ${item.poi_total.toFixed(2)}
+                ₱{item.poi_total.toFixed(2)}
               </TableCell>
               <TableCell className="text-right">
                 <Badge

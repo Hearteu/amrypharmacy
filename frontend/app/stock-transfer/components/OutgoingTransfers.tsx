@@ -10,7 +10,7 @@ import {
 } from "@tanstack/react-table";
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowUpDown, Eye } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +22,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StockTransfer } from "@/app/lib/types/stock-transfer";
+import { DataTable } from "@/components/data-table/DataTable";
+import { DataTablePagination } from "@/components/data-table/DataTablePagination";
 
 interface OutgoingTransfersListProps {
   data: StockTransfer[];
@@ -141,31 +143,7 @@ export function OutgoingTransfersList({ data }: OutgoingTransfersListProps) {
           </TableBody>
         </Table>
       </div>
-
-      <div className="flex items-center justify-end space-x-2">
-        <div className="flex-1 text-sm text-muted-foreground">
-          Showing {table.getFilteredRowModel().rows.length} of {data.length}{" "}
-          transfer requests
-        </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+      <DataTablePagination table={table} />
     </div>
   );
 }

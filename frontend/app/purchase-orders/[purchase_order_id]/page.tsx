@@ -119,7 +119,7 @@ export default function PurchaseOrderPage({
                     <div className="w-64 space-y-2">
                       <div className="flex justify-between text-lg font-bold">
                         <span>Total:</span>
-                        <span>${purchaseOrder?.po_total.toFixed(2)}</span>
+                        <span>₱{purchaseOrder?.po_total.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
