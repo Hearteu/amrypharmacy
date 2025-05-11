@@ -26,29 +26,66 @@ class StockItem(APIView):
 
             stock_items = response.data
             product_ids = list(set(item['product_id'] for item in stock_items))
+            location_ids = list(set(item['location_id'] for item in stock_items))
 
-            # Fetch Products
-            products_resp = supabase.table('Products').select('product_id, product_name').in_('product_id', product_ids).execute()
+            # Fetch Products with price, category_id, and brand_id
+            products_resp = supabase.table('Products').select('product_id, product_name, current_price, category_id, brand_id').in_('product_id', product_ids).execute()
             product_map = {prod['product_id']: prod for prod in products_resp.data}
 
             # Fetch Drugs
             drugs_resp = supabase.table('Drugs').select('product_id, dosage_form, dosage_strength').in_('product_id', product_ids).execute()
             drug_map = {drug['product_id']: drug for drug in drugs_resp.data}
 
+            # Fetch Categories
+            category_ids = list(set(prod['category_id'] for prod in products_resp.data if 'category_id' in prod))
+            categories_resp = supabase.table('Product_Category').select('category_id, category_name').in_('category_id', category_ids).execute()
+            category_map = {cat['category_id']: cat['category_name'].strip() if cat['category_name'] else None for cat in categories_resp.data}
+
+            # Fetch Brands
+            brand_ids = list(set(prod['brand_id'] for prod in products_resp.data if 'brand_id' in prod))
+            brands_resp = supabase.table('Brand').select('brand_id, brand_name').in_('brand_id', brand_ids).execute()
+            brand_map = {brand['brand_id']: brand['brand_name'] for brand in brands_resp.data}
+
+            # Fetch Locations
+            locations_resp = supabase.table('Location').select('location_id, location').in_('location_id', location_ids).execute()
+            location_map = {loc['location_id']: loc['location'] for loc in locations_resp.data}
+
             formatted_items = []
             for item in stock_items:
                 product = product_map.get(item['product_id'], {})
                 drugs = drug_map.get(item['product_id'], {})
+                location_name = location_map.get(item['location_id'], 'Unknown Location')
 
-                dosage = f"{drugs.get('dosage_form', '')} {drugs.get('dosage_strength', '')}".strip()
+                dosage_form = drugs.get('dosage_form')
+                dosage_strength = drugs.get('dosage_strength')
+
+                # Generate full name
+                dosage_parts = []
+                if dosage_form:
+                    dosage_parts.append(dosage_form)
+                if dosage_strength:
+                    dosage_parts.append(dosage_strength)
+                dosage = ' '.join(dosage_parts)
+
                 full_name = f"{product.get('product_name', 'Unknown Product')} {dosage}".strip()
+
+                product_details = {
+                    "product_id": item["product_id"],
+                    "full_product_name": full_name,
+                    "current_price": product.get("current_price"),
+                    "category_id": product.get("category_id"),
+                    "category_name": category_map.get(product.get("category_id")),
+                    "brand_id": product.get("brand_id"),
+                    "brand_name": brand_map.get(product.get("brand_id"))
+                }
 
                 formatted_items.append({
                     "stock_item_id": item["stock_item_id"],
                     "product_id": item["product_id"],
                     "location_id": item["location_id"],
+                    "location_name": location_name,
                     "quantity": item["quantity"],
-                    "full_product_name": full_name
+                    "product_details": product_details
                 })
 
             return Response(formatted_items, status=200)
