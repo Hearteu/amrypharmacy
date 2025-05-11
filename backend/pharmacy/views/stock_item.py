@@ -15,10 +15,15 @@ class StockItem(APIView):
     def get(self, request):
         try:
             threshold = request.query_params.get('threshold')
+            branch = request.query_params.get('branch')  # Treated as location_id
+
             query = supabase.table('Stock_Item').select('*')
 
             if threshold is not None:
                 query = query.lt('quantity', int(threshold))
+
+            if branch is not None:
+                query = query.eq('location_id', int(branch))
 
             response = query.execute()
             if not response.data:
@@ -28,7 +33,7 @@ class StockItem(APIView):
             product_ids = list(set(item['product_id'] for item in stock_items))
             location_ids = list(set(item['location_id'] for item in stock_items))
 
-            # Fetch Products with price, category_id, and brand_id
+            # Fetch Products
             products_resp = supabase.table('Products').select('product_id, product_name, current_price, category_id, brand_id').in_('product_id', product_ids).execute()
             product_map = {prod['product_id']: prod for prod in products_resp.data}
 
@@ -37,12 +42,15 @@ class StockItem(APIView):
             drug_map = {drug['product_id']: drug for drug in drugs_resp.data}
 
             # Fetch Categories
-            category_ids = list(set(prod['category_id'] for prod in products_resp.data if 'category_id' in prod))
+            category_ids = list(set(prod['category_id'] for prod in products_resp.data if prod.get('category_id')))
             categories_resp = supabase.table('Product_Category').select('category_id, category_name').in_('category_id', category_ids).execute()
-            category_map = {cat['category_id']: cat['category_name'].strip() if cat['category_name'] else None for cat in categories_resp.data}
+            category_map = {
+                cat['category_id']: cat['category_name'].strip() if cat.get('category_name') else None
+                for cat in categories_resp.data
+            }
 
             # Fetch Brands
-            brand_ids = list(set(prod['brand_id'] for prod in products_resp.data if 'brand_id' in prod))
+            brand_ids = list(set(prod['brand_id'] for prod in products_resp.data if prod.get('brand_id')))
             brands_resp = supabase.table('Brand').select('brand_id, brand_name').in_('brand_id', brand_ids).execute()
             brand_map = {brand['brand_id']: brand['brand_name'] for brand in brands_resp.data}
 
@@ -56,17 +64,12 @@ class StockItem(APIView):
                 drugs = drug_map.get(item['product_id'], {})
                 location_name = location_map.get(item['location_id'], 'Unknown Location')
 
-                dosage_form = drugs.get('dosage_form')
-                dosage_strength = drugs.get('dosage_strength')
-
-                # Generate full name
                 dosage_parts = []
-                if dosage_form:
-                    dosage_parts.append(dosage_form)
-                if dosage_strength:
-                    dosage_parts.append(dosage_strength)
+                if drugs.get('dosage_form'):
+                    dosage_parts.append(drugs['dosage_form'])
+                if drugs.get('dosage_strength'):
+                    dosage_parts.append(drugs['dosage_strength'])
                 dosage = ' '.join(dosage_parts)
-
                 full_name = f"{product.get('product_name', 'Unknown Product')} {dosage}".strip()
 
                 product_details = {
@@ -92,7 +95,6 @@ class StockItem(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
-
 
     def post(self, request):
         data = request.data
