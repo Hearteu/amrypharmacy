@@ -79,6 +79,7 @@ export default function NavBar() {
         <div className="mt-2 text-center">
           <p className="text-sm font-medium">
             Hello, {session?.user?.username || "Loading..."}
+            {session?.user?.location_id}
           </p>
           <p className="text-xs text-muted-foreground">
             {session?.user?.role_name}

@@ -11,6 +11,8 @@ import { DataTable } from "@/components/data-table/DataTable";
 import { columns } from "./components/Columns";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTableError } from "@/components/data-table/DataTableError";
+import { Session } from "@/app/lib/types/session";
+import { getSession } from "next-auth/react";
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -18,24 +20,47 @@ export default function Transactions() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
 
+  const [session, updateSession] = useState<Session | null>(null);
+  const fetchSession = async () => {
+    const _session: Session | null = await getSession();
+    updateSession(_session);
+  };
+
+  useEffect(() => {
+    fetchSession();
+  }, []);
+
+  const location_id = session?.user?.location_id?.toString() || "";
+  console.log("location ni transaction", location_id);
+
   const refreshData = async () => {
     setLoading(true);
     setError(null);
+
+    // Check if location_id is available
+    if (!location_id) {
+      console.error("Missing location_id in transactions page");
+      setError("Location ID is missing. Please log in again.");
+      setTransactions([]);
+      setLoading(false);
+      return; // Early return from the function
+    }
+
     try {
       if (activeTab === "all") {
-        const transactions = await getTransactions();
+        const transactions = await getTransactions(location_id);
         setTransactions(transactions);
       } else {
-        const transactions = await getTransactionsType(activeTab);
+        const transactions = await getTransactionsType(activeTab, location_id);
         setTransactions(transactions);
-        console.log("tyepe", transactions);
+        console.log("type", transactions);
       }
     } catch (error) {
       setTransactions([]);
       setError("Failed to load");
       console.error("Error fetching data", error);
       console.log(error);
-      setTransactions([]);
+      console.log("type", activeTab);
     } finally {
       setLoading(false);
     }
@@ -44,8 +69,10 @@ export default function Transactions() {
   const tableColumns = columns(refreshData);
 
   useEffect(() => {
-    refreshData();
-  }, [activeTab]);
+    if (session?.user?.location_id) {
+      refreshData();
+    }
+  }, [activeTab, session]);
 
   //   if (error) return <p>No data found {error}</p>;
 

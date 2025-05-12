@@ -10,11 +10,12 @@ export const columns: (
   onSuccess: () => void
 ) => ColumnDef<Transaction>[] = () => [
   {
-    accessorKey: "invoice",
+    id: "invoice",
     header: "Invoice",
+    accessorFn: (row) => row.pos?.invoice || "N/A",
   },
   {
-    accessorKey: "sale_date",
+    accessorKey: "transaction_date",
     header: ({ column }) => {
       return (
         <Button
@@ -28,16 +29,38 @@ export const columns: (
     },
   },
   {
-    accessorKey: "total_amount",
+    id: "order_type",
+    header: "Transaction Type",
+    accessorFn: (row) => {
+      const orderType = row.pos?.order_type || "N/A";
+
+      // If order type is N/A or empty, just return it
+      if (!orderType || orderType === "N/A") return orderType;
+
+      // Special case for DSWD - make it all uppercase
+      if (orderType.toLowerCase() === "dswd") return "DSWD";
+
+      // For all other order types, capitalize the first letter of each word
+      return orderType
+        .split(" ")
+        .map(
+          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+        )
+        .join(" ");
+    },
+  },
+  {
+    id: "totalAmount",
     header: "Total Amount",
+    accessorFn: (row) => row.pos?.total_amount || 0,
   },
   {
     id: "actions",
     cell: ({ row }) => {
-      const pos_id = row.original.pos_id;
+      const reference_id = row.original.reference_id;
       return (
         <>
-          <ViewTransactionDetails pos_id={pos_id.toString()} />
+          <ViewTransactionDetails pos_id={reference_id.toString()} />
         </>
       );
     },

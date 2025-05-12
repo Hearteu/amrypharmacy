@@ -1,10 +1,9 @@
-import { Transaction } from "../types/transactions";
+import { PosTransaction, Transaction } from "../types/transactions";
 
-export const getTransactions = async (location_id?: string) => {
+export const getTransactions = async (location_id: string) => {
 
     const response = await fetch(
-        "http://127.0.0.1:8000/pharmacy/pos/"
-        // `http://127.0.0.1:8000/pharmacy/stock-transactions/?transaction_type=POS&branch=${location_id}`
+        `http://127.0.0.1:8000/pharmacy/stock-transactions/?transaction_type=POS&branch=${location_id}`
 
     );
 
@@ -12,11 +11,13 @@ export const getTransactions = async (location_id?: string) => {
         throw new Error("Failed to fetch data");
     }
     const data: Transaction[] = await response.json();
+    // console.log("getTransaction data", data)
+
 
     return data;
 };
 
-export const getTransaction = async (pos_id: string): Promise<Transaction> => {
+export const getTransaction = async (pos_id: string): Promise<PosTransaction> => {
     const response = await fetch(
         `http://127.0.0.1:8000/pharmacy/pos/${pos_id}/`
     );
@@ -25,20 +26,24 @@ export const getTransaction = async (pos_id: string): Promise<Transaction> => {
         throw new Error("Failed to fetch data");
     }
 
-    const data: Transaction = await response.json(); // ✅ not an array
+    const data: PosTransaction = await response.json();
     return data;
 };
 
 
-export const getTransactionsType = async (type: string, location_id?: string) => {
-    const response = await fetch(
-        `http://127.0.0.1:8000/pharmacy/pos/?order_type=${type}`
-    );
+export const getTransactionsType = async (type: string, location_id: string) => {
+    const response = await fetch(`http://127.0.0.1:8000/pharmacy/stock-transactions/?transaction_type=POS&branch=${location_id}&order_type=${type}`);
+
+    // console.log("API Response Status:", response.status);
 
     if (!response.ok) {
-        throw new Error("Failed to fetch data");
+        const errorText = await response.text();
+        // console.error("API Error:", errorText);
+        throw new Error(`Failed to fetch data: ${response.status} ${errorText}`);
     }
+
     const data: Transaction[] = await response.json();
-    console.log("types", data)
+    // console.log("API Data:", data);
     return data;
-}
+
+};
