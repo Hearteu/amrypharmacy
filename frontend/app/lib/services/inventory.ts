@@ -1,6 +1,6 @@
 import axios from "axios";
 import { ProductDetails } from "../types/inventory/product-details";
-import { Products } from "../types/inventory/products";
+import { Products, StockItem } from "../types/inventory/products";
 import { Brand } from "../types/inventory/brand";
 import { Category } from "../types/inventory/category";
 import { Unit } from "../types/inventory/unit";
@@ -72,7 +72,7 @@ export const getLowStock = async () => {
         throw new Error("Failed to fetch data");
     }
 
-    const lowData: Products[] = await lowRes.json();
+    const lowData: StockItem[] = await lowRes.json();
     return lowData
 
 };

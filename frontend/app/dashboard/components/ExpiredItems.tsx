@@ -50,12 +50,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
-import { Products } from "@/app/lib/types/inventory/products";
+import { Products, StockItem } from "@/app/lib/types/inventory/products";
 import { getLowStock } from "@/app/lib/services/inventory";
+import Link from "next/link";
 
 export function InventoryDashboard() {
   // const [expiringItems, setExpiringItems] = useState<Products[]>([]);
-  const [lowStockItems, setLowStockItems] = useState<Products[]>([]);
+  const [lowStockItems, setLowStockItems] = useState<StockItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   // const [selectedItem, setSelectedItem] = useState<any>(null);
   const [stockOutQuantity, setStockOutQuantity] = useState<number>(0);
@@ -223,12 +224,14 @@ export function InventoryDashboard() {
                     ) : (
                       lowStockItems.map((item) => (
                         <TableRow key={item.product_id}>
-                          <TableCell>{item.full_product_name}</TableCell>
+                          <TableCell>
+                            {item.product_details.full_product_name}
+                          </TableCell>
                           <TableCell className="text-center">
                             <Badge variant="destructive">{item.quantity}</Badge>
                           </TableCell>
                           <TableCell className="hidden md:table-cell">
-                            {item.location_id}
+                            {item.location_name}
                           </TableCell>
                           <TableCell className="text-right">
                             <DropdownMenu>
@@ -241,12 +244,13 @@ export function InventoryDashboard() {
                               <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem>Reorder</DropdownMenuItem>
                                 <DropdownMenuItem>
-                                  View Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  Update Stock
+                                  <Link
+                                    href={`/purchase-orders/create`}
+                                    className="w-full cursor-pointer"
+                                  >
+                                    Reorder
+                                  </Link>
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
