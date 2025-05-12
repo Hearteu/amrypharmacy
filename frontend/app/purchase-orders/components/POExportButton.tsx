@@ -12,52 +12,190 @@ export const ExportPOPDF = ({ purchaseOrder }: ExportProps) => {
   const exportPDF = () => {
     const doc = new jsPDF();
 
+    // "AMRY PHARMACY" - Left (navy blue)
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 128);
+    doc.text("AMRY PHARMACY", 14, 20);
+
+    // Address
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
+    const addressLines = [
+      "Sally Bautista Bld., Purok 2 Nat'l Highway",
+      "Brgy. Cambanogoy, Asuncion, DDN",
+      "Phone: (099) 123-4567",
+    ];
+    addressLines.forEach((line, index) => {
+      doc.text(line, 14, 28 + index * 6);
+    });
+
+    // "PURCHASE ORDER" - Right (pale blue)
     doc.setFontSize(18);
-    doc.text("Purchase Order", 14, 20);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(173, 216, 230);
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const text = "PURCHASE ORDER";
+    const textWidth = doc.getTextWidth(text);
+    doc.text(text, pageWidth - textWidth - 14, 20);
+
+    // PO date and number
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
+    const labelX = pageWidth - 73.5;
+    const valueX = pageWidth - 40;
+    const topY = 30;
+    const lineSpacing = 5;
+    doc.text("ORDER DATE", labelX, topY);
+    doc.text("PO #", labelX, topY + lineSpacing);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${purchaseOrder.order_date}`, valueX, topY);
+    doc.text(`${purchaseOrder.po_id}`, valueX, topY + lineSpacing);
+
+    // Vendor
+    const vendorX = pageWidth - 196;
+    let vendorY = 50;
+    const valueOffset = 30;
+
+    doc.setTextColor(0, 102, 204);
+    doc.setFontSize(12);
+    doc.text("Vendor", vendorX, vendorY);
+
+    vendorY += 8;
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(15);
+    doc.text(`${purchaseOrder.supplier.name}`, vendorX, vendorY);
+
+    vendorY += 8;
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text("Address:", vendorX, vendorY);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${purchaseOrder.supplier.address}`, vendorX + valueOffset, vendorY);
+
+    vendorY += 6;
+    doc.setFont("helvetica", "normal");
+    doc.text("Phone:", vendorX, vendorY);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${purchaseOrder.supplier.phone}`, vendorX + valueOffset, vendorY);
+
+    vendorY += 6;
+    doc.setFont("helvetica", "normal");
+    doc.text("Email:", vendorX, vendorY);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${purchaseOrder.supplier.email}`, vendorX + valueOffset, vendorY);
+
+    // Ship To
+    const shipToX = 120;
+    let shipToY = 50;
 
     doc.setFontSize(12);
-    doc.text(`PO ID: ${purchaseOrder.po_id}`, 14, 30);
-    doc.text(`Supplier: ${purchaseOrder.supplier.name}`, 14, 36);
-    doc.text(`Email: ${purchaseOrder.supplier.email}`, 14, 42);
-    doc.text(`Phone: ${purchaseOrder.supplier.phone}`, 14, 48);
-    doc.text(`Address: ${purchaseOrder.supplier.address}`, 14, 54);
-    doc.text(`Order Date: ${purchaseOrder.order_date}`, 14, 60);
-    doc.text(`Expected Date: ${purchaseOrder.expected_date}`, 14, 66);
-    doc.text(`Status: ${purchaseOrder.status}`, 14, 72);
-    doc.text(`Notes: ${purchaseOrder.notes || "N/A"}`, 14, 78);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 102, 204);
+    doc.text("Ship To", shipToX, shipToY);
 
-    // Table
+    shipToY += 8;
+    doc.setFontSize(15);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("AMRY - ASUNCION BRANCH", shipToX, shipToY);
+
+    shipToY += 8;
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text("Brgy. Cambanogoy, Asuncion, DDN", shipToX, shipToY);
+
+    shipToY += 8;
+    doc.text("Expected Date:", shipToX, shipToY);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${purchaseOrder.expected_date}`, shipToX + 30, shipToY);
+
+    shipToY += 12;
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("NOTE", shipToX, shipToY);
+    doc.text(`${purchaseOrder.notes || "N/A"}`, shipToX + 30, shipToY);
+
+    // Table Data with 0 -> empty for certain columns
     const tableData = purchaseOrder.lineItems.map((item) => [
       item.poi_id,
       item.description,
       item.ordered_qty,
       item.supplier_price.toFixed(2),
-      item.poi_total.toFixed(2),
-      item.received_qty,
-      item.expired_qty,
-      item.damaged_qty,
+      (item.poi_total ?? 0).toFixed(2),
+      item.received_qty === 0 ? "" : item.received_qty,
+      item.expired_qty === 0 ? "" : item.expired_qty,
+      item.damaged_qty === 0 ? "" : item.damaged_qty,
     ]);
 
     autoTable(doc, {
-      startY: 85,
-      head: [
-        [
-          "Item ID",
-          "Description",
-          "Qty",
-          "Unit Price",
-          "Total",
-          "Received",
-          "Expired",
-          "Damaged",
-        ],
-      ],
+      startY: shipToY + 10,
+      head: [[
+        "Item ID", "Description", "Qty", "Unit Price", "Total", "Received", "Expired", "Damaged"
+      ]],
       body: tableData,
       theme: "grid",
-      styles: { fontSize: 10 },
+      styles: {
+        fontSize: 10,
+        textColor: 0,
+      },
+      headStyles: {
+        fillColor: [0, 0, 128],
+        textColor: 255,
+        fontStyle: "bold",
+      },
     });
 
-    doc.save(`PurchaseOrder_${purchaseOrder.po_id}.pdf`);
+    const finalY = ((doc as any).previousAutoTable?.finalY ?? 100) + 30;
+    const leftX = 14;
+    const rightX = pageWidth - 70;
+    const lineHeight = 8;
+
+    // Comments Box
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("Comments or Special Instructions", leftX, finalY);
+    const boxHeight = 30;
+    doc.setDrawColor(0);
+    doc.rect(leftX, finalY + 2, 100, boxHeight);
+
+    // Subtotal
+    const subtotal = purchaseOrder.lineItems.reduce((acc, item) => {
+      return acc + (typeof item.poi_total === "number" ? item.poi_total : parseFloat(item.poi_total || "0"));
+    }, 0);
+
+    // Billing Summary
+    let billingY = finalY;
+    doc.setFont("helvetica", "normal");
+    const billingFields = [
+      ["SUBTOTAL", `₱ ${subtotal.toFixed(2)}`],
+      ["TAX", "₱ _____"],
+      ["SHIPPING", "₱ _____"],
+      ["OTHER", "₱ _____"],
+      ["TOTAL", "₱ _____"],
+    ];
+
+    billingFields.forEach(([label, value], index) => {
+      const y = billingY + index * lineHeight;
+      doc.setFont("helvetica", index === billingFields.length - 1 ? "bold" : "normal");
+      doc.setFontSize(11);
+      if (index === billingFields.length - 1) {
+        doc.setFillColor(204, 229, 255);
+        doc.rect(rightX - 5.5, y - 6, 60, lineHeight, "F");
+      }
+      doc.text(label, rightX, y);
+      doc.text(value, rightX + 30, y);
+    });
+
+    const pdfBlob = doc.output("blob");
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    window.open(blobUrl, "_blank");
   };
 
   return (
