@@ -109,6 +109,11 @@ class StockTransaction(APIView):
             customers = supabase.table('Customers').select('*').in_('customer_id', customer_ids).execute().data
             customer_map = {c['customer_id']: c for c in customers}
 
+            # Customer Types
+            customer_type_ids = [c['customer_type_id'] for c in customers if c.get('customer_type_id')]
+            customer_types = supabase.table('Customer_Type').select('customer_type_id, discount').in_('customer_type_id', customer_type_ids).execute().data
+            customer_type_map = {ct['customer_type_id']: ct for ct in customer_types}
+
             # Persons for customers
             person_ids = [c['person_id'] for c in customers if c.get('person_id')]
             persons = supabase.table('Person').select('*').in_('person_id', person_ids).execute().data
@@ -183,11 +188,14 @@ class StockTransaction(APIView):
                                 if customer:
                                     person_id = customer.get("person_id")
                                     person = person_map.get(person_id) if person_id in person_map else {}
+                                    customer_type = customer_type_map.get(customer.get("customer_type_id"))
+                                    discount_rate = round((customer_type["discount"] / 100), 2) if customer_type and "discount" in customer_type else 0.0
                                     customer.update({
                                         "name": f"{person.get('first_name', '')} {person.get('last_name', '')}".strip(),
                                         "address": person.get("address"),
                                         "contact": person.get("contact"),
-                                        "email": person.get("email")
+                                        "email": person.get("email"),
+                                        "discountRate": discount_rate
                                     })
                                     customer.pop("person_id", None)
                                     txn["customer"] = customer

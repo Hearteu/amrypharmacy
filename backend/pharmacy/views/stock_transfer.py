@@ -128,7 +128,7 @@ class StockTransfer(APIView):
                     drug = product.get("Drugs") or {}
 
                     if drug:
-                        product_name += f" {drug.get('dosage_form', '')} {drug.get('dosage_strength', '')}".strip()
+                        product_name += f" {drug.get('dosage_form', '')} {drug.get('dosage_strength', '')}"
 
                     formatted_transfer["transferItems"].append({
                         "stock_transfer_item_id": item["stock_transfer_item_id"],
