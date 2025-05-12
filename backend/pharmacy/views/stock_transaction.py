@@ -29,9 +29,18 @@ class StockTransaction(APIView):
             pos_ids = set()
             src_location_ids = set()
 
+            # Special case for branch 8: include transactions from branches 1 and 3
+            branch_filter = []
+            if branch == "8":
+                branch_filter = ["1", "3"]  # Include transactions from branches 1 and 3
+            elif branch:
+                branch_filter = [branch]    # Just filter for the requested branch
+            
             for txn in stock_transactions.data:
-                if branch and str(txn.get('src_location')) != branch:
+                # Skip if src_location doesn't match our branch filter
+                if branch and str(txn.get('src_location')) not in branch_filter and branch_filter:
                     continue
+                
                 if txn.get('transaction_type', '').lower() == 'pos':
                     pos_ids.add(txn['reference_id'])
                 if txn.get('src_location'):
@@ -108,6 +117,21 @@ class StockTransaction(APIView):
             for txn in filtered_transactions:
                 txn.pop('stock_item', None)
 
+                # Format transaction_date to a readable format
+                if 'transaction_date' in txn and txn['transaction_date']:
+                    try:
+                        # Parse the timestamp (it might already be a datetime object or string)
+                        if isinstance(txn['transaction_date'], str):
+                            dt = datetime.fromisoformat(txn['transaction_date'].replace('Z', '+00:00'))
+                        else:
+                            dt = txn['transaction_date']
+                            
+                        # Format as MM/DD/YYYY HH:MM AM/PM
+                        txn['transaction_date'] = dt.strftime('%m/%d/%Y %I:%M %p')
+                    except Exception as e:
+                        # Keep original if formatting fails
+                        print(f"Error formatting date: {e}")
+                
                 # Location name
                 txn['src_location_name'] = location_map.get(txn.get('src_location'))
 
