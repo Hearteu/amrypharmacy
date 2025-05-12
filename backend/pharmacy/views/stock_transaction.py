@@ -28,6 +28,9 @@ class StockTransaction(APIView):
             filtered_transactions = []
             pos_ids = set()
             src_location_ids = set()
+            
+            # To track which POS IDs we've already processed
+            processed_pos_ids = set()
 
             # Special case for branch 8: include transactions from branches 1 and 3
             branch_filter = []
@@ -41,10 +44,21 @@ class StockTransaction(APIView):
                 if branch and str(txn.get('src_location')) not in branch_filter and branch_filter:
                     continue
                 
+                # For POS transactions, we'll only include the first one we encounter for each POS ID
                 if txn.get('transaction_type', '').lower() == 'pos':
-                    pos_ids.add(txn['reference_id'])
+                    ref_id = txn['reference_id']
+                    
+                    # Skip this transaction if we've already processed this POS ID
+                    if ref_id in processed_pos_ids:
+                        continue
+                    
+                    # Mark this POS ID as processed
+                    processed_pos_ids.add(ref_id)
+                    pos_ids.add(ref_id)
+                
                 if txn.get('src_location'):
                     src_location_ids.add(txn['src_location'])
+                
                 filtered_transactions.append(txn)
 
             if not filtered_transactions:
