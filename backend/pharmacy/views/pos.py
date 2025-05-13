@@ -156,7 +156,7 @@ class POS(APIView):
 
             # Insert into POS table
             pos_insert = supabase.table("POS").insert({
-                "sale_date": transaction_date, "invoice": invoice_number, "user_id": data["user_id"], "order_type": data["customerType"], "customer_id": customer_id
+                "sale_date": transaction_date, "invoice": invoice_number, "user_id": data["user_id"], "order_type": data["customerType"]
             }).execute()
 
             pos_transaction_id = pos_insert.data[0]["pos_id"] if pos_insert.data else None
@@ -202,7 +202,16 @@ class POS(APIView):
                     "prescription_details": prescription.get("notes", ""),
                     "date_issued": prescription["prescriptionDate"]
                 }).execute()
-                print(f"🟢 Prescription added for POS ID: {pos_transaction_id}")
+
+                prescription_id = prescription_insert.data[0]["prescription_id"] if prescription_insert.data else None
+                print(f"🟢 Prescription added with ID={prescription_id} for POS ID: {pos_transaction_id}")
+
+                # ✅ Update POS with prescription_id
+                if prescription_id:
+                    supabase.table("POS").update({
+                        "prescription_id": prescription_id
+                    }).eq("pos_id", pos_transaction_id).execute()
+                    print(f"🟢 POS updated with prescription_id={prescription_id}")
 
             # Insert into POS_Item and update Stock_Item
             for item in data["items"]:
