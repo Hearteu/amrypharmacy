@@ -7,7 +7,7 @@ export interface Stock {
     location_id: number;
     location: string;
     quantity: number;
-    total_quantity?: number;
+    total_quantity: number;
     expiry_details?: ExpiryDetail[];
 }
 export interface Products {
