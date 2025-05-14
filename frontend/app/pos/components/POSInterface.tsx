@@ -406,7 +406,7 @@ export default function PosInterface() {
                   </SheetHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="name">Pateient Name</Label>
+                      <Label htmlFor="name">Patient Name</Label>
                       <Input
                         id="name"
                         value={discountInfo.name}

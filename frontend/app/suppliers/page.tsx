@@ -100,7 +100,7 @@ export default function SupplierList() {
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle>Add New Product</DialogTitle>
+                  <DialogTitle>Add New Supplier</DialogTitle>
                 </DialogHeader>
 
                 <AddSupplierForm
