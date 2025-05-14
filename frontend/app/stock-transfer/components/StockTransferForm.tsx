@@ -50,7 +50,7 @@ interface StockTransferFormProps {
 interface Stock {
   location_id: number;
   location: string;
-  quantity: number;
+  total_quantity: number;
 }
 interface Products {
   product_id: number;
@@ -182,7 +182,7 @@ export function StockTransferForm({
       console.log("⚠️ No stock data found for this branch.");
       return 0;
     }
-    return stock.quantity;
+    return stock.total_quantity;
   };
 
   async function onSubmit(data: TransferFormValues) {
@@ -535,8 +535,10 @@ export function StockTransferForm({
                                         </span>
                                         {stockForSelectedBranch ? (
                                           <span className="text-gray-500 text-sm">
-                                            {stockForSelectedBranch.quantity} in
-                                            stock
+                                            {
+                                              stockForSelectedBranch.total_quantity
+                                            }{" "}
+                                            in stock
                                           </span>
                                         ) : (
                                           <span className="text-red-500 text-sm">
@@ -585,7 +587,7 @@ export function StockTransferForm({
                                               <span className="text-gray-500">
                                                 (
                                                 {
-                                                  stockForSelectedBranch.quantity
+                                                  stockForSelectedBranch.total_quantity
                                                 }{" "}
                                                 in stock)
                                               </span>
