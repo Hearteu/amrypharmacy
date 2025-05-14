@@ -40,6 +40,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Textarea } from "@/components/ui/textarea";
 
 interface StockTransferFormProps {
   initialData?: Partial<TransferFormValues>;
@@ -49,7 +50,7 @@ interface StockTransferFormProps {
 interface Stock {
   location_id: number;
   location: string;
-  quantity: number;
+  total_quantity: number;
 }
 interface Products {
   product_id: number;
@@ -72,6 +73,7 @@ const transferSchema = z.object({
   expected_date: z.date({
     required_error: "Please select a date",
   }),
+  notes: z.string(),
   transferItems: z
     .array(
       z.object({
@@ -143,6 +145,7 @@ export function StockTransferForm({
       stock_transfer_id: undefined,
       transfer_date: new Date(),
       expected_date: new Date(),
+      notes: "",
       transferItems: [{ product_id: "", ordered_quantity: 1 }],
     },
   });
@@ -179,7 +182,7 @@ export function StockTransferForm({
       console.log("⚠️ No stock data found for this branch.");
       return 0;
     }
-    return stock.quantity;
+    return stock.total_quantity;
   };
 
   async function onSubmit(data: TransferFormValues) {
@@ -466,7 +469,23 @@ export function StockTransferForm({
               )}
             />
           </div>
-
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Notes</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Enter any additional notes or instructions"
+                    className="resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <div className="space-y-4 ">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-medium">Transfer Items</h3>
@@ -516,8 +535,10 @@ export function StockTransferForm({
                                         </span>
                                         {stockForSelectedBranch ? (
                                           <span className="text-gray-500 text-sm">
-                                            {stockForSelectedBranch.quantity} in
-                                            stock
+                                            {
+                                              stockForSelectedBranch.total_quantity
+                                            }{" "}
+                                            in stock
                                           </span>
                                         ) : (
                                           <span className="text-red-500 text-sm">
@@ -566,7 +587,7 @@ export function StockTransferForm({
                                               <span className="text-gray-500">
                                                 (
                                                 {
-                                                  stockForSelectedBranch.quantity
+                                                  stockForSelectedBranch.total_quantity
                                                 }{" "}
                                                 in stock)
                                               </span>

@@ -23,15 +23,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -49,10 +40,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Label } from "@/components/ui/label";
 import { Products, StockItem } from "@/app/lib/types/inventory/products";
 import { getLowStock } from "@/app/lib/services/inventory";
 import Link from "next/link";
+import DisposeExpiryDialog from "./DisposeExpiry";
 
 export function InventoryDashboard() {
   // const [expiringItems, setExpiringItems] = useState<Products[]>([]);
@@ -189,7 +180,54 @@ export function InventoryDashboard() {
 
             {/* Expiring Items Tab */}
             <TabsContent value="expiring">
-              <div className="rounded-md border"></div>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[100px]">ID</TableHead>
+                      <TableHead>
+                        <div className="flex items-center gap-1">
+                          Item Name
+                          <ArrowUpDown className="h-3 w-3" />
+                        </div>
+                      </TableHead>
+
+                      <TableHead className="text-center">Quantity</TableHead>
+                      <TableHead className="hidden md:table-cell">
+                        Location
+                      </TableHead>
+                      <TableHead>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3.5 w-3.5" />
+                          Expiry Date
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        Days Until Expiry
+                      </TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow className="">
+                      <TableCell className="font-medium">EXP001</TableCell>
+                      <TableCell>Amoxicillin 500mg Capsules</TableCell>
+
+                      <TableCell className="text-center">24</TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        Shelf B-12
+                      </TableCell>
+                      <TableCell>2023-11-15</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="destructive">Expired</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DisposeExpiryDialog />
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
             </TabsContent>
 
             {/* Low Stock Items Tab */}

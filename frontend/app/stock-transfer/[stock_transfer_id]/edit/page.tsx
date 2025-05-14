@@ -19,6 +19,7 @@ interface StockTransfer {
   expected_date: Date;
   src_location_id: string;
   des_location_id: string;
+  notes: string;
   transferItems: LineItems[];
 }
 export default function EditPurchaseOrderPage({
@@ -70,6 +71,7 @@ export default function EditPurchaseOrderPage({
           expected_date: response.data.transfer_date
             ? new Date(response.data.transfer_date)
             : undefined,
+          notes: response.data.notes ? String(response.data.notes) : undefined,
 
           transferItems:
             response.data.transferItems?.map((item: LineItems) => ({

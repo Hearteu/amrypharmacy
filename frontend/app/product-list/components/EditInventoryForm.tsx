@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
+import { Textarea } from "@/components/ui/textarea";
 
 type EditInventoryDialogProps = {
   product: {
@@ -40,7 +41,7 @@ type EditInventoryDialogProps = {
     stock_per_location: Array<{
       location: string;
       location_id: number;
-      quantity: number;
+      total_quantity: number;
     }>;
   };
   onSuccess: () => void;
@@ -53,7 +54,7 @@ export default function EditInventoryForm({
   const form = useInventoryForm({ product_id: product.product_id });
   const [open, setOpen] = useState(false);
 
-  //   console.log("individual", product);
+  // console.log("individual", product);
 
   const onSubmit = async (values: z.infer<typeof InventorySchema>) => {
     // Validate inputs
@@ -67,13 +68,13 @@ export default function EditInventoryForm({
       console.error("Product is undefined or missing product_id");
       throw new Error("Invalid product data");
     }
-
     try {
       const response = await axios.put(
         `http://127.0.0.1:8000/pharmacy/stock-items/${product.product_id}/`,
         values
       );
-      onSuccess?.(); // Ensure onSuccess is defined before calling it
+      onSuccess();
+      return response.data;
     } catch (error) {
       console.error("Failed to update inventory:", error);
       throw new Error("Failed to update inventory");
@@ -120,7 +121,8 @@ export default function EditInventoryForm({
                           key={location.location_id}
                           value={location.location_id.toString()}
                         >
-                          {location.location} (Current: {location.quantity})
+                          {location.location} (Current:{" "}
+                          {location.total_quantity})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -137,6 +139,24 @@ export default function EditInventoryForm({
                   <FormLabel>New Quantity</FormLabel>
                   <FormControl>
                     <Input type="number" min="0" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Enter any notes "
+                      className="resize-none"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
