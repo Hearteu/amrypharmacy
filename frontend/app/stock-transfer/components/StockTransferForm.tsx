@@ -40,6 +40,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Textarea } from "@/components/ui/textarea";
 
 interface StockTransferFormProps {
   initialData?: Partial<TransferFormValues>;
@@ -72,6 +73,7 @@ const transferSchema = z.object({
   expected_date: z.date({
     required_error: "Please select a date",
   }),
+  notes: z.string(),
   transferItems: z
     .array(
       z.object({
@@ -143,6 +145,7 @@ export function StockTransferForm({
       stock_transfer_id: undefined,
       transfer_date: new Date(),
       expected_date: new Date(),
+      notes: "",
       transferItems: [{ product_id: "", ordered_quantity: 1 }],
     },
   });
@@ -466,7 +469,23 @@ export function StockTransferForm({
               )}
             />
           </div>
-
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Notes</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Enter any additional notes or instructions"
+                    className="resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <div className="space-y-4 ">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-medium">Transfer Items</h3>
