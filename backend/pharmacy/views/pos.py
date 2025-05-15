@@ -111,9 +111,20 @@ class POS(APIView):
             transaction_date = datetime.fromisoformat(data["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
 
             customer_id = None
+            
+            if data["discountInfo"]["type"] == "senior":
+                data["discountInfo"]["type"] = "senior citizen"
+
             if data["customerType"] != "regular":
-                # Split customer name
-                name_parts = data["customerInfo"]["patient_name"].split()
+                # Determine source of name based on discount type
+                if data["customerType"] == "discount" and data["discountInfo"]["type"] in ["pwd", "senior citizen"]:
+                    name_source = data["discountInfo"]["name"]
+                    data["customerType"] = data["discountInfo"]["type"]
+                else:
+                    name_source = data["customerInfo"]["patient_name"]
+
+                name_parts = name_source.strip().split()
+
                 first_name = " ".join(name_parts[:-1]) if len(name_parts) > 1 else name_parts[0]
                 last_name = name_parts[-1] if len(name_parts) > 1 else ""
 
