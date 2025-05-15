@@ -71,7 +71,15 @@ export const ExportPOPDF = ({ purchaseOrder }: ExportProps) => {
     doc.setFontSize(15);
     doc.text(`${purchaseOrder.supplier.name}`, vendorX, vendorY);
 
+
     vendorY += 8;
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text("Contact:", vendorX, vendorY);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${purchaseOrder?.supplier?.contact}`, vendorX + valueOffset, vendorY);    
+
+    vendorY += 6;
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
     doc.text("Address:", vendorX, vendorY);
@@ -103,19 +111,19 @@ export const ExportPOPDF = ({ purchaseOrder }: ExportProps) => {
     doc.setFontSize(15);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
-    doc.text("AMRY - ASUNCION BRANCH", shipToX, shipToY);
+    doc.text("AMRY - Asuncion Branch", shipToX, shipToY);
 
     shipToY += 8;
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
     doc.text("Brgy. Cambanogoy, Asuncion, DDN", shipToX, shipToY);
 
-    shipToY += 8;
+    shipToY += 6;
     doc.text("Expected Date:", shipToX, shipToY);
     doc.setFont("helvetica", "bold");
     doc.text(`${purchaseOrder.expected_date}`, shipToX + 30, shipToY);
 
-    shipToY += 12;
+    shipToY += 8;
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.text("NOTE", shipToX, shipToY);
@@ -151,47 +159,51 @@ export const ExportPOPDF = ({ purchaseOrder }: ExportProps) => {
       },
     });
 
-    const finalY = ((doc as any).previousAutoTable?.finalY ?? 100) + 30;
-    const leftX = 14;
-    const rightX = pageWidth - 70;
+    const tableEndY = (doc as any).lastAutoTable.finalY || 100;
+    const spacing = 10;
+    const currentY = tableEndY + spacing;
+
+    const boxX = 14;
+    const boxWidth = 100;
+    const boxHeight = 40;
+
+    const billingX = boxX + boxWidth + 20; // adjust space between box and billing
     const lineHeight = 8;
 
-    // Comments Box
+    // Draw Comments/Special Instructions box
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
-    doc.text("Comments or Special Instructions", leftX, finalY);
-    const boxHeight = 30;
+    doc.text("Comments or Special Instructions", boxX, currentY);
     doc.setDrawColor(0);
-    doc.rect(leftX, finalY + 2, 100, boxHeight);
+    doc.rect(boxX, currentY + 2, boxWidth, boxHeight);
 
-    // Subtotal
+    // Billing Summary
     const subtotal = purchaseOrder.lineItems.reduce((acc, item) => {
       return acc + (typeof item.poi_total === "number" ? item.poi_total : parseFloat(item.poi_total || "0"));
     }, 0);
 
-    // Billing Summary
-    let billingY = finalY;
-    doc.setFont("helvetica", "normal");
     const billingFields = [
       ["SUBTOTAL", `₱ ${subtotal.toFixed(2)}`],
       ["TAX", "₱ _____"],
       ["SHIPPING", "₱ _____"],
       ["OTHER", "₱ _____"],
-      ["TOTAL", "₱ _____"],
+      ["TOTAL", `₱ ${subtotal.toFixed(2)}`],
     ];
 
     billingFields.forEach(([label, value], index) => {
-      const y = billingY + index * lineHeight;
+      const y = currentY + 5 + index * lineHeight;
       doc.setFont("helvetica", index === billingFields.length - 1 ? "bold" : "normal");
       doc.setFontSize(11);
       if (index === billingFields.length - 1) {
         doc.setFillColor(204, 229, 255);
-        doc.rect(rightX - 5.5, y - 6, 60, lineHeight, "F");
+        doc.rect(billingX - 5.5, y - 6, 60, lineHeight, "F");
       }
-      doc.text(label, rightX, y);
-      doc.text(value, rightX + 30, y);
+      doc.text(label, billingX, y);
+      doc.text(value, billingX + 30, y);
     });
+
+
 
     const pdfBlob = doc.output("blob");
     const blobUrl = URL.createObjectURL(pdfBlob);
