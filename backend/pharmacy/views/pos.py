@@ -347,14 +347,3 @@ class POS(APIView):
             traceback.print_exc()
             return Response({"error": str(e)}, status=500)
 
-    
-    def delete(self, request, pos_id):
-        try:
-            response = supabase.table("POS").delete().eq('pos_id', pos_id).execute()
-
-            if response.data:
-                return Response({"message": "POS deleted successfully"}, status=204)
-            else:
-                return Response({"error": "POS not found or deletion failed"}, status=400)
-        except Exception as e:
-            return Response({"error": str(e)}, status=400)
