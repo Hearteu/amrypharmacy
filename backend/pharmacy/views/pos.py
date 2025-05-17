@@ -335,14 +335,14 @@ class POS(APIView):
                         "gl_num": data["customerInfo"].get("guaranteeLetterNo"),
                         "gl_date": safe_date(gl_date),
                         "claim_date": safe_date(claim_date),
-                        "invoice": data["customerInfo"].get("invoiceNumber")
+                        "pos_id": pos_transaction_id
                     })
                     response = supabase.table("Dswd_Order").insert({
                         "customer_id": customer_id,
                         "gl_num": data["customerInfo"].get("guaranteeLetterNo"),
                         "gl_date": safe_date(gl_date),
                         "claim_date": safe_date(claim_date),
-                        "invoice": data["customerInfo"].get("invoiceNumber")
+                        "pos_id": pos_transaction_id
                     }).execute()
                     
                     print("🧾 Supabase Response:", response)

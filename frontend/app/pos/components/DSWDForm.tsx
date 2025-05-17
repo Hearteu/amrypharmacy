@@ -27,7 +27,6 @@ interface DSWDFormProps {
     guaranteeLetterNo: string;
     guaranteeLetterDate: string;
     receivedDate: string;
-    invoiceNumber: string;
   };
   setCustomerInfo: React.Dispatch<
     React.SetStateAction<{
@@ -36,7 +35,6 @@ interface DSWDFormProps {
       guaranteeLetterNo: string;
       guaranteeLetterDate: string;
       receivedDate: string;
-      invoiceNumber: string;
     }>
   >;
 }
@@ -170,20 +168,6 @@ export function DSWDForm({ customerInfo, setCustomerInfo }: DSWDFormProps) {
               />
             </PopoverContent>
           </Popover>
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="contact">Invoice Number</Label>
-          <Input
-            id="contact"
-            value={customerInfo.invoiceNumber}
-            onChange={(e) =>
-              setCustomerInfo({
-                ...customerInfo,
-                invoiceNumber: e.target.value,
-              })
-            }
-            placeholder="09XX-XXX-XXXX"
-          />
         </div>
       </div>
     </>
