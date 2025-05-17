@@ -20,15 +20,10 @@ def safe_date(value):
 class POS(APIView):
     def get(self, request):
         try:
-            # Get and validate the 'month' parameter
+            # Optional month filtering
             month_param = request.query_params.get('month', '').strip().lower()
-            if not month_param:
-                return Response({"error": "Missing 'month' query parameter"}, status=400)
-
             month_lookup = {name.lower(): i for i, name in enumerate(month_name) if name}
-            month_number = month_lookup.get(month_param)
-            if not month_number:
-                return Response({"error": "Invalid month value"}, status=400)
+            month_number = month_lookup.get(month_param) if month_param else None
 
             # Load Stock_Transaction data
             stock_transactions = supabase.table('Stock_Transaction').select('*').ilike('transaction_type', 'pos').execute()
@@ -37,12 +32,11 @@ class POS(APIView):
             if not transactions:
                 return Response({"error": "No POS transactions found"}, status=404)
 
-            # Map POS data
+            # POS and related data
             pos_ids = list({txn['reference_id'] for txn in transactions if txn.get('reference_id')})
             pos_list = supabase.table('POS').select('*').in_('pos_id', pos_ids).execute().data
             pos_map = {pos['pos_id']: pos for pos in pos_list}
 
-            # Load POS Items
             pos_items = supabase.table('POS_Item').select('*').in_('pos_id', pos_ids).execute().data
             pos_items_by_pos = defaultdict(list)
             for item in pos_items:
@@ -50,28 +44,25 @@ class POS(APIView):
                 item["total_price"] = total_price
                 pos_items_by_pos[item['pos_id']].append(item)
 
-            # Load Prescriptions
             prescription_ids = [pos['prescription_id'] for pos in pos_list if pos.get('prescription_id')]
             prescriptions = supabase.table('Prescription').select('*').in_('prescription_id', prescription_ids).execute().data
             prescription_map = {p['prescription_id']: p for p in prescriptions}
 
-            # Load Customers
             customer_ids = [p['customer_id'] for p in prescriptions if p.get('customer_id')]
             customers = supabase.table('Customers').select('*').in_('customer_id', customer_ids).execute().data
             customer_map = {c['customer_id']: c for c in customers}
 
-            # Load Customer Types
             customer_type_ids = [c['customer_type_id'] for c in customers if c.get('customer_type_id')]
             customer_types = supabase.table('Customer_Type').select('*').in_('customer_type_id', customer_type_ids).execute().data
             customer_type_map = {ct['customer_type_id']: ct for ct in customer_types}
 
-            # Organize daily sales
-            daily_sales = defaultdict(lambda: {
+            # Organize monthly -> daily sales
+            monthly_sales = defaultdict(lambda: defaultdict(lambda: {
                 "Asuncion": 0.0,
                 "Talaingod": 0.0,
                 "regular_sales": 0.0,
                 "total_dswd": 0.0
-            })
+            }))
 
             for txn in transactions:
                 pos = pos_map.get(txn['reference_id'])
@@ -83,10 +74,13 @@ class POS(APIView):
                     continue
 
                 txn_date = datetime.fromisoformat(txn_date_str.replace('Z', '+00:00'))
-                if txn_date.month != month_number:
+                if month_number and txn_date.month != month_number:
                     continue
 
                 date_key = txn_date.strftime('%m/%d/%Y')
+                month_key = txn_date.strftime('%B')  # e.g., "May"
+                month_index = txn_date.month
+
                 branch = str(txn.get('src_location'))
                 items = pos_items_by_pos.get(pos['pos_id'], [])
                 total_amount = sum(item['total_price'] for item in items)
@@ -99,46 +93,51 @@ class POS(APIView):
                     if cust_type and cust_type.get("discount", 0) >= 100:
                         is_dswd = True
 
+                sales = monthly_sales[(month_index, month_key)][date_key]
                 if is_dswd:
-                    daily_sales[date_key]['total_dswd'] += total_amount
+                    sales['total_dswd'] += total_amount
                 else:
                     if branch == '1':
-                        daily_sales[date_key]['Asuncion'] += total_amount
+                        sales['Asuncion'] += total_amount
                     elif branch == '2':
-                        daily_sales[date_key]['Talaingod'] += total_amount
-                    daily_sales[date_key]['regular_sales'] += total_amount
+                        sales['Talaingod'] += total_amount
+                    sales['regular_sales'] += total_amount
 
-            # Build final response
-            final_daily_sales = []
-            monthly_regular_sales = 0.0
-            monthly_total_dswd = 0.0
+            # Build response
+            all_months_response = []
+            for (month_index, month_name_str) in sorted(monthly_sales.keys()):
+                daily_sales = []
+                monthly_regular = 0.0
+                monthly_dswd = 0.0
 
-            for date, values in sorted(daily_sales.items()):
-                rounded_values = {
-                    "Asuncion": "{:.2f}".format(values['Asuncion']),
-                    "Talaingod": "{:.2f}".format(values['Talaingod']),
-                    "regular_sales": "{:.2f}".format(values['regular_sales']),
-                    "total_dswd": "{:.2f}".format(values['total_dswd'])
-                }
+                for date, values in sorted(monthly_sales[(month_index, month_name_str)].items()):
+                    rounded_values = {
+                        "Asuncion": "{:.2f}".format(values['Asuncion']),
+                        "Talaingod": "{:.2f}".format(values['Talaingod']),
+                        "regular_sales": "{:.2f}".format(values['regular_sales']),
+                        "total_dswd": "{:.2f}".format(values['total_dswd'])
+                    }
+                    daily_sales.append({
+                        "date": date,
+                        **rounded_values
+                    })
+                    monthly_regular += values['regular_sales']
+                    monthly_dswd += values['total_dswd']
 
-                final_daily_sales.append({
-                    "date": date,
-                    **rounded_values
+                all_months_response.append({
+                    "month": month_name_str,
+                    "daily_sales_summary": daily_sales,
+                    "monthly_summary": {
+                        "monthly_regular_sales": "{:.2f}".format(monthly_regular),
+                        "monthly_total_dswd": "{:.2f}".format(monthly_dswd)
+                    }
                 })
-                monthly_regular_sales += values['regular_sales']
-                monthly_total_dswd += values['total_dswd']
 
-            return Response({
-                "month": month_param.title(),
-                "daily_sales_summary": final_daily_sales,
-                "monthly_summary": {
-                    "monthly_regular_sales": "{:.2f}".format(monthly_regular_sales),
-                    "monthly_total_dswd": "{:.2f}".format(monthly_total_dswd)
-                }
-            }, status=200)
+            return Response(all_months_response, status=200)
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
 
 
     # def get(self, request, pos_id=None):
