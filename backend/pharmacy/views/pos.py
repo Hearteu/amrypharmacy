@@ -1,6 +1,8 @@
 # views.py
 
 import traceback
+from calendar import month_name
+from collections import defaultdict
 from datetime import date, datetime
 
 from rest_framework.response import Response
@@ -16,83 +18,206 @@ def safe_date(value):
 #Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
 
 class POS(APIView):
-    def get(self, request, pos_id=None):
+    def get(self, request):
         try:
-            order_type = request.query_params.get("order_type")  # e.g., 'DSWD', 'senior citizen'
+            # Get and validate the 'month' parameter
+            month_param = request.query_params.get('month', '').strip().lower()
+            if not month_param:
+                return Response({"error": "Missing 'month' query parameter"}, status=400)
 
-            # Base POS query
-            query = supabase.table('POS').select('*')
+            month_lookup = {name.lower(): i for i, name in enumerate(month_name) if name}
+            month_number = month_lookup.get(month_param)
+            if not month_number:
+                return Response({"error": "Invalid month value"}, status=400)
 
-            if pos_id is not None:
-                query = query.eq('pos_id', pos_id)
+            # Load Stock_Transaction data
+            stock_transactions = supabase.table('Stock_Transaction').select('*').ilike('transaction_type', 'pos').execute()
+            transactions = stock_transactions.data or []
 
-            if order_type is not None:
-                query = query.ilike('order_type', order_type.lower())
+            if not transactions:
+                return Response({"error": "No POS transactions found"}, status=404)
 
-            pos_response = query.execute()
+            # Map POS data
+            pos_ids = list({txn['reference_id'] for txn in transactions if txn.get('reference_id')})
+            pos_list = supabase.table('POS').select('*').in_('pos_id', pos_ids).execute().data
+            pos_map = {pos['pos_id']: pos for pos in pos_list}
 
-            if not pos_response.data:
-                return Response({"error": "No POS records found"}, status=404)
+            # Load POS Items
+            pos_items = supabase.table('POS_Item').select('*').in_('pos_id', pos_ids).execute().data
+            pos_items_by_pos = defaultdict(list)
+            for item in pos_items:
+                total_price = item["quantity_sold"] * item["price"]
+                item["total_price"] = total_price
+                pos_items_by_pos[item['pos_id']].append(item)
 
-            formatted_pos_data = []
+            # Load Prescriptions
+            prescription_ids = [pos['prescription_id'] for pos in pos_list if pos.get('prescription_id')]
+            prescriptions = supabase.table('Prescription').select('*').in_('prescription_id', prescription_ids).execute().data
+            prescription_map = {p['prescription_id']: p for p in prescriptions}
 
-            for pos in pos_response.data:
-                try:
-                    # Fetch POS items with nested product/drug details
-                    items_response = (
-                        supabase.table('POS_Item')
-                        .select("*, Products(*, Drugs(*))")
-                        .eq("pos_id", pos["pos_id"])
-                        .execute()
-                    )
+            # Load Customers
+            customer_ids = [p['customer_id'] for p in prescriptions if p.get('customer_id')]
+            customers = supabase.table('Customers').select('*').in_('customer_id', customer_ids).execute().data
+            customer_map = {c['customer_id']: c for c in customers}
 
-                    items = items_response.data if items_response.data else []
-                    total_amount = 0
-                    formatted_items = []
+            # Load Customer Types
+            customer_type_ids = [c['customer_type_id'] for c in customers if c.get('customer_type_id')]
+            customer_types = supabase.table('Customer_Type').select('*').in_('customer_type_id', customer_type_ids).execute().data
+            customer_type_map = {ct['customer_type_id']: ct for ct in customer_types}
 
-                    for item in items:
-                        product = item.get("Products") or {}
-                        drugs = product.get("Drugs") or {}
+            # Organize daily sales
+            daily_sales = defaultdict(lambda: {
+                "Asuncion": 0.0,
+                "Talaingod": 0.0,
+                "regular_sales": 0.0,
+                "total_dswd": 0.0
+            })
 
-                        dosage = f"{drugs.get('dosage_form', '')} {drugs.get('dosage_strength', '')}".strip()
-                        full_name = f"{product.get('product_name', 'Unknown Product')} {dosage}".strip()
+            for txn in transactions:
+                pos = pos_map.get(txn['reference_id'])
+                if not pos:
+                    continue
 
-                        item_total = item["quantity_sold"] * item["price"]
-                        total_amount += item_total
+                txn_date_str = txn.get('transaction_date')
+                if not txn_date_str:
+                    continue
 
-                        formatted_items.append({
-                            "pos_item_id": item["pos_item_id"],
-                            "product_id": product.get("product_id", "N/A"),
-                            "full_product_name": full_name,
-                            "quantity": item["quantity_sold"],
-                            "price": item["price"],
-                            "total_price": item_total
-                        })
+                txn_date = datetime.fromisoformat(txn_date_str.replace('Z', '+00:00'))
+                if txn_date.month != month_number:
+                    continue
 
-                    formatted_pos_data.append({
-                        "pos_id": pos["pos_id"],
-                        "sale_date": pos.get("sale_date"),
-                        "user_id": pos.get("user_id"),
-                        "invoice": pos.get("invoice"),
-                        "order_type": pos.get("order_type"),
-                        "total_amount": total_amount,
-                        "items": formatted_items
-                    })
+                date_key = txn_date.strftime('%m/%d/%Y')
+                branch = str(txn.get('src_location'))
+                items = pos_items_by_pos.get(pos['pos_id'], [])
+                total_amount = sum(item['total_price'] for item in items)
 
-                except Exception as item_error:
-                    print(f"[ERROR] Failed to process POS ID {pos['pos_id']}:")
-                    print(traceback.format_exc())
-                    continue  # Skip this broken POS record
+                is_dswd = False
+                presc = prescription_map.get(pos.get('prescription_id'))
+                if presc:
+                    cust = customer_map.get(presc.get('customer_id'))
+                    cust_type = customer_type_map.get(cust.get('customer_type_id')) if cust else None
+                    if cust_type and cust_type.get("discount", 0) >= 100:
+                        is_dswd = True
 
-            if not formatted_pos_data:
-                return Response({"error": "No valid POS records found"}, status=404)
+                if is_dswd:
+                    daily_sales[date_key]['total_dswd'] += total_amount
+                else:
+                    if branch == '1':
+                        daily_sales[date_key]['Asuncion'] += total_amount
+                    elif branch == '2':
+                        daily_sales[date_key]['Talaingod'] += total_amount
+                    daily_sales[date_key]['regular_sales'] += total_amount
 
-            return Response(formatted_pos_data[0] if pos_id else formatted_pos_data, status=200)
+            # Build final response
+            final_daily_sales = []
+            monthly_regular_sales = 0.0
+            monthly_total_dswd = 0.0
+
+            for date, values in sorted(daily_sales.items()):
+                rounded_values = {
+                    "Asuncion": "{:.2f}".format(values['Asuncion']),
+                    "Talaingod": "{:.2f}".format(values['Talaingod']),
+                    "regular_sales": "{:.2f}".format(values['regular_sales']),
+                    "total_dswd": "{:.2f}".format(values['total_dswd'])
+                }
+
+                final_daily_sales.append({
+                    "date": date,
+                    **rounded_values
+                })
+                monthly_regular_sales += values['regular_sales']
+                monthly_total_dswd += values['total_dswd']
+
+            return Response({
+                "month": month_param.title(),
+                "daily_sales_summary": final_daily_sales,
+                "monthly_summary": {
+                    "monthly_regular_sales": "{:.2f}".format(monthly_regular_sales),
+                    "monthly_total_dswd": "{:.2f}".format(monthly_total_dswd)
+                }
+            }, status=200)
 
         except Exception as e:
-            print("=== ERROR in POS GET ===")
-            print(traceback.format_exc())
             return Response({"error": str(e)}, status=500)
+
+
+    # def get(self, request, pos_id=None):
+    #     try:
+    #         order_type = request.query_params.get("order_type")  # e.g., 'DSWD', 'senior citizen'
+
+    #         # Base POS query
+    #         query = supabase.table('POS').select('*')
+
+    #         if pos_id is not None:
+    #             query = query.eq('pos_id', pos_id)
+
+    #         if order_type is not None:
+    #             query = query.ilike('order_type', order_type.lower())
+
+    #         pos_response = query.execute()
+
+    #         if not pos_response.data:
+    #             return Response({"error": "No POS records found"}, status=404)
+
+    #         formatted_pos_data = []
+
+    #         for pos in pos_response.data:
+    #             try:
+    #                 # Fetch POS items with nested product/drug details
+    #                 items_response = (
+    #                     supabase.table('POS_Item')
+    #                     .select("*, Products(*, Drugs(*))")
+    #                     .eq("pos_id", pos["pos_id"])
+    #                     .execute()
+    #                 )
+
+    #                 items = items_response.data if items_response.data else []
+    #                 total_amount = 0
+    #                 formatted_items = []
+
+    #                 for item in items:
+    #                     product = item.get("Products") or {}
+    #                     drugs = product.get("Drugs") or {}
+
+    #                     dosage = f"{drugs.get('dosage_form', '')} {drugs.get('dosage_strength', '')}".strip()
+    #                     full_name = f"{product.get('product_name', 'Unknown Product')} {dosage}".strip()
+
+    #                     item_total = item["quantity_sold"] * item["price"]
+    #                     total_amount += item_total
+
+    #                     formatted_items.append({
+    #                         "pos_item_id": item["pos_item_id"],
+    #                         "product_id": product.get("product_id", "N/A"),
+    #                         "full_product_name": full_name,
+    #                         "quantity": item["quantity_sold"],
+    #                         "price": item["price"],
+    #                         "total_price": item_total
+    #                     })
+
+    #                 formatted_pos_data.append({
+    #                     "pos_id": pos["pos_id"],
+    #                     "sale_date": pos.get("sale_date"),
+    #                     "user_id": pos.get("user_id"),
+    #                     "invoice": pos.get("invoice"),
+    #                     "order_type": pos.get("order_type"),
+    #                     "total_amount": total_amount,
+    #                     "items": formatted_items
+    #                 })
+
+    #             except Exception as item_error:
+    #                 print(f"[ERROR] Failed to process POS ID {pos['pos_id']}:")
+    #                 print(traceback.format_exc())
+    #                 continue  # Skip this broken POS record
+
+    #         if not formatted_pos_data:
+    #             return Response({"error": "No valid POS records found"}, status=404)
+
+    #         return Response(formatted_pos_data[0] if pos_id else formatted_pos_data, status=200)
+
+    #     except Exception as e:
+    #         print("=== ERROR in POS GET ===")
+    #         print(traceback.format_exc())
+    #         return Response({"error": str(e)}, status=500)
         
     def post(self, request):
         """Create a new POS transaction, update stock, and record stock transactions."""
