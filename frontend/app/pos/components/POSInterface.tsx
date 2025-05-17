@@ -122,7 +122,6 @@ export default function PosInterface() {
     guaranteeLetterNo: "",
     guaranteeLetterDate: "",
     receivedDate: "",
-    invoiceNumber: "",
   });
 
   // Discount information
@@ -264,7 +263,6 @@ export default function PosInterface() {
       guaranteeLetterNo: "",
       guaranteeLetterDate: "",
       receivedDate: "",
-      invoiceNumber: "",
     });
     setDiscountInfo({
       name: "",
