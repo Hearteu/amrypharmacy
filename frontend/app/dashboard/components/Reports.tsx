@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { exportInventoryPDF } from "@/app/dashboard/components/pdf-reports-buttons/inventoryExportButton";
+import { exportSalesSummaryPDF } from "@/app/dashboard/components/pdf-reports-buttons/salesExportButton";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -31,8 +32,8 @@ import axios from "axios";
 export default function Reports() {
   const [loading, setLoading] = useState(false);
   const [inventoryData, setInventoryData] = useState([]);
+  const [salesData, setSalesData] = useState([]);
 
-  // ✅ Preload inventory data on mount
   useEffect(() => {
     axios
       .get("http://127.0.0.1:8000/pharmacy/products/")
@@ -40,11 +41,20 @@ export default function Reports() {
       .catch((err) => console.error("Preload failed", err));
   }, []);
 
-  // ✅ Handles export using preloaded data
+  //*Still no effective* 
+//   useEffect(() => {
+//   axios
+//     .get("http://127.0.0.1:8000/sales/summary/") // replace with your actual endpoint
+//     .then((res) => setSalesData(res.data))
+//     .catch((err) => console.error("Sales preload failed", err));
+// }, []);
+
+
+
   const handleInventoryReport = async () => {
     setLoading(true);
     try {
-      await exportInventoryPDF(inventoryData); // Pass preloaded data
+      await exportInventoryPDF(inventoryData);
     } catch (error) {
       console.error("PDF export failed", error);
     } finally {
@@ -52,6 +62,20 @@ export default function Reports() {
     }
   };
 
+  // const handleSalesReport = async () => {
+  // setLoading(true);
+  //   try {
+  //     await exportSalesSummaryPDF(salesData);
+  //   } catch (err) {
+  //     console.error("Sales PDF export failed", err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+
+
+  
   return (
     <Card>
       <CardHeader>
@@ -62,16 +86,29 @@ export default function Reports() {
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap gap-4">
-          <Button variant="outline" className="flex items-center gap-2">
-            <Printer className="h-4 w-4" />
-            Sales Report
-          </Button>
+          {/* <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={handleSalesReport}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader className="h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Printer className="h-4 w-4" />
+                Sales Report
+              </>
+            )}
+          </Button> */}
           <Button variant="outline" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Statement of Account
           </Button>
 
-          {/* ✅ Updated Inventory Report Button */}
           <Button
             variant="outline"
             className="flex items-center gap-2"
