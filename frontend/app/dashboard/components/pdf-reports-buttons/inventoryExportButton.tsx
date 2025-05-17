@@ -35,12 +35,18 @@ export const exportInventoryPDF = async (products: any[]) => {
   const textWidth = doc.getTextWidth(rightTitle);
   doc.text(rightTitle, pageWidth - textWidth - 14, 20);
 
-  doc.setFontSize(11);
-  doc.setTextColor(0, 0, 0);
+  
+  //Date
   const today = new Date().toISOString().split("T")[0];
-  doc.text("DATE", pageWidth - 40, 30);
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(0, 0, 0);
+  const labelX = pageWidth - 60;
+  const valueX = pageWidth - 40;
+  const topY = 30;
+  doc.text("DATE", labelX, topY);
   doc.setFont("helvetica", "bold");
-  doc.text(today, pageWidth - 40, 36);
+  doc.text(today, valueX, topY);
 
   // Table
   const tableData = products.map((product: any) => [

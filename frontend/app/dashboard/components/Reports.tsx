@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { exportInventoryPDF } from "@/app/dashboard/components/pdf-reports-buttons/inventory";
+import { exportInventoryPDF } from "@/app/dashboard/components/pdf-reports-buttons/inventoryExportButton";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -99,20 +99,6 @@ export default function Reports() {
             <AlertCircle className="h-4 w-4" />
             Low Stock Report
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
-                <Download className="h-4 w-4" />
-                Export Data
-                <ChevronDown className="h-4 w-4 ml-2" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem>Export as CSV</DropdownMenuItem>
-              <DropdownMenuItem>Export as Excel</DropdownMenuItem>
-              <DropdownMenuItem>Export as PDF</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </CardContent>
     </Card>
