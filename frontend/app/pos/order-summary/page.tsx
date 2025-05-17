@@ -5,6 +5,7 @@ import type React from "react";
 import { format } from "date-fns";
 import { Calculator, FileText, Receipt, User } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,6 +81,7 @@ export default function OrderSummaryPage() {
   const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [change, setChange] = useState<number>(0);
+  const router = useRouter();
 
   useEffect(() => {
     const storedData = localStorage.getItem("orderSummary");
@@ -172,10 +174,18 @@ export default function OrderSummaryPage() {
       body: JSON.stringify(transactionData),
     })
       .then((response) => response.json())
-      .then((data) => console.log("Order submitted successfully:", data))
-      .catch((error) => console.error("Error submitting order:", error));
-
-    alert("Transaction completed successfully!");
+      .then((data) => {
+        console.log("Order submitted successfully:", data);
+        alert("Transaction completed successfully!");
+        // Clear order data from localStorage
+        localStorage.removeItem("orderSummary");
+        // Navigate back to the POS page
+        router.push("/pos");
+      })
+      .catch((error) => {
+        console.error("Error submitting order:", error);
+        alert("Error submitting order. Please try again.");
+      });
   };
 
   return (
