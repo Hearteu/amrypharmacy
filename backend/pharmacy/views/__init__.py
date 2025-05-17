@@ -32,3 +32,4 @@ from .supplier_item import SupplierItem
 from .unit import Unit
 from .user_role import UserRole
 from .user_views import UserList, UserLoginView
+from .statement_of_accounts import StatementOfAccounts
