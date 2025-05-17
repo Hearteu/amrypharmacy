@@ -1,5 +1,8 @@
 # views.py
 
+import traceback
+from datetime import datetime
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -10,9 +13,17 @@ supabase = get_supabase_client()
 #Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
 
 class Expiration(APIView):
-    def get(self, request, expiration_id=None):
+    def get(self, request):
         try:
-            # Build base query with necessary joins
+            # Get date range: first to end of current month
+            now = datetime.now()
+            start_of_month = now.replace(day=1).strftime('%Y-%m-%d')
+            if now.month == 12:
+                end_of_month = now.replace(year=now.year + 1, month=1, day=1).strftime('%Y-%m-%d')
+            else:
+                end_of_month = now.replace(month=now.month + 1, day=1).strftime('%Y-%m-%d')
+
+            # Build query
             query = (
                 supabase.table('Expiration')
                 .select('''
@@ -33,26 +44,35 @@ class Expiration(APIView):
                         ),
                         Location (
                             location_id,
-                            name as location_name
+                            name
                         )
                     )
                 ''')
+                .gte('expiry_date', start_of_month)
+                .lt('expiry_date', end_of_month)
             )
 
-            if expiration_id is not None:
-                query = query.eq('expiration_id', expiration_id)
+            # Optional filters via query parameters
+
+            product_id = request.GET.get('product_id')
+            location_id = request.GET.get('location_id')
+
+            if product_id:
+                query = query.eq('Stock_Item.product_id', int(product_id))
+            if location_id:
+                query = query.eq('Stock_Item.location_id', int(location_id))
 
             response = query.execute()
 
             if not response.data:
-                return Response({"error": "No Expiration record found."}, status=404)
+                return Response({"error": "No matching expiration records found."}, status=404)
 
             return Response(response.data, status=200)
 
         except Exception as e:
-            import traceback
             traceback.print_exc()
             return Response({"error": str(e)}, status=500)
+
 
         
     def post(self, request):
