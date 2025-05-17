@@ -12,19 +12,48 @@ supabase = get_supabase_client()
 class Expiration(APIView):
     def get(self, request, expiration_id=None):
         try:
-            query = supabase.table('Expiration').select('*')
+            # Build base query with necessary joins
+            query = (
+                supabase.table('Expiration')
+                .select('''
+                    expiration_id,
+                    expiry_date,
+                    quantity,
+                    stock_item_id,
+                    Stock_Item (
+                        stock_item_id,
+                        product_id,
+                        location_id,
+                        Product (
+                            product_id,
+                            name,
+                            description,
+                            unit,
+                            price
+                        ),
+                        Location (
+                            location_id,
+                            name as location_name
+                        )
+                    )
+                ''')
+            )
+
             if expiration_id is not None:
                 query = query.eq('expiration_id', expiration_id)
-            
+
             response = query.execute()
 
             if not response.data:
-                return Response({"error": "No Expiration found"}, status=404)
+                return Response({"error": "No Expiration record found."}, status=404)
 
             return Response(response.data, status=200)
 
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return Response({"error": str(e)}, status=500)
+
         
     def post(self, request):
         data = request.data 
