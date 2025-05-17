@@ -1,5 +1,7 @@
 "use client";
 
+import { exportInventoryPDF } from "@/app/dashboard/components/pdf-reports-buttons/inventory";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -59,7 +61,7 @@ export default function Reports() {
           <Button
             variant="outline"
             className="flex items-center gap-2"
-            onClick={() => handlePrintReport("Inventory")}
+            onClick={() => exportInventoryPDF()}
           >
             <Package className="h-4 w-4" />
             Inventory Report
