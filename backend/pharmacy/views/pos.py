@@ -282,8 +282,8 @@ class POS(APIView):
                     "des_location": None,
                     "stock_item_id": stock_item_id,
                     "reference_id": pos_transaction_id,
-                    "quantity_change": -item["quantity"],
-                    "expiry_date": None  # This will be handled in FIFO logic separately
+                    "quantity_change": -item["quantity"]
+                    
                 }).execute()
 
                 # Handle FIFO expiration tracking
@@ -325,8 +325,8 @@ class POS(APIView):
                         "des_location": None,
                         "stock_item_id": stock_item_id,
                         "reference_id": pos_transaction_id,
-                        "quantity_change": -min(item["quantity"], available_qty),
-                        "expiry_date": batch["expiry_date"]
+                        "quantity_change": -min(item["quantity"], available_qty)
+                       
                     }).execute()
 
 
