@@ -57,10 +57,9 @@ export const columns: (
   {
     id: "actions",
     cell: ({ row }) => {
-      const reference_id = row.original.reference_id;
       return (
         <>
-          <ViewTransactionDetails pos_id={reference_id.toString()} />
+          <ViewTransactionDetails transaction={row.original} />
         </>
       );
     },

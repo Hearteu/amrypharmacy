@@ -89,6 +89,12 @@ export function InventoryDashboard() {
       .includes(searchQuery.toLowerCase())
   );
 
+  const filteredLowStockItems = lowStockItems.filter((item) =>
+    item.product_details.full_product_name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       {/* Alerts Section */}
@@ -147,13 +153,13 @@ export function InventoryDashboard() {
             {/* Expiring Items Tab */}
             <TabsContent value="expiring">
               {/* Show error message if there is one */}
-              {error && (
+              {/* {error && (
                 <Alert variant="destructive" className="mb-4">
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>Error</AlertTitle>
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
-              )}
+              )} */}
 
               <div className="rounded-md border">
                 <Table>
@@ -190,13 +196,13 @@ export function InventoryDashboard() {
                           Loading expiry data...
                         </TableCell>
                       </TableRow>
-                    ) : filteredExpirations.length === 0 ? (
+                    ) : error ? (
                       <TableRow>
                         <TableCell
                           colSpan={7}
                           className="text-center py-6 text-muted-foreground"
                         >
-                          No expiring items found.
+                          Loading expiry data...
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -269,7 +275,7 @@ export function InventoryDashboard() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      lowStockItems.map((item) => (
+                      filteredLowStockItems.map((item) => (
                         <TableRow key={item.product_id}>
                           <TableCell>
                             {item.product_details.full_product_name}

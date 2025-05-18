@@ -1,4 +1,3 @@
-import { getTransaction } from "@/app/lib/services/transactions";
 import { Transaction } from "@/app/lib/types/transactions";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,31 +9,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { FileText } from "lucide-react";
-import { useEffect, useState } from "react";
 
-export default function ViewTransactionDetails({ pos_id }: { pos_id: string }) {
-  const [transaction, setTransaction] = useState<Transaction | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface ViewTransactionDetailsProps {
+  transaction: Transaction;
+}
 
-  const refreshData = async () => {
-    setLoading(true);
-    try {
-      const result = await getTransaction(pos_id);
-      setTransaction(result);
-    } catch (err) {
-      console.error("Error fetching data", err);
-      setError("Failed to fetch transaction.");
-      setTransaction(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    refreshData();
-  }, []);
-
+export default function ViewTransactionDetails({
+  transaction,
+}: ViewTransactionDetailsProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -47,42 +29,79 @@ export default function ViewTransactionDetails({ pos_id }: { pos_id: string }) {
         <DialogHeader>
           <DialogTitle>Transaction Details</DialogTitle>
           <DialogDescription>
-            Invoice: {transaction?.invoice ?? "N/A"}
+            Invoice: {transaction?.pos?.invoice ?? "N/A"}
           </DialogDescription>
         </DialogHeader>
 
-        {loading ? (
-          <p>Loading...</p>
-        ) : error ? (
-          <p className="text-red-500">{error}</p>
-        ) : transaction ? (
+        {transaction ? (
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium">Date</p>
                 <p className="text-sm text-muted-foreground">
-                  {transaction.sale_date}
+                  {transaction.pos?.sale_date || "N/A"}
                 </p>
               </div>
               <div>
                 <p className="text-sm font-medium">Total Amount</p>
                 <p className="text-sm text-muted-foreground">
-                  ₱{transaction.total_amount.toFixed(2)}
+                  ₱{transaction.pos?.total_amount?.toFixed(2) || "0.00"}
                 </p>
               </div>
             </div>
             <div>
               <p className="text-sm font-medium mb-2">Items</p>
               <div className="border rounded-md p-2">
-                {transaction.items.map((item) => (
-                  <p
-                    key={item.pos_item_id}
-                    className="text-sm text-muted-foreground"
-                  >
-                    {item.full_product_name} - {item.quantity} x ₱
-                    {item.price.toFixed(2)} = ₱{item.total_price.toFixed(2)}
+                {(transaction.pos?.pos_items || []).length > 0 ? (
+                  (transaction.pos?.pos_items || []).map((item) => (
+                    <p
+                      key={item.pos_item_id}
+                      className="text-sm text-muted-foreground"
+                    >
+                      {item.full_product_name} - {item.quantity} x ₱
+                      {item.price.toFixed(2)} = ₱{item.total_price.toFixed(2)}
+                    </p>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No items in this transaction.
                   </p>
-                ))}
+                )}
+              </div>
+              <div className="mt-4">
+                <p className="text-sm font-medium mb-2">Prescription Details</p>
+                <div className="border rounded-md p-2">
+                  {transaction.prescription ? (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium">Date Issued:</span>{" "}
+                        {transaction.prescription.date_issued || "N/A"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium">Physician:</span>{" "}
+                        {transaction.prescription.physician?.name || "N/A"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium">PRC #:</span>{" "}
+                        {transaction.prescription.physician?.prc_num || "N/A"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium">PTR #:</span>{" "}
+                        {transaction.prescription.physician?.ptr_num || "N/A"}
+                      </p>
+                      {transaction.prescription.prescription_details && (
+                        <p className="text-sm text-muted-foreground">
+                          <span className="font-medium">Details:</span>{" "}
+                          {transaction.prescription.prescription_details}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No prescription for this transaction.
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
