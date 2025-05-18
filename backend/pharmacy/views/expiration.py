@@ -150,47 +150,65 @@ class Expiration(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=400)
  
-    def put(self, request, expiration_id):
+    def put(self, request):
         data = request.data
         stock_item_id = data.get("stock_item_id")
-        quantity_to_dispose = int(data.get("quantity"))
+        expiration_id = data.get("expiration_id")
+        quantity_to_dispose = data.get("quantity")
         disposal_date = data.get("disposal_date")
         note = data.get("note")
 
+        if not all([stock_item_id, expiration_id, quantity_to_dispose, disposal_date]):
+            return Response({"error": "Missing required fields"}, status=400)
+
         try:
-            # 1. Get current stock item
-            stock_response = supabase.table("Stock_Item").select("quantity").eq("stock_item_id", stock_item_id).single().execute()
+            quantity_to_dispose = int(quantity_to_dispose)
+
+            # 1. Get current stock quantity and src_location
+            stock_response = supabase.table("Stock_Item").select("quantity, location_id").eq("stock_item_id", stock_item_id).single().execute()
             if not stock_response.data:
                 return Response({"error": "Stock item not found"}, status=404)
 
             current_quantity = int(stock_response.data["quantity"])
+            src_location = stock_response.data["location_id"]
 
             if quantity_to_dispose > current_quantity:
                 return Response({"error": "Disposal quantity exceeds available stock"}, status=400)
 
-            # 2. Insert stock transaction for disposal
+            # 2. Get current expiration quantity
+            expiration_response = supabase.table("Expiration").select("quantity").eq("expiration_id", expiration_id).single().execute()
+            if not expiration_response.data:
+                return Response({"error": "Expiration record not found"}, status=404)
+
+            expiration_quantity = int(expiration_response.data["quantity"])
+            if quantity_to_dispose > expiration_quantity:
+                return Response({"error": "Disposal quantity exceeds expiration quantity"}, status=400)
+
+            # 3. Insert stock transaction with src_location
             transaction_data = {
                 "stock_item_id": stock_item_id,
-                "transaction_type": "disposal",
-                "quantity": quantity_to_dispose,
-                "transaction_date": disposal_date,
-                "note": note,
+                "transaction_type": "Expired Item Disposal",
+                "quantity_change": -quantity_to_dispose,
+                "disposed_date": disposal_date,
+                "src_location": src_location
             }
-
             supabase.table("Stock_Transaction").insert(transaction_data).execute()
 
-            # 3. Update stock item quantity
-            updated_quantity = current_quantity - quantity_to_dispose
-            supabase.table("Stock_Item").update({"quantity": updated_quantity}).eq("stock_item_id", stock_item_id).execute()
+            # 4. Update stock item quantity
+            updated_stock_quantity = current_quantity - quantity_to_dispose
+            supabase.table("Stock_Item").update({"quantity": updated_stock_quantity}).eq("stock_item_id", stock_item_id).execute()
 
-            # 4. Update expiration record (optional)
-            supabase.table("Expiration").update(data).eq("expiration_id", expiration_id).execute()
+            # 5. Update expiration quantity
+            updated_expiration_quantity = expiration_quantity - quantity_to_dispose
+            supabase.table("Expiration").update({"quantity": updated_expiration_quantity}).eq("expiration_id", expiration_id).execute()
 
-            return Response({"message": "Disposal recorded and stock updated"}, status=200)
+            return Response({"message": "Disposal recorded and quantities updated"}, status=200)
 
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return Response({"error": str(e)}, status=500)
-   
+
     def delete(self, request, expiration_id):
         try:
             response = supabase.table("Expiration").delete().eq('expiration_id', expiration_id).execute()
