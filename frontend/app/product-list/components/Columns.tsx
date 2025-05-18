@@ -128,10 +128,17 @@ export const columns: (onSuccess: () => void) => ColumnDef<Products>[] = (
     cell: ({ row }) => {
       const product = row.original;
       const handleDelete = () => {
-        deleteItem({
-          product_id: product.product_id,
-          onSuccess: onSuccess,
-        });
+        if (
+          product.stock_per_location.every((loc) => loc.total_quantity === 0)
+        ) {
+          deleteItem({
+            product_id: product.product_id,
+            onSuccess: onSuccess,
+          });
+        } else {
+          alert("Product has stock in other locations");
+          console.log("Product has stock in other locations");
+        }
       };
 
       return (
