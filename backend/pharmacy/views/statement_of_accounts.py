@@ -2,6 +2,7 @@
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
 from ..supabase_client import get_supabase_client
 
 supabase = get_supabase_client()
@@ -29,23 +30,28 @@ class StatementOfAccounts(APIView):
                     person = person_data[0] if person_data else None
 
                 # 🔢 Get invoice from DSWD order
-                invoice = order.get("invoice")
+                pos_id = order.get("pos_id")
                 amount = 0
 
-                # ✅ Get total_amount directly from POS using invoice
-                if invoice:
-                    pos_data = supabase.table("POS").select("total_amount").eq("invoice", invoice).execute().data
-                    if pos_data:
-                        amount = pos_data[0].get("total_amount", 0)
+                pos_data = supabase.table("POS").select("invoice").eq("pos_id", pos_id).execute().data
+
+                pos_item_data = supabase.table("POS_Item").select("price", "quantity_sold").eq("pos_id", pos_id).execute().data
+
+                for pos_item in pos_item_data:
+                    price = pos_item.get("price")
+                    quantity_sold = pos_item.get("quantity_sold")
+                    if price and quantity_sold:
+                        amount += price * quantity_sold
 
                 # 📦 Construct entry
                 entry = {
                     "gl_date": order["gl_date"],
                     "gl_no": order["gl_num"],
-                    "client_name": f"{person['first_name']} {person['last_name']}" if person else "Unknown",
+                    "patient_name": f"{person['first_name']} {person['last_name']}" if person else "Unknown",
+                    "client_name": order["client_name"],
                     "date_received": order["claim_date"],
-                    "invoice": invoice,
-                    "amount": amount
+                    "invoice": pos_data[0]["invoice"] if pos_data else "Unknown",
+                    "amount": f"{amount:,.2f}"
                 }
 
                 results.append(entry)
