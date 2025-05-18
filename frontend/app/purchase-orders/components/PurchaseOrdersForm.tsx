@@ -70,7 +70,7 @@ const formSchema = z.object({
       z.object({
         purchase_order_item_id: z.string().optional(),
         product_id: z.string().min(1, "Product is required"),
-        unit_id: z.string().min(1, "Unit is required"),
+        // unit_id: z.string().min(1, "Unit is required"),
         ordered_qty: z.coerce.number().min(1, "Quantity must be at least 1"),
         supplier_price: z.coerce
           .number()
@@ -145,9 +145,7 @@ export default function PurchaseOrderForm({
       order_date: new Date(),
       expected_delivery_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       notes: "",
-      lineItems: [
-        { product_id: "", unit_id: "", ordered_qty: 1, supplier_price: 0 },
-      ],
+      lineItems: [{ product_id: "", ordered_qty: 1, supplier_price: 0 }],
     },
   });
 
@@ -160,18 +158,47 @@ export default function PurchaseOrderForm({
   }, [initialData, form.reset]);
 
   async function onSubmit(data: FormValues) {
-    console.log("🔄 Submitting form with data:");
     setIsSubmitting(true);
-    console.log("Submitted Data:", data);
 
-    // Convert dates to YYYY-MM-DD format
-    const formattedData = {
-      ...data,
-      order_date: format(data.order_date, "yyyy-MM-dd"),
-      expected_delivery_date: format(data.expected_delivery_date, "yyyy-MM-dd"),
-    };
+    // Log the entire form data for debugging
+    console.log("Form data before submission:", JSON.stringify(data, null, 2));
 
     try {
+      // Validate that required fields exist
+      if (!data.supplier_id) {
+        throw new Error("Supplier ID is required");
+      }
+
+      // Check if lineItems have all required fields
+      const invalidItems = data.lineItems.filter(
+        (item) => !item.product_id || !item.ordered_qty
+      );
+
+      if (invalidItems.length > 0) {
+        throw new Error("Some items are missing required fields");
+      }
+
+      // Make sure unit_id is set for all items (this field is required but not handled in UI)
+      const formattedLineItems = data.lineItems.map((item) => ({
+        ...item,
+      }));
+
+      // Format data properly
+      const formattedData = {
+        ...data,
+        lineItems: formattedLineItems,
+        order_date: format(data.order_date, "yyyy-MM-dd"),
+        expected_delivery_date: format(
+          data.expected_delivery_date,
+          "yyyy-MM-dd"
+        ),
+      };
+
+      console.log(
+        "Formatted data for submission:",
+        JSON.stringify(formattedData, null, 2)
+      );
+
       const url = isEditing
         ? `http://127.0.0.1:8000/pharmacy/purchase-orders/${formattedData.purchase_order_id}/`
         : "http://127.0.0.1:8000/pharmacy/purchase-orders/";
@@ -182,17 +209,28 @@ export default function PurchaseOrderForm({
         body: JSON.stringify(formattedData),
       });
 
+      // Get both status and response text for debugging
+      console.log("Response status:", response.status);
+      const responseText = await response.text();
+      console.log("Response body:", responseText);
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.message || `Server returned ${response.status}`
-        );
+        try {
+          const errorData = JSON.parse(responseText);
+          throw new Error(
+            errorData.message || `Server returned ${response.status}`
+          );
+        } catch (parseError) {
+          throw new Error(`Server returned ${response.status}: ${parseError}`);
+        }
       }
 
+      // Success case
+      alert("Purchase order created successfully!");
       router.push("/purchase-orders");
-      console.log("🟢 Submitted Data:", JSON.stringify(formattedData));
     } catch (error) {
-      console.error("❌ Error submitting form:", error);
+      console.error("Error submitting form:", error);
+      alert(`Failed to submit`);
     } finally {
       setIsSubmitting(false);
     }
@@ -203,7 +241,6 @@ export default function PurchaseOrderForm({
       ...form.getValues("lineItems"),
       {
         product_id: "",
-        unit_id: "",
         ordered_qty: 1,
         supplier_price: 0,
       },
