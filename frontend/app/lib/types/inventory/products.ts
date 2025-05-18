@@ -38,21 +38,46 @@ export interface StockItem {
     location_name: string;
     quantity: number;
     product_details: ProductDetails;
+    Product: ProductRaw;
 }
 
+export interface ProductRaw {
+    product_id: number;
+    full_product_name: string;
+    category_id: number;
+    current_price: number;
+    net_content: string;
+    brand_id: number;
+    unit_id: number;
+}
+
+export interface Expiration {
+    expiration_id: number;
+    expiry_date: string;
+    days_until_expiry: number;
+    quantity: number;
+    location_id: number;
+    location: string;
+    Stock_Item: StockItem;
+}
 // {
-//     "stock_item_id": 1,
-//     "product_id": 1,
-//     "location_id": 1,
-//     "location_name": "Asuncion - Physical",
-//     "quantity": 2,
-//     "product_details": {
-//         "product_id": 1,
-//         "full_product_name": "Paracetamol tablet 50mg",
-//         "current_price": 20,
-//         "category_id": 1,
-//         "category_name": "Medicines- Branded",
-//         "brand_id": 1,
-//         "brand_name": "Biogesic"
+//     "expiration_id": 1,
+//     "expiry_date": "2025-05-02",
+//     "days_until_expiry": -17,
+//     "quantity": 5,
+//     "location_id": 3,
+//     "location": "Asuncion - Stockroom",
+//     "Stock_Item": {
+//         "stock_item_id": 5,
+//         "quantity": 38,
+//         "Product": {
+//             "product_id": 1,
+//             "full_product_name": "Paracetamol",
+//             "category_id": 1,
+//             "current_price": 20,
+//             "net_content": "500 mg",
+//             "brand_id": 1,
+//             "unit_id": 5
+//         }
 //     }
-// },
+// }

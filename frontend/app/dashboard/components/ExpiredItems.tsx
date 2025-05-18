@@ -40,8 +40,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Products, StockItem } from "@/app/lib/types/inventory/products";
-import { getLowStock } from "@/app/lib/services/inventory";
+import { Expiration, StockItem } from "@/app/lib/types/inventory/products";
+import { getExpirations, getLowStock } from "@/app/lib/services/inventory";
 import Link from "next/link";
 import DisposeExpiryDialog from "./DisposeExpiry";
 
@@ -49,11 +49,8 @@ export function InventoryDashboard() {
   // const [expiringItems, setExpiringItems] = useState<Products[]>([]);
   const [lowStockItems, setLowStockItems] = useState<StockItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  // const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [stockOutQuantity, setStockOutQuantity] = useState<number>(0);
-  const [isStockOutDialogOpen, setIsStockOutDialogOpen] = useState(false);
+  const [expirations, setExpirations] = useState<Expiration[]>([]);
   const [activeTab, setActiveTab] = useState("expiring");
-  const [data, setData] = useState<Products[]>([]);
   const [loading, setLoading] = useState(true); // Loading state
   const [error, setError] = useState<string | null>(null); // Error state
 
@@ -62,11 +59,15 @@ export function InventoryDashboard() {
     try {
       const data = await getLowStock();
       setLowStockItems(data);
+      const expirations = await getExpirations();
+      setExpirations(expirations);
       setError(null);
+      console.log("EXPIRATIONS API RESPONSE:", expirations);
     } catch (err) {
       console.error("Error fetching low stock items:", err);
       setError("Failed to load low stock items");
       setLowStockItems([]);
+      setExpirations([]);
     } finally {
       setLoading(false);
     }
@@ -76,52 +77,17 @@ export function InventoryDashboard() {
     refreshData();
   }, []);
 
-  // Set initial stock out quantity when an item is selected
-  const handleSelectItem = () => {
-    //to be added
-  };
+  // Log the active tab whenever it changes
+  useEffect(() => {
+    console.log("Active tab changed:", activeTab);
+  }, [activeTab]);
 
-  // Validate and update stock out quantity
-  // const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  // const value = Number.parseInt(e.target.value);
-  // if (isNaN(value) || value < 0) {
-  //   setQuantityError("Quantity must be a positive number");
-  //   return;
-  // }
-  // if (selectedItem && value > selectedItem.quantity) {
-  //   setQuantityError(
-  //     `Cannot exceed current quantity (${selectedItem.quantity})`
-  //   );
-  //   return;
-  // }
-  // setStockOutQuantity(value);
-  // setQuantityError("");
-  // };
-
-  // Handle stock out action
-  const handleStockOut = () => {
-    // if (selectedItem && stockOutQuantity >= 0) {
-    //   if (stockOutQuantity === selectedItem.quantity) {
-    //     // Remove the item completely if all units are stocked out
-    //     setExpiringItems(
-    //       expiringItems.filter((item) => item.id !== selectedItem.id)
-    //     );
-    //   } else {
-    //     // Update the quantity if only some units are stocked out
-    //     setExpiringItems(
-    //       expiringItems.map((item) => {
-    //         if (item.id === selectedItem.id) {
-    //           return { ...item, quantity: item.quantity - stockOutQuantity };
-    //         }
-    //         return item;
-    //       })
-    //     );
-    //   }
-    //   setIsStockOutDialogOpen(false);
-    //   setSelectedItem(null);
-    //   setStockOutQuantity(0);
-    // }
-  };
+  // Filter expirations based on search query
+  const filteredExpirations = expirations.filter((item) =>
+    item.Stock_Item.Product.full_product_name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -131,8 +97,8 @@ export function InventoryDashboard() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Expiring Items</AlertTitle>
           <AlertDescription>
-            {/* You have {expiringItems.length} items expiring this month that need */}
-            attention.
+            You have {expirations.length} items expiring that need attention.
+            {error && <p className="text-sm mt-1 text-red-500">{error}</p>}
           </AlertDescription>
         </Alert>
 
@@ -180,6 +146,15 @@ export function InventoryDashboard() {
 
             {/* Expiring Items Tab */}
             <TabsContent value="expiring">
+              {/* Show error message if there is one */}
+              {error && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
@@ -209,22 +184,56 @@ export function InventoryDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    <TableRow className="">
-                      <TableCell className="font-medium">EXP001</TableCell>
-                      <TableCell>Amoxicillin 500mg Capsules</TableCell>
-
-                      <TableCell className="text-center">24</TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        Shelf B-12
-                      </TableCell>
-                      <TableCell>2023-11-15</TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="destructive">Expired</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DisposeExpiryDialog />
-                      </TableCell>
-                    </TableRow>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-6">
+                          Loading expiry data...
+                        </TableCell>
+                      </TableRow>
+                    ) : filteredExpirations.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={7}
+                          className="text-center py-6 text-muted-foreground"
+                        >
+                          No expiring items found.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredExpirations.map((item) => (
+                        <TableRow key={item.expiration_id}>
+                          <TableCell className="font-medium">
+                            EXP{item.expiration_id.toString().padStart(3, "0")}
+                          </TableCell>
+                          <TableCell>
+                            {item.Stock_Item.Product.full_product_name}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {item.quantity}
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {item.location}
+                          </TableCell>
+                          <TableCell>{item.expiry_date}</TableCell>
+                          <TableCell className="text-center">
+                            <Badge
+                              variant={
+                                item.days_until_expiry < 0
+                                  ? "destructive"
+                                  : "secondary"
+                              }
+                            >
+                              {item.days_until_expiry < 0
+                                ? "Expired"
+                                : `${item.days_until_expiry} days`}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DisposeExpiryDialog expiration={item} />
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>

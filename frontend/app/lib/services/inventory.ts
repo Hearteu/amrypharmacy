@@ -1,6 +1,6 @@
 import axios from "axios";
 import { ProductDetails } from "../types/inventory/product-details";
-import { Products, StockItem } from "../types/inventory/products";
+import { Expiration, Products, StockItem } from "../types/inventory/products";
 import { Brand } from "../types/inventory/brand";
 import { Category } from "../types/inventory/category";
 import { Unit } from "../types/inventory/unit";
@@ -77,4 +77,13 @@ export const getLowStock = async () => {
 
 };
 
-// http://127.0.0.1:8000/pharmacy/stock-items/?threshold=10
+export const getExpirations = async () => {
+    const expRes = await fetch("http://127.0.0.1:8000/pharmacy/expirations/");
+    if (!expRes.ok) {
+        throw new Error("Failed to fetch data");
+    }
+
+    const expData: Expiration[] = await expRes.json();
+    console.log("EXPIRATIONS API RESPONSE:", expData);
+    return expData;
+}
