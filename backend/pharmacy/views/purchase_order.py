@@ -99,8 +99,21 @@ class PurchaseOrder(APIView):
                     product_id = product.get("product_id", "N/A")
 
                     # ✅ Concatenate dosage info only if available
-                    dosage_info = f" {drugs.get('dosage_form', '')} {drugs.get('dosage_strength', '')}".strip() if drugs else ""
-                    product_name = f"{product.get('product_name', 'Unknown Product')} {dosage_info}"
+                    brand_query = supabase.table("Products").select("Brand(brand_name)").eq("product_id", product_id).single().execute()
+                    brand_name = brand_query.data.get("Brand", {}).get("brand_name", "").strip() if brand_query.data else ""
+
+                    unit_query = supabase.table("Products").select("Unit(unit)").eq("product_id", product_id).single().execute()
+                    unit_name = unit_query.data.get("Unit", {}).get("unit", "").strip() if unit_query.data else ""
+
+                    net_content = product.get("net_content", "").strip()
+
+                    # Format based on whether it's a drug or not
+                    if isinstance(drugs, dict) and drugs:
+                        dosage_strength = drugs.get("dosage_strength", "").strip()
+                        dosage_form = drugs.get("dosage_form", "").strip()
+                        product_name = f"{product.get('product_name', 'Unknown Product')} {dosage_strength} {dosage_form} ({brand_name})"
+                    else:
+                        product_name = f"{product.get('product_name', 'Unknown Product')} {net_content} per {unit_name} ({brand_name})"
 
                     supplier_price = supplier_item.get("supplier_price", 0)
                     poi_total = item["ordered_qty"] * supplier_price

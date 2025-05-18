@@ -137,49 +137,55 @@ export default function PurchaseOrderPage({
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-lg">
-                    {purchaseOrder?.supplier?.name}
+                <div className="overflow-hidden">
+                  <h3 className="font-semibold text-lg truncate">
+                    {purchaseOrder?.supplier?.name || "N/A"}
                   </h3>
-                  <p className="text-sm text-muted-foreground whitespace-pre-line">
-                    {purchaseOrder?.supplier?.address}
+                  <p className="text-sm text-muted-foreground break-words">
+                    {purchaseOrder?.supplier?.address || "No address available"}
                   </p>
                 </div>
                 <Separator />
                 <div className="space-y-2">
-                  <div className="grid grid-cols-[100px_1fr]">
+                  <div className="grid grid-cols-[90px_1fr] gap-2">
                     <span className="text-sm font-medium">Contact:</span>
-                    <span>{purchaseOrder?.supplier?.contact}</span>
+                    <span className="text-sm truncate">
+                      {purchaseOrder?.supplier?.contact || "N/A"}
+                    </span>
                   </div>
-                  <div className="grid grid-cols-[100px_1fr]">
+                  <div className="grid grid-cols-[90px_1fr] gap-2">
                     <span className="text-sm font-medium">Email:</span>
-                    <span>{purchaseOrder?.supplier?.email}</span>
+                    <span className="text-sm break-all">
+                      {purchaseOrder?.supplier?.email || "N/A"}
+                    </span>
                   </div>
-                  <div className="grid grid-cols-[100px_1fr]">
+                  <div className="grid grid-cols-[90px_1fr] gap-2">
                     <span className="text-sm font-medium">Phone:</span>
-                    <span>{purchaseOrder?.supplier?.phone}</span>
+                    <span className="text-sm truncate">
+                      {purchaseOrder?.supplier?.phone || "N/A"}
+                    </span>
                   </div>
                 </div>
                 <Separator />
                 <div className="space-y-2">
-                  <div className="grid grid-cols-[100px_1fr]">
+                  <div className="grid grid-cols-[90px_1fr] gap-2">
                     <span className="text-sm font-medium">Order Date:</span>
-                    <span>
+                    <span className="text-sm">
                       {purchaseOrder?.order_date
                         ? new Date(
                             purchaseOrder.order_date
                           ).toLocaleDateString()
-                        : "No delivery date available"}
+                        : "No date available"}
                     </span>
                   </div>
-                  <div className="grid grid-cols-[100px_1fr]">
+                  <div className="grid grid-cols-[90px_1fr] gap-2">
                     <span className="text-sm font-medium">Expected:</span>
-                    <span>
+                    <span className="text-sm">
                       {purchaseOrder?.expected_date
                         ? new Date(
                             purchaseOrder.expected_date
                           ).toLocaleDateString()
-                        : "No delivery date available"}
+                        : "No date available"}
                     </span>
                   </div>
                 </div>
