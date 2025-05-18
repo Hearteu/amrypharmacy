@@ -138,7 +138,7 @@ export default function ViewTransactionDetails({
               {/* pwd or senior citize */}
               {transaction.customer && transaction.pos ? (
                 <div className="mt-4">
-                  <p className="text-sm font-medium mb-2">DSWD Details</p>
+                  <p className="text-sm font-medium mb-2">Customer Details</p>
                   <div className="border rounded-md p-2">
                     <div className="space-y-2">
                       <p className="text-sm text-muted-foreground">
