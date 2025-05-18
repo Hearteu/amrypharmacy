@@ -57,6 +57,7 @@ export const authOptions = {
                 token.role_name = user.role_name
                 token.location = user.location
                 token.location_id = user.location_id
+                token.status = user.status
             }
 
             return token
@@ -68,7 +69,8 @@ export const authOptions = {
                     user_id: token.user_id,
                     role_name: token.role_name,
                     location_id: token.location_id,
-                    location: token.location
+                    location: token.location,
+                    status: token.status
                 }
             }
             return session

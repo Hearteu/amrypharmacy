@@ -1,9 +1,21 @@
-import { signOut, signIn } from "next-auth/react"
+import { signOut, signIn, getSession } from "next-auth/react"
+import "next-auth";
 
 interface Record {
     username: string;
     password: string;
 }
+
+declare module "next-auth" {
+    interface User {
+        status?: string;
+    }
+
+    interface Session {
+        user?: User;
+    }
+}
+
 const login = async (credentials: Record | undefined) => {
     try {
         await signOut({ redirect: false })
@@ -12,6 +24,15 @@ const login = async (credentials: Record | undefined) => {
         if (response && !response?.ok) {
             throw response
         }
+
+        const session = await getSession();
+
+        if (session?.user?.status !== "Active") {
+            await signOut({ redirect: false });
+            throw new Error("Account is not active.");
+        }
+
+        return response;
 
         return response
     } catch (e) {

@@ -16,8 +16,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
-import Link from "next/link";
 import service from "@/app/lib/services/session";
+import { errorMonitor } from "events";
 
 // Define validation schema
 const formSchema = z.object({
@@ -46,9 +46,13 @@ export default function LoginForm() {
       console.log(res);
 
       router.push("/dashboard"); // Redirect on successful login
-    } catch (error) {
-      setErrorMessage("Invalid username or password.");
-      console.log(error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("An error occurred during login");
+      }
+      console.error(error);
     }
   };
 
