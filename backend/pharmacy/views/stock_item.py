@@ -83,7 +83,7 @@ class StockItem(APIView):
                 }
 
                 formatted_items.append({
-                    "stock_item_id": item["stock_item_id"],
+                    "product_id": item["product_id"],
                     "product_id": item["product_id"],
                     "location_id": item["location_id"],
                     "location_name": location_name,
@@ -105,34 +105,70 @@ class StockItem(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=400)
  
+    # def put(self, request, product_id):
+    #     data = request.data
+    #     try:
+    #         # Convert location_id to an integer
+    #         location_id = int(data.get("location_id", 0))
+
+    #         # Update the stock item directly in one query
+    #         response = supabase.table("Stock_Item").update({
+    #             "quantity": data["quantity"]
+    #         }) \
+    #         .eq("product_id", product_id) \
+    #         .eq("location_id", location_id) \
+    #         .execute()
+
+    #         if response.data:
+    #             return Response(response.data, status=200)
+    #         else:
+    #             return Response({"error": "Stock_Item not found or update failed"}, status=404)
+
+    #     except ValueError:
+    #         return Response({"error": "Invalid location_id format"}, status=400)
+    #     except Exception as e:
+    #         return Response({"error": str(e)}, status=400)
+
     def put(self, request, product_id):
         data = request.data
+        location_id = int(data.get("location_id"))
+        product_id = data.get("product_id")
+        quantity = data.get("quantity")
+        transaction_type = data.get("transaction_type")
+
         try:
-            # Convert location_id to an integer
-            location_id = int(data.get("location_id", 0))
+            quantity = int(quantity)
 
-            # Update the stock item directly in one query
-            response = supabase.table("Stock_Item").update({
-                "quantity": data["quantity"]
-            }) \
-            .eq("product_id", product_id) \
-            .eq("location_id", location_id) \
-            .execute()
+            # 1. Get current stock quantity and src_location
+            stock_response = supabase.table("Stock_Item").select("quantity").eq("product_id", product_id).single().execute()
+            if not stock_response.data:
+                return Response({"error": "Stock item not found"}, status=404)
 
-            if response.data:
-                return Response(response.data, status=200)
-            else:
-                return Response({"error": "Stock_Item not found or update failed"}, status=404)
+            current_quantity = int(stock_response.data["quantity"])
 
-        except ValueError:
-            return Response({"error": "Invalid location_id format"}, status=400)
+            # 3. Insert stock transaction with src_location
+            transaction_data = {
+                "product_id": product_id,
+                "transaction_type": transaction_type,
+                "quantity_change": current_quantity - quantity,
+                "src_location": location_id
+            }
+            supabase.table("Stock_Transaction").insert(transaction_data).execute()
+
+            # 4. Update stock item quantity
+            supabase.table("Stock_Item").update({"quantity": quantity}).eq("product_id", product_id).eq("location_id", location_id).execute()
+
+            return Response({"message": "Disposal recorded and quantities updated"}, status=200)
+
         except Exception as e:
-            return Response({"error": str(e)}, status=400)
+            import traceback
+            traceback.print_exc()
+            return Response({"error": str(e)}, status=500)
 
    
-    def delete(self, request, stock_item_id):
+    def delete(self, request, product_id):
         try:
-            response = supabase.table("Stock_Item").delete().eq('stock_item_id', stock_item_id).execute()
+            response = supabase.table("Stock_Item").delete().eq('product_id', product_id).execute()
 
             if response.data:
                 return Response({"message": "Stock_Item deleted successfully"}, status=204)
