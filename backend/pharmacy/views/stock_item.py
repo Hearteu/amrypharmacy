@@ -140,15 +140,16 @@ class StockItem(APIView):
             quantity = int(quantity)
 
             # 1. Get current stock quantity and src_location
-            stock_response = supabase.table("Stock_Item").select("quantity").eq("product_id", product_id).single().execute()
+            stock_response = supabase.table("Stock_Item").select("quantity, stock_item_id").eq("product_id", product_id).eq("location_id", location_id).execute()
+            print(stock_response.data)
             if not stock_response.data:
                 return Response({"error": "Stock item not found"}, status=404)
 
-            current_quantity = int(stock_response.data["quantity"])
+            current_quantity = int(stock_response.data[0]["quantity"])
 
             # 3. Insert stock transaction with src_location
             transaction_data = {
-                "product_id": product_id,
+                "stock_item_id": stock_response.data[0]["stock_item_id"],
                 "transaction_type": transaction_type,
                 "quantity_change": current_quantity - quantity,
                 "src_location": location_id
