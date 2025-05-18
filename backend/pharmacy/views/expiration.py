@@ -58,6 +58,10 @@ class Expiration(APIView):
             enriched_data = []
 
             for exp in expiration_response.data:
+
+                if exp['quantity'] == 0:
+                    continue
+                
                 stock_item_id = exp['stock_item_id']
 
                 # Add retry logic for each related query
@@ -200,12 +204,8 @@ class Expiration(APIView):
             # 5. Update expiration quantity or delete if zero
             updated_expiration_quantity = expiration_quantity - quantity_to_dispose
 
-            if updated_expiration_quantity <= 0:
-                # Delete expiration record
-                supabase.table("Expiration").delete().eq("expiration_id", expiration_id).execute()
-            else:
-                # Update expiration quantity
-                supabase.table("Expiration").update({"quantity": updated_expiration_quantity}).eq("expiration_id", expiration_id).execute()
+            # Update expiration quantity
+            supabase.table("Expiration").update({"quantity": updated_expiration_quantity}).eq("expiration_id", expiration_id).execute()
 
             return Response({"message": "Disposal recorded and quantities updated"}, status=200)
 

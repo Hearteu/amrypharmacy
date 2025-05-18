@@ -5,10 +5,11 @@ from .views import (POI, POS, STI, Branch, Brand, Customers, CustomerType,
                     DisposedItems, Drugs, DswdOrder, Expiration, Inventory,
                     Location, Order, PersonList, Prescription, PriceHistory,
                     ProductCategory, Products, Purchase_Order_Item_Status,
-                    Purchase_Order_Status, PurchaseOrder, Receipt, Status,
-                    Stock_Transfer_Item_Status, Stock_Transfer_Status,
-                    StockItem, StockTransaction, StockTransfer, Supplier,
-                    SupplierItem, Unit, UserList, UserLoginView, UserRole, StatementOfAccounts)
+                    Purchase_Order_Status, PurchaseOrder, Receipt,
+                    StatementOfAccounts, Status, Stock_Transfer_Item_Status,
+                    Stock_Transfer_Status, StockItem, StockTransaction,
+                    StockTransfer, Supplier, SupplierItem, Unit, UserList,
+                    UserLoginView, UserRole)
 
 # Define resources with their corresponding view classes
 resources = [
@@ -61,6 +62,7 @@ urlpatterns = [
     path(f"{name}/<int:supplier_id>/", view.as_view(), name=f"get-{name}-list") if name == "supplier-items" else
     path(f"{name}/<int:purchase_order_status_id>/", view.as_view(), name=f"get-{name}-list") if name == "purchase-order-status" else
     path(f"{name}/<int:purchase_order_item_status_id>/", view.as_view(), name=f"get-{name}-list") if name == "purchase-order-item-status" else
+    path(f"{name}/<int:product_id>/", view.as_view(), name=f"get-{name}-list") if name == "stock-items" else
     path(f"{name}/<int:stock_transfer_status_id>/", view.as_view(), name=f"get-{name}-list") if name == "stock-transfer-status" else
     path(f"{name}/<int:stock_transfer_item_status_id>/", view.as_view(), name=f"get-{name}-list") if name == "stock-transfer-item-status" else
     path(f"{name}/<int:pos_id>/", view.as_view(), name=f"get-{name}-list") if name == "pos" else
