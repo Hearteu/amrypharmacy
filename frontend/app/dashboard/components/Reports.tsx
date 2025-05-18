@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { exportInventoryPDF } from "@/app/dashboard/components/pdf-reports-buttons/inventoryExportButton";
-import { exportSalesSummaryPDF } from "@/app/dashboard/components/pdf-reports-buttons/salesExportButton";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,28 +10,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  AlertCircle,
-  Calendar,
-  ChevronDown,
-  Download,
-  FileText,
-  Package,
-  Printer,
-  Loader,
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { AlertCircle, Calendar, FileText, Package, Loader } from "lucide-react";
+
 import axios from "axios";
 
 export default function Reports() {
   const [loading, setLoading] = useState(false);
   const [inventoryData, setInventoryData] = useState([]);
-  const [salesData, setSalesData] = useState([]);
 
   useEffect(() => {
     axios
@@ -40,16 +24,6 @@ export default function Reports() {
       .then((res) => setInventoryData(res.data))
       .catch((err) => console.error("Preload failed", err));
   }, []);
-
-  //*Still no effective* 
-//   useEffect(() => {
-//   axios
-//     .get("http://127.0.0.1:8000/sales/summary/") // replace with your actual endpoint
-//     .then((res) => setSalesData(res.data))
-//     .catch((err) => console.error("Sales preload failed", err));
-// }, []);
-
-
 
   const handleInventoryReport = async () => {
     setLoading(true);
@@ -62,20 +36,6 @@ export default function Reports() {
     }
   };
 
-  // const handleSalesReport = async () => {
-  // setLoading(true);
-  //   try {
-  //     await exportSalesSummaryPDF(salesData);
-  //   } catch (err) {
-  //     console.error("Sales PDF export failed", err);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-
-
-  
   return (
     <Card>
       <CardHeader>
