@@ -4,9 +4,9 @@ import { z } from "zod";
 
 export const InventorySchema = z.object({
     product_id: z.number(),
-    location_id: z.string(),
-    notes: z.string(),
+    location_id: z.number(),
     quantity: z.string().transform((val) => Number.parseInt(val, 10)),
+    transaction_type: z.string(),
 });
 
 export const useInventoryForm = (defaultValues?: Partial<z.infer<typeof InventorySchema>>) => {
@@ -14,8 +14,8 @@ export const useInventoryForm = (defaultValues?: Partial<z.infer<typeof Inventor
         resolver: zodResolver(InventorySchema),
         defaultValues: {
             product_id: defaultValues?.product_id ?? 0, // Ensure product_id is set
-            location_id: defaultValues?.location_id ?? "",
-            notes: "",
+            location_id: defaultValues?.location_id ?? 0,
+            transaction_type: "",
             quantity: defaultValues?.quantity ?? 0,
         },
         mode: "onChange",

@@ -32,7 +32,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
-import { Textarea } from "@/components/ui/textarea";
 
 type EditInventoryDialogProps = {
   product: {
@@ -108,7 +107,7 @@ export default function EditInventoryForm({
                       console.log("Selected location_id:", value);
                       field.onChange(value);
                     }}
-                    defaultValue={field.value}
+                    defaultValue={field.value.toString()}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -147,16 +146,29 @@ export default function EditInventoryForm({
 
             <FormField
               control={form.control}
-              name="notes"
+              name="transaction_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes</FormLabel>
+                  <FormLabel>Reason</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Enter any notes "
-                      className="resize-none"
-                      {...field}
-                    />
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a reason for the change" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Inventory Adjustment">
+                          Inventory Adjustment
+                        </SelectItem>
+                        <SelectItem value="Unaccounted for (Lost/Theft)">
+                          Unaccounted for (Lost/Theft)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
