@@ -196,7 +196,7 @@ class UserLoginView(APIView):
         
         # Fetch user details including location and role_id
         user_response = supabase.table("Users").select(
-            "user_id, password, role_id, username, location_id, Location(location)"
+            "user_id, password, role_id, username, status, location_id, Location(location)"
         ).eq("username", username).execute()
         
         if not user_response.data:
@@ -221,6 +221,7 @@ class UserLoginView(APIView):
         refresh["role_name"] = role_name
         refresh["location_id"] = location_id
         refresh["location"] = location
+        refresh["status"] = user["status"]
 
         return Response({
             "user_id": user["user_id"],
@@ -230,6 +231,7 @@ class UserLoginView(APIView):
             "location": location,
             "access": str(refresh.access_token),
             "refresh": str(refresh),
+            "status": user["status"],
         })
 
     
