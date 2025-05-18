@@ -348,6 +348,20 @@ class POS(APIView):
                     }).eq("pos_id", pos_transaction_id).execute()
                     print(f"🟢 POS updated with prescription_id={prescription_id}")
 
+            # Pre-check stock levels before processing the sale
+            for item in data["items"]:
+                stock_item_query = supabase.table("Stock_Item").select("quantity") \
+                    .eq("product_id", item["product_id"]).eq("location_id", int(data["branch"])).limit(1).execute()
+                
+                if not stock_item_query.data:
+                    return Response({"error": f"Product {item['product_id']} not found in stock for this location."}, status=400)
+
+                available_quantity = stock_item_query.data[0]["quantity"]
+                if item["quantity"] > available_quantity:
+                    return Response({
+                        "error": f"Insufficient stock for product {item['product_id']}. Available: {available_quantity}, Requested: {item['quantity']}"
+                    }, status=400)
+
             # Insert into POS_Item and update Stock_Item
             for item in data["items"]:
                 # Fetch stock item (location-specific)
