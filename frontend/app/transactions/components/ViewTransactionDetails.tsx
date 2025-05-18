@@ -103,6 +103,62 @@ export default function ViewTransactionDetails({
                   )}
                 </div>
               </div>
+              {transaction.dswd_details && transaction.customer?.name ? (
+                <div className="mt-4">
+                  <p className="text-sm font-medium mb-2">DSWD Details</p>
+                  <div className="border rounded-md p-2">
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium">GL Number:</span>{" "}
+                        {transaction.dswd_details.gl_num || "N/A"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium">GL Date:</span>{" "}
+                        {transaction.dswd_details.gl_date || "N/A"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium">Claim Date:</span>{" "}
+                        {transaction.dswd_details?.claim_date || "N/A"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium">Patient Name:</span>{" "}
+                        {transaction.customer?.name || "N/A"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium">Client Name:</span>{" "}
+                        {transaction.dswd_details?.client_name || "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div></div>
+              )}
+
+              {/* pwd or senior citize */}
+              {transaction.customer && transaction.pos ? (
+                <div className="mt-4">
+                  <p className="text-sm font-medium mb-2">DSWD Details</p>
+                  <div className="border rounded-md p-2">
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium">Customer Type:</span>{" "}
+                        {transaction.pos.order_type || "N/A"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium">Customer Name:</span>{" "}
+                        {transaction.customer?.name || "N/A"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium">ID Number:</span>{" "}
+                        {transaction.customer?.id_card_number || "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div></div>
+              )}
             </div>
           </div>
         ) : (

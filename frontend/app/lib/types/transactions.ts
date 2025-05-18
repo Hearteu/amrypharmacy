@@ -28,6 +28,20 @@ export interface PosTransaction {
     total_amount: number;
 }
 
+export interface DswdDetails {
+    dswd_order_id: number;
+    gl_num: string;
+    gl_date: string;
+    claim_date: string;
+    client_name: string;
+}
+
+export interface Customer {
+    customer_id: number;
+    name: string;
+    id_card_number: string;
+}
+
 export interface Transaction {
     stock_transaction_id: number;
     invoice: string;
@@ -42,5 +56,7 @@ export interface Transaction {
     src_location_name: string | null;
     pos?: PosTransaction;
     prescription?: Prescription;
+    dswd_details?: DswdDetails;
+    customer?: Customer;
 }
 

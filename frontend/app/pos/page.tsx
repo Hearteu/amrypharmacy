@@ -1,13 +1,6 @@
-"use client";
-
-import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PosInterface from "./components/POSInterface";
-import { Transactions } from "../transactions/components/Transactions";
 
 export default function Pharmacy() {
-  const [activeTab, setActiveTab] = useState("pos");
-
   return (
     <div className="p-4">
       <div className="mb-6">
