@@ -22,12 +22,15 @@ class PurchaseOrder(APIView):
                 "purchase_order_id, po_id, order_date, expected_delivery_date, purchase_order_status_id, notes, "
                 "Purchase_Order_Status!inner(purchase_order_status), "
                 "Purchase_Order_Item (purchase_order_item_id, poi_id, ordered_qty, purchase_order_item_status_id, "
-                "unit_id, expired_qty, damaged_qty, expiry_date, received_qty, Unit (unit), "
+                # Remove unit_id from here:
+                "expired_qty, damaged_qty, expiry_date, received_qty, Unit (unit), "
                 "Purchase_Order_Item_Status (po_item_status), "
                 "Supplier_Item (supplier_id, supplier_item_id, supplier_price, "
                 "Products (product_id, product_name, Drugs (dosage_form, dosage_strength)), "
                 "Supplier (supplier_name, Person (first_name, last_name, contact, email, address))))"
             )
+
+           
 
             if purchase_order_id is not None:
                 query = query.eq("purchase_order_id", purchase_order_id).single()
@@ -237,7 +240,7 @@ class PurchaseOrder(APIView):
                     "purchase_order_id": purchase_order_id,
                     "supplier_item_id": supplier_item["supplier_item_id"],
                     "ordered_qty": item["ordered_qty"],
-                    "unit_id": item["unit_id"],
+                    "unit_id": 1, #automatic unit_id
                     "purchase_order_item_status_id": 1,
                     "expired_qty": 0,  # ✅ Default to 0
                     "damaged_qty": 0,  # ✅ Default to 0
@@ -404,7 +407,7 @@ class PurchaseOrder(APIView):
                             "purchase_order_id": purchase_order_id,
                             "supplier_item_id": supplier_item_id,
                             "ordered_qty": item["ordered_qty"],
-                            "unit_id": item["unit_id"],
+                            "unit_id": 1,
                             "purchase_order_item_status_id": 1,
                             "expired_qty": item.get("expired_qty", 0),
                             "damaged_qty": item.get("damaged_qty", 0),
