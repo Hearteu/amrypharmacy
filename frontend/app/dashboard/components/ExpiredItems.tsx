@@ -235,7 +235,10 @@ export function InventoryDashboard() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <DisposeExpiryDialog expiration={item} />
+                            <DisposeExpiryDialog
+                              expiration={item}
+                              onSuccess={refreshData}
+                            />
                           </TableCell>
                         </TableRow>
                       ))
