@@ -17,9 +17,9 @@ import { useState } from "react";
 import EditSupplierPriceForm from "@/components/forms/EditSupplierPriceForm";
 
 interface AssignedItems {
-    supplier_item_id: number;
-    product_name: string
-    supplier_price: string;
+  supplier_item_id: number;
+  product_name: string;
+  supplier_price: string;
 }
 
 interface EditAssignedItemsProps {
@@ -27,10 +27,9 @@ interface EditAssignedItemsProps {
   onSuccess: () => void;
 }
 
- 
 const EditSupplierPriceDialog = ({
-    supplier_item_id,
-    onSuccess,
+  supplier_item_id,
+  onSuccess,
 }: EditAssignedItemsProps) => {
   const [open, setOpen] = useState(false);
 
@@ -100,6 +99,17 @@ export const columns: (onSuccess: () => void) => ColumnDef<AssignedItems>[] = (
   {
     accessorKey: "supplier_price",
     header: "Supplier Price",
+    cell: ({ row }) => {
+      const price = parseFloat(row.getValue("supplier_price"));
+      // Format as currency with 2 decimal places
+      const formatted = new Intl.NumberFormat("en-PH", {
+        style: "currency",
+        currency: "PHP",
+        minimumFractionDigits: 2,
+      }).format(price);
+
+      return formatted;
+    },
   },
   {
     id: "actions",
@@ -108,13 +118,12 @@ export const columns: (onSuccess: () => void) => ColumnDef<AssignedItems>[] = (
       return (
         <>
           <div className="flex gap-2">
-            <EditSupplierPriceDialog 
-            supplier_item_id={supplier_item.supplier_item_id}
-            onSuccess={() => {
+            <EditSupplierPriceDialog
+              supplier_item_id={supplier_item.supplier_item_id}
+              onSuccess={() => {
                 onSuccess();
               }}
             ></EditSupplierPriceDialog>
-            
           </div>
         </>
       );

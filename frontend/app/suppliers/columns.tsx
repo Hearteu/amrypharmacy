@@ -33,7 +33,6 @@ interface EditProductDialogProps {
   onSuccess: () => void;
 }
 
-
 const EditSupplierDialog = ({
   supplier_id,
   onSuccess,
@@ -71,8 +70,8 @@ const AssignItemButton = ({ supplierId }: { supplierId: string }) => {
 
   return (
     <>
-<Button onClick={() => router.push(`/assigned-items/${supplierId}`)}>
-Assign an Item
+      <Button onClick={() => router.push(`/assigned-items/${supplierId}`)}>
+        Assign an Item
       </Button>
     </>
   );
@@ -152,7 +151,7 @@ export const columns: (onSuccess: () => void) => ColumnDef<Suppliers>[] = (
                 onSuccess();
               }}
             ></EditSupplierDialog>
-            <AssignItemButton supplierId={supplier.supplier_id.toString()} />;
+            <AssignItemButton supplierId={supplier.supplier_id.toString()} />
           </div>
         </>
       );

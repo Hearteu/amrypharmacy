@@ -64,7 +64,7 @@ const formSchema = z.object({
     .min(5, { message: "Address must be at least 5 characters." }),
   contact: z
     .string()
-    .regex(/^\d{10}$/, { message: "Contact must be a valid 10-digit number." }),
+    .regex(/^\d{11}$/, { message: "Contact must be a valid 11-digit number." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
   vat_num: z.string(),
   status_id: z.string().nonempty({ message: "Status is required." }),
@@ -318,9 +318,7 @@ export default function EditSupplierForm({
                         className="h-9"
                       />
                       <CommandList>
-                        <CommandEmpty>
-                          No Results found
-                        </CommandEmpty>
+                        <CommandEmpty>No Results found</CommandEmpty>
                         <CommandGroup>
                           {status.map((stat) => (
                             <CommandItem

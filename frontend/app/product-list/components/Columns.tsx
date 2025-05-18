@@ -22,6 +22,7 @@ import { Products } from "../../lib/types/inventory/products";
 import { ProductFormProps } from "@/app/lib/types/inventory/product-props";
 import EditProductDialog from "@/app/product-list/components/EditProductDialog";
 import EditInventoryForm from "./EditInventoryForm";
+import { ArrowUpDown } from "lucide-react";
 
 const deleteItem = async ({ product_id, onSuccess }: ProductFormProps) => {
   try {
@@ -70,12 +71,29 @@ export const columns: (onSuccess: () => void) => ColumnDef<Products>[] = (
   },
   {
     accessorKey: "category",
-    header: "Category",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="px-0 font-medium"
+        >
+          Category
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
+    sortingFn: "text", // You can use "text", "datetime", "basic" or a custom function
   },
   {
     accessorKey: "price",
     header: "Price",
+    cell: ({ row }) => {
+      const price = parseFloat(row.getValue("price"));
+      return isNaN(price) ? "N/A" : `₱${price.toFixed(2)}`;
+    },
   },
+
   {
     accessorKey: "net_content",
     header: "Net Content",

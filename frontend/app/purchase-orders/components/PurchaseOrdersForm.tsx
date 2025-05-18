@@ -160,6 +160,7 @@ export default function PurchaseOrderForm({
   }, [initialData, form.reset]);
 
   async function onSubmit(data: FormValues) {
+    console.log("🔄 Submitting form with data:");
     setIsSubmitting(true);
     console.log("Submitted Data:", data);
 
@@ -172,14 +173,21 @@ export default function PurchaseOrderForm({
 
     try {
       const url = isEditing
-        ? `http://127.0.0.1:8000/pharmacy/purchase-orders/${formattedData.purchase_order_id}/` // ✅ Pass ID in URL when editing
+        ? `http://127.0.0.1:8000/pharmacy/purchase-orders/${formattedData.purchase_order_id}/`
         : "http://127.0.0.1:8000/pharmacy/purchase-orders/";
 
-      await fetch(url, {
+      const response = await fetch(url, {
         method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formattedData),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Server returned ${response.status}`
+        );
+      }
 
       router.push("/purchase-orders");
       console.log("🟢 Submitted Data:", JSON.stringify(formattedData));
@@ -425,7 +433,7 @@ export default function PurchaseOrderForm({
 
           <Card>
             <CardHeader>
-              <CardTitle>Line Items</CardTitle>
+              <CardTitle>Purchase Order Items</CardTitle>
               <CardDescription>
                 Add products to your purchase order
               </CardDescription>
