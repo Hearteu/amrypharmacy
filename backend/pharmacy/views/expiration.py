@@ -1,8 +1,8 @@
 # views.py
 
+import time
 import traceback
 from datetime import datetime
-import time
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -151,16 +151,45 @@ class Expiration(APIView):
             return Response({"error": str(e)}, status=400)
  
     def put(self, request, expiration_id):
-        data = request.data 
-        try:
-            response = supabase.table("Expiration").update(data).eq('expiration_id', expiration_id).execute()
+        data = request.data
+        stock_item_id = data.get("stock_item_id")
+        quantity_to_dispose = int(data.get("quantity"))
+        disposal_date = data.get("disposal_date")
+        note = data.get("note")
 
-            if response.data:
-                return Response(response.data, status=200)
-            else:
-                return Response({"error": "Expiration not found or update failed"}, status=400)
+        try:
+            # 1. Get current stock item
+            stock_response = supabase.table("Stock_Item").select("quantity").eq("stock_item_id", stock_item_id).single().execute()
+            if not stock_response.data:
+                return Response({"error": "Stock item not found"}, status=404)
+
+            current_quantity = int(stock_response.data["quantity"])
+
+            if quantity_to_dispose > current_quantity:
+                return Response({"error": "Disposal quantity exceeds available stock"}, status=400)
+
+            # 2. Insert stock transaction for disposal
+            transaction_data = {
+                "stock_item_id": stock_item_id,
+                "transaction_type": "disposal",
+                "quantity": quantity_to_dispose,
+                "transaction_date": disposal_date,
+                "note": note,
+            }
+
+            supabase.table("Stock_Transaction").insert(transaction_data).execute()
+
+            # 3. Update stock item quantity
+            updated_quantity = current_quantity - quantity_to_dispose
+            supabase.table("Stock_Item").update({"quantity": updated_quantity}).eq("stock_item_id", stock_item_id).execute()
+
+            # 4. Update expiration record (optional)
+            supabase.table("Expiration").update(data).eq("expiration_id", expiration_id).execute()
+
+            return Response({"message": "Disposal recorded and stock updated"}, status=200)
+
         except Exception as e:
-            return Response({"error": str(e)}, status=400)
+            return Response({"error": str(e)}, status=500)
    
     def delete(self, request, expiration_id):
         try:
