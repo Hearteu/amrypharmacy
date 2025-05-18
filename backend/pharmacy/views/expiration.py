@@ -156,8 +156,7 @@ class Expiration(APIView):
         expiration_id = data.get("expiration_id")
         quantity_to_dispose = data.get("quantity")
         disposal_date = data.get("disposal_date")
-        note = data.get("note")
-
+        
         if not all([stock_item_id, expiration_id, quantity_to_dispose, disposal_date]):
             return Response({"error": "Missing required fields"}, status=400)
 
@@ -198,9 +197,15 @@ class Expiration(APIView):
             updated_stock_quantity = current_quantity - quantity_to_dispose
             supabase.table("Stock_Item").update({"quantity": updated_stock_quantity}).eq("stock_item_id", stock_item_id).execute()
 
-            # 5. Update expiration quantity
+            # 5. Update expiration quantity or delete if zero
             updated_expiration_quantity = expiration_quantity - quantity_to_dispose
-            supabase.table("Expiration").update({"quantity": updated_expiration_quantity}).eq("expiration_id", expiration_id).execute()
+
+            if updated_expiration_quantity <= 0:
+                # Delete expiration record
+                supabase.table("Expiration").delete().eq("expiration_id", expiration_id).execute()
+            else:
+                # Update expiration quantity
+                supabase.table("Expiration").update({"quantity": updated_expiration_quantity}).eq("expiration_id", expiration_id).execute()
 
             return Response({"message": "Disposal recorded and quantities updated"}, status=200)
 
