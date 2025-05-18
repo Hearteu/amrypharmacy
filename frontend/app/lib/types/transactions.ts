@@ -59,4 +59,3 @@ export interface Transaction {
     dswd_details?: DswdDetails;
     customer?: Customer;
 }
-

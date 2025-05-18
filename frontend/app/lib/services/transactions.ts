@@ -17,6 +17,22 @@ export const getTransactions = async (location_id: string) => {
     return data;
 };
 
+export const getAllTransactions = async () => {
+
+    const response = await fetch(
+        `http://127.0.0.1:8000/pharmacy/stock-transactions/`
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch data");
+    }
+    const data: Transaction[] = await response.json();
+    // console.log("getTransaction data", data)
+
+
+    return data;
+};
+
 export const getTransaction = async (pos_id: string): Promise<PosTransaction> => {
     const response = await fetch(
         `http://127.0.0.1:8000/pharmacy/pos/${pos_id}/`

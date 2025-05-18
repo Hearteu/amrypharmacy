@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Menu,
   ReceiptText,
+  Boxes,
 } from "lucide-react";
 
 import {
@@ -47,10 +48,12 @@ export default function NavBar() {
     { href: "/product-list", label: "Inventory", icon: Package },
     { href: "/pos", label: "Point of Sale System", icon: ShoppingCart },
     { href: "/transactions", label: "Transaction History", icon: ReceiptText },
+    { href: "/stock-out-history", label: "Stock Transactions", icon: Boxes },
     { href: "/suppliers", label: "Suppliers", icon: Truck },
     { href: "/purchase-orders", label: "Purchase Orders", icon: ClipboardList },
     { href: "/stock-transfer", label: "Stock Transfer", icon: ArrowLeftRight },
     { href: "/user-list", label: "List of Users", icon: Users },
+    // StockOutHistory
   ];
 
   const handleSignOut = async () => {
