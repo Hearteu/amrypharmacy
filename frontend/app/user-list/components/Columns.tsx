@@ -162,6 +162,17 @@ export const columns: (onSuccess: () => void) => ColumnDef<Users>[] = (
     },
   },
   {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => {
+      const status = row.getValue("status");
+      return (
+        String(status).charAt(0).toUpperCase() +
+        String(status).slice(1).toLowerCase()
+      );
+    },
+  },
+  {
     id: "actions",
     cell: ({ row }) => {
       const user = row.original;

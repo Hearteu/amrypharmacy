@@ -11,6 +11,7 @@ export interface Users {
     role_name: string;
     location_id: number;
     location: string;
+    status: string;
 }
 
 export interface Roles {

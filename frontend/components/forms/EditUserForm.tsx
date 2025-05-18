@@ -32,6 +32,13 @@ import {
   UserFormSchema,
   useUserForm,
 } from "@/app/lib/services/schemas/personSchema";
+import {
+  Select,
+  SelectItem,
+  SelectValue,
+  SelectContent,
+  SelectTrigger,
+} from "../ui/select";
 
 interface EditUserFormProps {
   user_id: number;
@@ -332,6 +339,38 @@ export default function EditUserForm({
                     </Command>
                   </PopoverContent>
                 </Popover>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem className="w-[200px]">
+                <FormLabel>Status:</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder="Select status"
+                        className="capitalize"
+                      >
+                        {field.value
+                          ? field.value.charAt(0).toUpperCase() +
+                            field.value.slice(1)
+                          : "Select status"}
+                      </SelectValue>
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
               </FormItem>
             )}
           />

@@ -20,6 +20,7 @@ export const UserFormSchema = z.object({
     password: z.string().optional(),
     role_id: z.string().nonempty("Role is required."),
     location_id: z.string().nonempty("Location is required."),
+    status: z.string(),
 });
 
 export const useUserForm = (userData: Users | null) => {
@@ -34,6 +35,7 @@ export const useUserForm = (userData: Users | null) => {
             password: "",
             role_id: "",
             location_id: "",
+            status: "",
         },
         mode: "onChange",
     });
@@ -51,6 +53,7 @@ export const useUserForm = (userData: Users | null) => {
             email: userData.email || "",
             role_id: String(userData.role_id) || "",
             location_id: String(userData.location_id) || "",
+            status: userData.status || "",
         });
     };
 
