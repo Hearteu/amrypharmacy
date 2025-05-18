@@ -16,7 +16,7 @@ class UserList(APIView):
         try:
             # Join Person, User_Role, and Location
             query = supabase.table("Users").select(
-                "user_id, username, role_id, location_id, person_id, "
+                "user_id, username, role_id, location_id, person_id, status, "
                 "Person(first_name, last_name, address, contact, email), "
                 "User_Role(role_name), "
                 "Location(location)"
@@ -51,6 +51,7 @@ class UserList(APIView):
                     "role_name": (user.get("User_Role") or {}).get("role_name"),
                     "location_id": user.get("location_id"),
                     "location": (user.get("Location") or {}).get("location"),
+                    "status": user.get("status"),
                 }
                 formatted_users.append(formatted)
 
@@ -115,6 +116,7 @@ class UserList(APIView):
             "person_id",
             "role_id",
             "location_id",  # ✅ Include location_id
+            "status",
         ]
         persons_fields = [
             "person_id",
