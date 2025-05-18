@@ -165,7 +165,7 @@ export default function Reports() {
           <Button
             variant="outline"
             className="flex items-center gap-2"
-            onClick={() => generateAndExport("http://127.0.0.1:8000/pharmacy/stock-items/", exportLowStockPDF)}
+            onClick={() => generateAndExport("http://127.0.0.1:8000/pharmacy/stock-items/?threshold=10", exportLowStockPDF)}
             disabled={loading}
           >
             {loading ? (
