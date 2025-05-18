@@ -54,7 +54,7 @@ export default function DisposeExpiryDialog({
       const response = await fetch(
         "http://127.0.0.1:8000/pharmacy/expirations/",
         {
-          method: "POST",
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
