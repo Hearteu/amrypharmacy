@@ -11,6 +11,7 @@ supabase = get_supabase_client()
 #Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
 
 class StockTransaction(APIView):
+    
     def get(self, request):
         try:
             transaction_type = request.query_params.get('transaction_type')
@@ -38,6 +39,7 @@ class StockTransaction(APIView):
                 branch_filter = ["1", "3"]  # Include transactions from branches 1 and 3
             elif branch:
                 branch_filter = [branch]    # Just filter for the requested branch
+            
             
             for txn in stock_transactions.data:
                 # Skip if src_location doesn't match our branch filter
@@ -99,6 +101,10 @@ class StockTransaction(APIView):
                 }
                 pos_items_by_pos.setdefault(pos_id, []).append(formatted_item)
 
+            dswd_orders = supabase.table('Dswd_Order').select('*').in_('pos_id', list(pos_ids)).execute().data
+            dswd_map = {order['pos_id']: order for order in dswd_orders}
+            
+            
             # Prescriptions
             prescription_ids = [pos['prescription_id'] for pos in pos_list if pos.get('prescription_id')]
             prescriptions = supabase.table('Prescription').select('*').in_('prescription_id', prescription_ids).execute().data
@@ -132,6 +138,17 @@ class StockTransaction(APIView):
             locations = supabase.table('Location').select('*').in_('location_id', list(src_location_ids)).execute().data
             location_map = {l['location_id']: l['location'] for l in locations}
 
+            def format_dswd_details(dswd):
+                return {
+                    "dswd_order_id": dswd.get("dswd_order_id"),
+                    "gl_num": dswd.get("gl_num"),
+                    "gl_date": dswd.get("gl_date"),
+                    "claim_date": dswd.get("claim_date"),
+                    "client_name": dswd.get("client_name"),
+                    "customer_id": dswd.get("customer_id")
+                }
+                
+                
             # Attach related data
             for txn in filtered_transactions:
                 txn.pop('stock_item', None)
@@ -161,6 +178,9 @@ class StockTransaction(APIView):
                     if "pos_items" in pos:
                         pos["total_amount"] = round(sum(item.get("total_price", 0) for item in pos["pos_items"]), 2)
                     txn['pos'] = pos
+                    
+                    if pos.get('pos_id') in dswd_map:
+                        txn['dswd_details'] = format_dswd_details(dswd_map[pos['pos_id']])
                     
                     # Prescription
                     if pos.get('prescription_id'):
