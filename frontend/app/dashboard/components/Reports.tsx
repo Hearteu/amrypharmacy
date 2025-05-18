@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { exportInventoryPDF } from "@/app/dashboard/components/pdf-reports-buttons/inventoryExportButton";
 import { exportSalesPDF } from "@/app/dashboard/components/pdf-reports-buttons/salesExportButton";
 import { exportSOAPDF  } from "@/app/dashboard/components/pdf-reports-buttons/SOAExportButton";
+import { exportExpiryPDF  } from "@/app/dashboard/components/pdf-reports-buttons/ExpiryExportButton";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -113,7 +114,6 @@ export default function Reports() {
               </div>
             </DialogContent>
           </Dialog>
-
           <Button
             variant="outline"
             className="flex items-center gap-2"
@@ -160,8 +160,33 @@ export default function Reports() {
             )}
           </Button>
 
-          <Button variant="outline" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" /> Expiring Items Report
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={async () => {
+              setLoading(true);
+              try {
+                const res = await axios.get("http://127.0.0.1:8000/pharmacy/expirations/");
+                exportExpiryPDF(res.data); // pass entire array to the PDF generator
+              } catch (err) {
+                console.error("Failed to generate Expiring Items PDF", err);
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader className="h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <FileText className="h-4 w-4" />
+                Expiring Items Report
+              </>
+            )}
           </Button>
           <Button variant="outline" className="flex items-center gap-2">
             <AlertCircle className="h-4 w-4" /> Low Stock Report
