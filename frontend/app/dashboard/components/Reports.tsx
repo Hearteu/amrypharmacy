@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { exportInventoryPDF } from "@/app/dashboard/components/pdf-reports-buttons/inventoryExportButton";
 import { exportSalesPDF } from "@/app/dashboard/components/pdf-reports-buttons/salesExportButton";
+import { exportSOAPDF  } from "@/app/dashboard/components/pdf-reports-buttons/SOAExportButton";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -113,9 +114,33 @@ export default function Reports() {
             </DialogContent>
           </Dialog>
 
-          <Button variant="outline" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Statement of Account
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={async () => {
+              setLoading(true);
+              try {
+                const res = await axios.get("http://127.0.0.1:8000/pharmacy/statement-of-accounts/");
+                exportSOAPDF(res.data); // pass entire array to the PDF generator
+              } catch (err) {
+                console.error("Failed to generate SOA PDF", err);
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader className="h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <FileText className="h-4 w-4" />
+                Statement of Account
+              </>
+            )}
           </Button>
 
           <Button
