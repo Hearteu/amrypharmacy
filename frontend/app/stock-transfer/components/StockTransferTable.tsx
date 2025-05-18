@@ -113,8 +113,8 @@ export default function StockTransferTable() {
     console.log(orderId);
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/pharmacy/stock-transfer/${orderId}/`,
-        { purchase_order_status_id: 6 },
+        `http://127.0.0.1:8000/pharmacy/stock-transfers/${orderId}/`,
+        { stock_transfer_status_id: 6 },
         { headers: { "Content-Type": "application/json" } }
       );
 
@@ -131,8 +131,8 @@ export default function StockTransferTable() {
     console.log(orderId);
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/pharmacy/stock-transfer/${orderId}/`,
-        { purchase_order_status_id: 2 },
+        `http://127.0.0.1:8000/pharmacy/stock-transfers/${orderId}/`,
+        { stock_transfer_status_id: 2 },
         { headers: { "Content-Type": "application/json" } }
       );
 
