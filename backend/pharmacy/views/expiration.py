@@ -2,6 +2,7 @@
 
 import traceback
 from datetime import datetime
+import time
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -26,14 +27,30 @@ class Expiration(APIView):
             product_id = request.GET.get('product_id')
             location_id = request.GET.get('location_id')
 
-            expiration_query = supabase.table('Expiration').select('*')
+            # Add retry logic for database connection issues
+            max_retries = 3
+            retry_count = 0
+            
+            while retry_count < max_retries:
+                try:
+                    expiration_query = supabase.table('Expiration').select('*')
 
-            if expiration_id:
-                expiration_query = expiration_query.eq('expiration_id', int(expiration_id))
-            else:
-                expiration_query = expiration_query.gte('expiry_date', start_of_month).lt('expiry_date', end_of_month)
+                    if expiration_id:
+                        expiration_query = expiration_query.eq('expiration_id', int(expiration_id))
+                    else:
+                        expiration_query = expiration_query.gte('expiry_date', start_of_month).lt('expiry_date', end_of_month)
 
-            expiration_response = expiration_query.execute()
+                    expiration_response = expiration_query.execute()
+                    
+                    # If we get here, the query was successful
+                    break
+                except Exception as conn_error:
+                    retry_count += 1
+                    if retry_count >= max_retries:
+                        return Response({"error": f"Database connection error after {max_retries} attempts: {str(conn_error)}"}, status=503)
+                    
+                    # Wait before retrying (exponential backoff)
+                    time.sleep(1 * retry_count)
 
             if not expiration_response.data:
                 return Response({"error": "No Expiration records found."}, status=404)
@@ -43,24 +60,50 @@ class Expiration(APIView):
             for exp in expiration_response.data:
                 stock_item_id = exp['stock_item_id']
 
-                # Stock Item
-                stock_resp = supabase.table('Stock_Item').select('*') \
-                    .eq('stock_item_id', stock_item_id).single().execute()
-                if not stock_resp.data:
-                    continue
+                # Add retry logic for each related query
+                retry_count = 0
+                while retry_count < max_retries:
+                    try:
+                        # Stock Item
+                        stock_resp = supabase.table('Stock_Item').select('*') \
+                            .eq('stock_item_id', stock_item_id).single().execute()
+                        
+                        if not stock_resp.data:
+                            break  # Skip this item
+                            
+                        stock_item = stock_resp.data
 
-                stock_item = stock_resp.data
+                        # Filters
+                        if product_id and stock_item['product_id'] != int(product_id):
+                            break  # Skip this item
+                        if location_id and stock_item['location_id'] != int(location_id):
+                            break  # Skip this item
 
-                # Filters
-                if product_id and stock_item['product_id'] != int(product_id):
-                    continue
-                if location_id and stock_item['location_id'] != int(location_id):
-                    continue
+                        # Product
+                        product_resp = supabase.table('Products').select('*') \
+                            .eq('product_id', stock_item['product_id']).single().execute()
+                        product = product_resp.data or {}
 
-                # Product
-                product_resp = supabase.table('Products').select('*') \
-                    .eq('product_id', stock_item['product_id']).single().execute()
-                product = product_resp.data or {}
+                        # Location (flattened)
+                        location_resp = supabase.table('Location').select('*') \
+                            .eq('location_id', stock_item['location_id']).single().execute()
+                        location = location_resp.data or {}
+                        
+                        # If we get here, all queries were successful
+                        break
+                    except Exception as conn_error:
+                        retry_count += 1
+                        if retry_count >= max_retries:
+                            # Log the error but continue with other items
+                            print(f"Error processing item {exp['expiration_id']}: {str(conn_error)}")
+                            continue
+                        
+                        # Wait before retrying
+                        time.sleep(0.5 * retry_count)
+                
+                # Skip if we couldn't get the related data after retries
+                if retry_count >= max_retries or not stock_resp.data:
+                    continue
 
                 # Build full name
                 dosage = f"{product.get('dosage_form', '')} {product.get('dosage_strength', '')}".strip()
@@ -68,11 +111,6 @@ class Expiration(APIView):
 
                 # Remove product_name from product fields
                 product.pop("product_name", None)
-
-                # Location (flattened)
-                location_resp = supabase.table('Location').select('*') \
-                    .eq('location_id', stock_item['location_id']).single().execute()
-                location = location_resp.data or {}
 
                 # Calculate days until expiry
                 expiry_date_obj = datetime.strptime(exp['expiry_date'], "%Y-%m-%d")
