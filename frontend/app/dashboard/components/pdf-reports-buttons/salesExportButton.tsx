@@ -1,4 +1,3 @@
-// salesExportButton.tsx
 "use client";
 
 import jsPDF from "jspdf";
@@ -49,17 +48,18 @@ export const exportSalesPDF = (data: any) => {
   doc.setFont("helvetica", "bold");
   doc.text(today, pageWidth - 40, dateY);
 
-  // Subheader: Month Label (moved lower to avoid overlap)
-  const subHeaderY = margin + 14 + address.length * 6 + 12; // After address block with space
+  // Subheader: Month Label (below address)
+  const subHeaderY = margin + 14 + address.length * 6 + 12;
   doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
   doc.text(`Month of ${data.month} Sales`, margin, subHeaderY);
 
-  // Table
+  // Format values
   const formatAmount = (value: string) =>
     parseFloat(value).toLocaleString("en-PH", { minimumFractionDigits: 2 });
 
+  // Table Data
   const tableData = data.daily_sales_summary.map((entry: any) => [
     entry.date,
     formatAmount(entry.Talaingod),
@@ -68,6 +68,7 @@ export const exportSalesPDF = (data: any) => {
     formatAmount(entry.total_dswd),
   ]);
 
+  // Sales Table
   autoTable(doc, {
     startY: subHeaderY + 8,
     head: [["Date", "Talaingod", "Asuncion", "Grand Total", "Charge Sales (DSWD)"]],
@@ -83,31 +84,35 @@ export const exportSalesPDF = (data: any) => {
     },
   });
 
+  // Final Totals
   const table = (doc as any).lastAutoTable;
   const tableEndY = table?.finalY || 100;
-  const colPositions = table?.table?.columns || [];
-
-  const grandTotalX = colPositions[3]?.x ?? pageWidth - 100;
-  const chargeX = colPositions[4]?.x ?? pageWidth - 50;
-  const boxY = tableEndY + 10;
-  const boxHeight = 16;
-  const boxWidth = 85;
 
   const totalReg = formatAmount(data.monthly_summary.monthly_regular_sales);
   const totalCharge = formatAmount(data.monthly_summary.monthly_total_dswd);
 
-  doc.setDrawColor(0);
+  autoTable(doc, {
+    startY: tableEndY + 10,
+    head: [["TOTAL", "reg sales: ",totalReg, "charges: ", totalCharge]],
+    body: [],
+    theme: "plain",
+    styles: {
+      fontSize: 11,
+      fontStyle: "bold",
+      halign: "right",
+      fillColor: [204, 229, 255], // light blue
+    },
+    headStyles: {
+      textColor: [0, 0, 0],
+    },
+    columnStyles: {
+      0: { halign: "left", cellWidth: 50 },
+      1: { halign: "right", cellWidth: 40 },
+      2: { halign: "right", cellWidth: 40 },
+    },
+  });
 
-  // Draw total boxes individually
-  doc.rect(grandTotalX, boxY, boxWidth, boxHeight);
-  doc.setFont("helvetica", "bold");
-  doc.text("Total Reg Sales:", grandTotalX + 5, boxY + 6);
-  doc.text(totalReg, grandTotalX + 5, boxY + 13);
-
-  doc.rect(chargeX, boxY, boxWidth, boxHeight);
-  doc.text("Total Charge:", chargeX + 5, boxY + 6);
-  doc.text(totalCharge, chargeX + 5, boxY + 13);
-
+  // Export to new tab
   const pdfBlob = doc.output("blob");
   const blobUrl = URL.createObjectURL(pdfBlob);
   window.open(blobUrl, "_blank");

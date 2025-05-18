@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { exportInventoryPDF } from "@/app/dashboard/components/pdf-reports-buttons/inventoryExportButton";
 import { exportSalesPDF } from "@/app/dashboard/components/pdf-reports-buttons/salesExportButton";
-import { exportSOAPDF  } from "@/app/dashboard/components/pdf-reports-buttons/SOAExportButton";
-import { exportExpiryPDF  } from "@/app/dashboard/components/pdf-reports-buttons/ExpiryExportButton";
+import { exportSOAPDF } from "@/app/dashboard/components/pdf-reports-buttons/SOAExportButton";
+import { exportExpiryPDF } from "@/app/dashboard/components/pdf-reports-buttons/ExpiryExportButton";
+import { exportLowStockPDF } from "@/app/dashboard/components/pdf-reports-buttons/lowStockExportButton";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,16 +33,10 @@ import axios from "axios";
 
 export default function Reports() {
   const [loading, setLoading] = useState(false);
-  const [inventoryData, setInventoryData] = useState([]);
   const [salesMonths, setSalesMonths] = useState<string[]>([]);
-  const [open, setOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
-    axios
-      .get("http://127.0.0.1:8000/pharmacy/products/")
-      .then((res) => setInventoryData(res.data))
-      .catch((err) => console.error("Preload failed", err));
-
     axios
       .get("http://127.0.0.1:8000/pharmacy/receipts/")
       .then((res) => {
@@ -51,20 +46,20 @@ export default function Reports() {
       .catch((err) => console.error("Failed to fetch sales months", err));
   }, []);
 
-  const handleInventoryReport = async () => {
+  const generateAndExport = async (url: string, exportFunc: Function) => {
     setLoading(true);
     try {
-      await exportInventoryPDF(inventoryData);
-    } catch (error) {
-      console.error("PDF export failed", error);
+      const res = await axios.get(url);
+      exportFunc(res.data);
+    } catch (err) {
+      console.error("PDF generation failed", err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleSalesReport = (month: string) => {
-    setOpen(false); // Close dialog first
-
+    setDialogOpen(false);
     setTimeout(async () => {
       setLoading(true);
       try {
@@ -72,14 +67,15 @@ export default function Reports() {
           `http://127.0.0.1:8000/pharmacy/receipts/?month=${month}`
         );
         const reportData = res.data[0];
-        exportSalesPDF(reportData); // ⚠️ Do NOT await this
+        exportSalesPDF(reportData);
       } catch (err) {
         console.error("Sales PDF failed", err);
       } finally {
         setLoading(false);
       }
-    }, 100); // Allow dialog to close before triggering popup
+    }, 100);
   };
+
   return (
     <Card>
       <CardHeader>
@@ -90,7 +86,7 @@ export default function Reports() {
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap gap-4">
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="flex items-center gap-2">
                 <Printer className="h-4 w-4" />
@@ -114,31 +110,20 @@ export default function Reports() {
               </div>
             </DialogContent>
           </Dialog>
+
           <Button
             variant="outline"
             className="flex items-center gap-2"
-            onClick={async () => {
-              setLoading(true);
-              try {
-                const res = await axios.get("http://127.0.0.1:8000/pharmacy/statement-of-accounts/");
-                exportSOAPDF(res.data); // pass entire array to the PDF generator
-              } catch (err) {
-                console.error("Failed to generate SOA PDF", err);
-              } finally {
-                setLoading(false);
-              }
-            }}
+            onClick={() => generateAndExport("http://127.0.0.1:8000/pharmacy/statement-of-accounts/", exportSOAPDF)}
             disabled={loading}
           >
             {loading ? (
               <>
-                <Loader className="h-4 w-4 animate-spin" />
-                Generating...
+                <Loader className="h-4 w-4 animate-spin" /> Generating...
               </>
             ) : (
               <>
-                <FileText className="h-4 w-4" />
-                Statement of Account
+                <FileText className="h-4 w-4" /> Statement of Account
               </>
             )}
           </Button>
@@ -146,7 +131,7 @@ export default function Reports() {
           <Button
             variant="outline"
             className="flex items-center gap-2"
-            onClick={handleInventoryReport}
+            onClick={() => generateAndExport("http://127.0.0.1:8000/pharmacy/products/", exportInventoryPDF)}
             disabled={loading}
           >
             {loading ? (
@@ -163,33 +148,35 @@ export default function Reports() {
           <Button
             variant="outline"
             className="flex items-center gap-2"
-            onClick={async () => {
-              setLoading(true);
-              try {
-                const res = await axios.get("http://127.0.0.1:8000/pharmacy/expirations/");
-                exportExpiryPDF(res.data); // pass entire array to the PDF generator
-              } catch (err) {
-                console.error("Failed to generate Expiring Items PDF", err);
-              } finally {
-                setLoading(false);
-              }
-            }}
+            onClick={() => generateAndExport("http://127.0.0.1:8000/pharmacy/expirations/", exportExpiryPDF)}
             disabled={loading}
           >
             {loading ? (
               <>
-                <Loader className="h-4 w-4 animate-spin" />
-                Generating...
+                <Loader className="h-4 w-4 animate-spin" /> Generating...
               </>
             ) : (
               <>
-                <FileText className="h-4 w-4" />
-                Expiring Items Report
+                <FileText className="h-4 w-4" /> Expiring Items Report
               </>
             )}
           </Button>
-          <Button variant="outline" className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4" /> Low Stock Report
+
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={() => generateAndExport("http://127.0.0.1:8000/pharmacy/stock-items/", exportLowStockPDF)}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader className="h-4 w-4 animate-spin" /> Generating...
+              </>
+            ) : (
+              <>
+                <AlertCircle className="h-4 w-4" /> Low Stock Report
+              </>
+            )}
           </Button>
         </div>
       </CardContent>
