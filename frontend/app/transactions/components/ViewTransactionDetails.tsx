@@ -77,10 +77,10 @@ export default function ViewTransactionDetails({
                         <span className="font-medium">Date Issued:</span>{" "}
                         {transaction.prescription.date_issued || "N/A"}
                       </p>
-                      <p className="text-sm text-muted-foreground">
+                      {/* <p className="text-sm text-muted-foreground">
                         <span className="font-medium">Physician:</span>{" "}
                         {transaction.prescription.physician?.name || "N/A"}
-                      </p>
+                      </p> */}
                       <p className="text-sm text-muted-foreground">
                         <span className="font-medium">PRC #:</span>{" "}
                         {transaction.prescription.physician?.prc_num || "N/A"}

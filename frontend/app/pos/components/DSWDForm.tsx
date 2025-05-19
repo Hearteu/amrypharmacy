@@ -89,7 +89,6 @@ export function DSWDForm({ customerInfo, setCustomerInfo }: DSWDFormProps) {
             onChange={(e) =>
               setCustomerInfo({ ...customerInfo, patient_name: e.target.value })
             }
-            placeholder="Juan Dela Cruz"
           />
         </div>
         <div className="grid gap-2">
@@ -100,7 +99,6 @@ export function DSWDForm({ customerInfo, setCustomerInfo }: DSWDFormProps) {
             onChange={(e) =>
               setCustomerInfo({ ...customerInfo, client_name: e.target.value })
             }
-            placeholder="Juan Dela Cruz"
           />
         </div>
         <div className="grid gap-2">
@@ -114,7 +112,6 @@ export function DSWDForm({ customerInfo, setCustomerInfo }: DSWDFormProps) {
                 guaranteeLetterNo: e.target.value,
               })
             }
-            placeholder="GL-12345-2023"
           />
         </div>
         <div className="grid gap-2">

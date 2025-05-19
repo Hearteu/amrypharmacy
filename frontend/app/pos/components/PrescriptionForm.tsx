@@ -79,7 +79,6 @@ export function PrescriptionForm({
                 doctorName: e.target.value,
               })
             }
-            placeholder="Dr. Juan Dela Cruz"
           />
         </div>
         <div className="grid gap-2">
@@ -93,7 +92,6 @@ export function PrescriptionForm({
                 PRCNumber: e.target.value,
               })
             }
-            placeholder="RX-12345"
           />
         </div>
         <div className="grid gap-2">
@@ -107,7 +105,6 @@ export function PrescriptionForm({
                 PTRNumber: e.target.value,
               })
             }
-            placeholder="RX-12345"
           />
         </div>
         <div className="grid gap-2">
