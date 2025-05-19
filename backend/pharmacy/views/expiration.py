@@ -88,6 +88,20 @@ class Expiration(APIView):
                             .eq('product_id', stock_item['product_id']).single().execute()
                         product = product_resp.data or {}
 
+                        # Get additional product details
+                        brand_resp = supabase.table('Brand').select('brand_name') \
+                            .eq('brand_id', product.get('brand_id')).single().execute()
+                        brand_name = brand_resp.data.get('brand_name', '').strip() if brand_resp.data else ''
+
+                        unit_resp = supabase.table('Unit').select('unit') \
+                            .eq('unit_id', product.get('unit_id')).single().execute()
+                        unit_name = unit_resp.data.get('unit', '').strip() if unit_resp.data else ''
+
+                        # Check if it's a drug
+                        drug_resp = supabase.table('Drugs').select('dosage_strength, dosage_form') \
+                            .eq('product_id', product.get('product_id')).single().execute()
+                        drug_info = drug_resp.data or {}
+
                         # Location (flattened)
                         location_resp = supabase.table('Location').select('*') \
                             .eq('location_id', stock_item['location_id']).single().execute()
@@ -109,9 +123,13 @@ class Expiration(APIView):
                 if retry_count >= max_retries or not stock_resp.data:
                     continue
 
-                # Build full name
-                dosage = f"{product.get('dosage_form', '')} {product.get('dosage_strength', '')}".strip()
-                full_product_name = f"{product.get('product_name', 'Unknown Product')} {dosage}".strip()
+                # Build full name using the same format as products.py
+                if drug_info:
+                    dosage_strength = drug_info.get('dosage_strength', '').strip()
+                    dosage_form = drug_info.get('dosage_form', '').strip()
+                    full_product_name = f"{product.get('product_name', 'Unknown Product')} {dosage_strength} {dosage_form} ({brand_name})"
+                else:
+                    full_product_name = f"{product.get('product_name', 'Unknown Product')} {product.get('net_content', '')} per {unit_name} ({brand_name})"
 
                 # Remove product_name from product fields
                 product.pop("product_name", None)
