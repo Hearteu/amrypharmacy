@@ -39,7 +39,7 @@ export const exportSalesPDF = (data: any) => {
   doc.text(title, pageWidth - titleWidth - margin, titleY);
 
   // Date under Sales Report
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleDateString("en-CA"); 
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(0, 0, 0);

@@ -42,7 +42,7 @@ export const exportInventoryPDF = async (products: any[]) => {
   doc.text(title, pageWidth - titleWidth - margin, margin + 6);
 
   // Date
-  const today = new Date().toISOString().split("T")[0];
+ const today = new Date().toLocaleDateString("en-CA"); 
   const labelX = pageWidth - 60;
   const valueX = pageWidth - 40;
   const topY = margin + 28;

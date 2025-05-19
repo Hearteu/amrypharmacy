@@ -37,7 +37,7 @@ export const exportExpiryPDF = async (items: any[]) => {
   const textWidth = doc.getTextWidth(rightTitle);
   doc.text(rightTitle, pageWidth - textWidth - 14, 20);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toLocaleDateString("en-CA"); 
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(0, 0, 0);
