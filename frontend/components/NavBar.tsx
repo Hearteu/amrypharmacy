@@ -43,17 +43,63 @@ export default function NavBar() {
   useEffect(() => {
     fetchSession();
   }, []);
+
+  // Define navigation items with role permissions
   const navItems = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/product-list", label: "Inventory", icon: Package },
-    { href: "/pos", label: "Point of Sale System", icon: ShoppingCart },
-    { href: "/transactions", label: "Transaction History", icon: ReceiptText },
-    { href: "/stock-out-history", label: "Stock Transactions", icon: Boxes },
-    { href: "/suppliers", label: "Suppliers", icon: Truck },
-    { href: "/purchase-orders", label: "Purchase Orders", icon: ClipboardList },
-    { href: "/stock-transfer", label: "Stock Transfer", icon: ArrowLeftRight },
-    { href: "/user-list", label: "List of Users", icon: Users },
-    // StockOutHistory
+    {
+      href: "/dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      roles: ["admin"], // All roles can access dashboard
+    },
+    {
+      href: "/product-list",
+      label: "Inventory",
+      icon: Package,
+      roles: ["admin"],
+    },
+    {
+      href: "/pos",
+      label: "Point of Sale System",
+      icon: ShoppingCart,
+      roles: ["admin", "pharmacist", "cashier"],
+    },
+    {
+      href: "/transactions",
+      label: "Transaction History",
+      icon: ReceiptText,
+      roles: ["admin"],
+    },
+    {
+      href: "/stock-out-history",
+      label: "Stock Transactions",
+      icon: Boxes,
+      roles: ["admin"],
+    },
+    {
+      href: "/suppliers",
+      label: "Suppliers",
+      icon: Truck,
+      roles: ["admin"],
+    },
+    {
+      href: "/purchase-orders",
+      label: "Purchase Orders",
+      icon: ClipboardList,
+      roles: ["admin"],
+    },
+    {
+      href: "/stock-transfer",
+      label: "Stock Transfer",
+      icon: ArrowLeftRight,
+      roles: ["admin", "pharmacist"],
+    },
+    {
+      href: "/user-list",
+      label: "List of Users",
+      icon: Users,
+      roles: ["admin"], // Only admin can manage users
+    },
   ];
 
   const handleSignOut = async () => {
@@ -63,10 +109,15 @@ export default function NavBar() {
     });
   };
 
+  // Filter navigation items based on user role
+  const filteredNavItems = navItems.filter((item) => {
+    const userRole = session?.user?.role_name?.toLowerCase();
+    return userRole && item.roles.includes(userRole);
+  });
+
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       <div className="flex flex-col justify-center items-center p-6 pb-2">
-        {/* {session?.user?.role_name !== "admin" && ( */}
         <Link href="/">
           <Image
             src="/images/logo.png"
@@ -77,12 +128,10 @@ export default function NavBar() {
             className="rounded-full"
           />
         </Link>
-        {/* )} */}
         <h1 className="mt-3 text-lg font-bold text-[#303086]">Amry Pharmacy</h1>
         <div className="mt-2 text-center">
           <p className="text-sm font-medium">
             Hello, {session?.user?.username || "Loading..."}
-            {session?.user?.location_id}
           </p>
           <p className="text-xs text-muted-foreground">
             {session?.user?.role_name}
@@ -95,7 +144,7 @@ export default function NavBar() {
       <div className="flex-1 overflow-auto px-3 py-2">
         <NavigationMenu orientation="vertical" className="w-full max-w-none">
           <NavigationMenuList className="flex flex-col space-y-1 items-stretch w-full">
-            {navItems.map((item) => (
+            {filteredNavItems.map((item) => (
               <NavigationMenuItem key={item.href} className="w-full">
                 <Link href={item.href} legacyBehavior passHref>
                   <NavigationMenuLink
