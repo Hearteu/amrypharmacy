@@ -158,7 +158,7 @@ export const columns: (onSuccess: () => void) => ColumnDef<Products>[] = (
               }}
             />
             {/* Delete Button */}
-            <AlertDialog>
+            {/* <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive">Delete</Button>
               </AlertDialogTrigger>
@@ -179,7 +179,7 @@ export const columns: (onSuccess: () => void) => ColumnDef<Products>[] = (
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
-            </AlertDialog>
+            </AlertDialog> */}
           </div>
         </>
       );
