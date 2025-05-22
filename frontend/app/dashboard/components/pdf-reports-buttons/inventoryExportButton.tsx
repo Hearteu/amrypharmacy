@@ -42,7 +42,7 @@ export const exportInventoryPDF = async (products: any[]) => {
   doc.text(title, pageWidth - titleWidth - margin, margin + 6);
 
   // Date
- const today = new Date().toLocaleDateString("en-CA"); 
+  const today = new Date().toLocaleDateString("en-CA"); 
   const labelX = pageWidth - 60;
   const valueX = pageWidth - 40;
   const topY = margin + 28;
@@ -53,7 +53,7 @@ export const exportInventoryPDF = async (products: any[]) => {
   doc.setFont("helvetica", "bold");
   doc.text(today, valueX, topY);
 
-  // Helper
+  // Helper to get stock per location
   const getStockQty = (product: any, locationId: number) => {
     const match = product.stock_per_location.find(
       (loc: any) => loc.location_id === locationId
@@ -62,7 +62,13 @@ export const exportInventoryPDF = async (products: any[]) => {
     return match?.total_quantity ?? 0;
   };
 
-  const tableData = products.map((product: any) => {
+  // 🔤 Sort alphabetically by product name
+  const sortedProducts = [...products].sort((a, b) =>
+    a.full_product_name.localeCompare(b.full_product_name)
+  );
+
+  // Build table data
+  const tableData = sortedProducts.map((product: any) => {
     const row = [
       product.full_product_name,
       product.category,
@@ -77,6 +83,7 @@ export const exportInventoryPDF = async (products: any[]) => {
     return row;
   });
 
+  // Create the table
   autoTable(doc, {
     startY: topY + 12,
     head: [[
@@ -95,11 +102,11 @@ export const exportInventoryPDF = async (products: any[]) => {
     },
   });
 
+  // Create download link
   const pdfBlob = doc.output("blob");
   const blobUrl = URL.createObjectURL(pdfBlob);
   console.log("📄 PDF Blob URL:", blobUrl);
 
-  // FIX: Trigger download instead of window.open
   const link = document.createElement("a");
   link.href = blobUrl;
   link.download = `Inventory_Report_${today}.pdf`;
@@ -109,5 +116,3 @@ export const exportInventoryPDF = async (products: any[]) => {
 
   console.log("✅ exportInventoryPDF completed.");
 };
-
-// inventory

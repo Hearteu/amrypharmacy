@@ -35,6 +35,8 @@ export default function Reports() {
   const [loading, setLoading] = useState(false);
   const [salesMonths, setSalesMonths] = useState<string[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const dummyYears = ["2021", "2022", "2023", "2024", "2025"];
+  const [selectedYear, setSelectedYear] = useState<string>("2025"); // default selected
 
   useEffect(() => {
     axios
@@ -93,22 +95,41 @@ export default function Reports() {
                 Sales Report
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Select Month for Sales Report</DialogTitle>
-              </DialogHeader>
-              <div className="grid grid-cols-2 gap-3">
-                {salesMonths.map((month) => (
-                  <Button
-                    key={month}
-                    variant="outline"
-                    onClick={() => handleSalesReport(month)}
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Select Month for Sales Report</DialogTitle>
+                </DialogHeader>
+
+                {/* Add this year selector block */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1">Select Year</label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    className="w-full border rounded px-3 py-2 text-sm"
                   >
-                    {month}
-                  </Button>
-                ))}
-              </div>
-            </DialogContent>
+                    {dummyYears.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Month buttons stay the same */}
+                <div className="grid grid-cols-2 gap-3">
+                  {salesMonths.map((month) => (
+                    <Button
+                      key={month}
+                      variant="outline"
+                      onClick={() => handleSalesReport(month)}
+                    >
+                      {month} {selectedYear}
+                    </Button>
+                  ))}
+                </div>
+              </DialogContent>
+
           </Dialog>
 
           <Button

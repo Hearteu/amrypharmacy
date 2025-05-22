@@ -50,8 +50,13 @@ export const exportLowStockPDF = (stockItems: any[]) => {
   doc.setFont("helvetica", "bold");
   doc.text(today, valueX, topY);
 
+  // 🔤 Sort by full_product_name
+  const sortedItems = [...stockItems].sort((a, b) =>
+    a.product_details.full_product_name.localeCompare(b.product_details.full_product_name)
+  );
+
   // Table Data
-  const tableData = stockItems.map((item: any) => [
+  const tableData = sortedItems.map((item: any) => [
     item.product_details.full_product_name,
     item.product_details.brand_name,
     item.product_details.category_name,
