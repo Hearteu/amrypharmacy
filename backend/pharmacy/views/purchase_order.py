@@ -22,12 +22,15 @@ class PurchaseOrder(APIView):
                 "purchase_order_id, po_id, order_date, expected_delivery_date, purchase_order_status_id, notes, "
                 "Purchase_Order_Status!inner(purchase_order_status), "
                 "Purchase_Order_Item (purchase_order_item_id, poi_id, ordered_qty, purchase_order_item_status_id, "
-                "unit_id, expired_qty, damaged_qty, expiry_date, received_qty, Unit (unit), "
+                # Remove unit_id from here:
+                "expired_qty, damaged_qty, expiry_date, received_qty, Unit (unit), "
                 "Purchase_Order_Item_Status (po_item_status), "
                 "Supplier_Item (supplier_id, supplier_item_id, supplier_price, "
                 "Products (product_id, product_name, Drugs (dosage_form, dosage_strength)), "
                 "Supplier (supplier_name, Person (first_name, last_name, contact, email, address))))"
             )
+
+           
 
             if purchase_order_id is not None:
                 query = query.eq("purchase_order_id", purchase_order_id).single()
@@ -96,8 +99,21 @@ class PurchaseOrder(APIView):
                     product_id = product.get("product_id", "N/A")
 
                     # ✅ Concatenate dosage info only if available
-                    dosage_info = f" {drugs.get('dosage_form', '')} {drugs.get('dosage_strength', '')}".strip() if drugs else ""
-                    product_name = f"{product.get('product_name', 'Unknown Product')} {dosage_info}"
+                    brand_query = supabase.table("Products").select("Brand(brand_name)").eq("product_id", product_id).single().execute()
+                    brand_name = brand_query.data.get("Brand", {}).get("brand_name", "").strip() if brand_query.data else ""
+
+                    unit_query = supabase.table("Products").select("Unit(unit)").eq("product_id", product_id).single().execute()
+                    unit_name = unit_query.data.get("Unit", {}).get("unit", "").strip() if unit_query.data else ""
+
+                    net_content = product.get("net_content", "").strip()
+
+                    # Format based on whether it's a drug or not
+                    if isinstance(drugs, dict) and drugs:
+                        dosage_strength = drugs.get("dosage_strength", "").strip()
+                        dosage_form = drugs.get("dosage_form", "").strip()
+                        product_name = f"{product.get('product_name', 'Unknown Product')} {dosage_strength} {dosage_form} ({brand_name})"
+                    else:
+                        product_name = f"{product.get('product_name', 'Unknown Product')} {net_content} per {unit_name} ({brand_name})"
 
                     supplier_price = supplier_item.get("supplier_price", 0)
                     poi_total = item["ordered_qty"] * supplier_price
@@ -237,7 +253,7 @@ class PurchaseOrder(APIView):
                     "purchase_order_id": purchase_order_id,
                     "supplier_item_id": supplier_item["supplier_item_id"],
                     "ordered_qty": item["ordered_qty"],
-                    "unit_id": item["unit_id"],
+                    "unit_id": 1, #automatic unit_id
                     "purchase_order_item_status_id": 1,
                     "expired_qty": 0,  # ✅ Default to 0
                     "damaged_qty": 0,  # ✅ Default to 0
@@ -404,7 +420,7 @@ class PurchaseOrder(APIView):
                             "purchase_order_id": purchase_order_id,
                             "supplier_item_id": supplier_item_id,
                             "ordered_qty": item["ordered_qty"],
-                            "unit_id": item["unit_id"],
+                            "unit_id": 1,
                             "purchase_order_item_status_id": 1,
                             "expired_qty": item.get("expired_qty", 0),
                             "damaged_qty": item.get("damaged_qty", 0),

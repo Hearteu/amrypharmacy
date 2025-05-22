@@ -33,6 +33,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -58,22 +59,18 @@ interface Supplier {
   supplier_name: string;
 }
 
-interface Units {
-  unit_id: number;
-  unit: string;
-}
-
 const formSchema = z.object({
   purchase_order_id: z.string().optional(),
   supplier_id: z.string().min(1, "Supplier is required"),
   order_date: z.date(),
   expected_delivery_date: z.date(),
+  notes: z.string(),
   lineItems: z
     .array(
       z.object({
         purchase_order_item_id: z.string().optional(),
         product_id: z.string().min(1, "Product is required"),
-        unit_id: z.string().min(1, "Unit is required"),
+        // unit_id: z.string().min(1, "Unit is required"),
         ordered_qty: z.coerce.number().min(1, "Quantity must be at least 1"),
         supplier_price: z.coerce
           .number()
@@ -96,7 +93,6 @@ export default function PurchaseOrderForm({
     initialData?.supplier_id || null
   );
   const [items, setItems] = useState<SupplierItem[]>([]);
-  const [units, setUnits] = useState<Units[]>([]);
 
   // Fetch suppliers
   useEffect(() => {
@@ -112,19 +108,6 @@ export default function PurchaseOrderForm({
       }
     }
     fetchSuppliers();
-  }, []);
-
-  useEffect(() => {
-    async function fetchUnits() {
-      try {
-        const response = await fetch("http://127.0.0.1:8000/pharmacy/unit/");
-        const data: Units[] = await response.json();
-        setUnits(data);
-      } catch (error) {
-        console.error("Error fetching Units", error);
-      }
-    }
-    fetchUnits();
   }, []);
 
   // Fetch supplier items based on selected supplier
@@ -161,9 +144,8 @@ export default function PurchaseOrderForm({
       supplier_id: "",
       order_date: new Date(),
       expected_delivery_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-      lineItems: [
-        { product_id: "", unit_id: "", ordered_qty: 1, supplier_price: 0 },
-      ],
+      notes: "",
+      lineItems: [{ product_id: "", ordered_qty: 1, supplier_price: 0 }],
     },
   });
 
@@ -177,30 +159,78 @@ export default function PurchaseOrderForm({
 
   async function onSubmit(data: FormValues) {
     setIsSubmitting(true);
-    console.log("Submitted Data:", data);
 
-    // Convert dates to YYYY-MM-DD format
-    const formattedData = {
-      ...data,
-      order_date: format(data.order_date, "yyyy-MM-dd"),
-      expected_delivery_date: format(data.expected_delivery_date, "yyyy-MM-dd"),
-    };
+    // Log the entire form data for debugging
+    console.log("Form data before submission:", JSON.stringify(data, null, 2));
 
     try {
+      // Validate that required fields exist
+      if (!data.supplier_id) {
+        throw new Error("Supplier ID is required");
+      }
+
+      // Check if lineItems have all required fields
+      const invalidItems = data.lineItems.filter(
+        (item) => !item.product_id || !item.ordered_qty
+      );
+
+      if (invalidItems.length > 0) {
+        throw new Error("Some items are missing required fields");
+      }
+
+      // Make sure unit_id is set for all items (this field is required but not handled in UI)
+      const formattedLineItems = data.lineItems.map((item) => ({
+        ...item,
+      }));
+
+      // Format data properly
+      const formattedData = {
+        ...data,
+        lineItems: formattedLineItems,
+        order_date: format(data.order_date, "yyyy-MM-dd"),
+        expected_delivery_date: format(
+          data.expected_delivery_date,
+          "yyyy-MM-dd"
+        ),
+      };
+
+      console.log(
+        "Formatted data for submission:",
+        JSON.stringify(formattedData, null, 2)
+      );
+
       const url = isEditing
-        ? `http://127.0.0.1:8000/pharmacy/purchase-orders/${formattedData.purchase_order_id}/` // ✅ Pass ID in URL when editing
+        ? `http://127.0.0.1:8000/pharmacy/purchase-orders/${formattedData.purchase_order_id}/`
         : "http://127.0.0.1:8000/pharmacy/purchase-orders/";
 
-      await fetch(url, {
+      const response = await fetch(url, {
         method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formattedData),
       });
 
+      // Get both status and response text for debugging
+      console.log("Response status:", response.status);
+      const responseText = await response.text();
+      console.log("Response body:", responseText);
+
+      if (!response.ok) {
+        try {
+          const errorData = JSON.parse(responseText);
+          throw new Error(
+            errorData.message || `Server returned ${response.status}`
+          );
+        } catch (parseError) {
+          throw new Error(`Server returned ${response.status}: ${parseError}`);
+        }
+      }
+
+      // Success case
+      alert("Purchase order created successfully!");
       router.push("/purchase-orders");
-      console.log("🟢 Submitted Data:", JSON.stringify(formattedData));
     } catch (error) {
-      console.error("❌ Error submitting form:", error);
+      console.error("Error submitting form:", error);
+      alert(`Failed to submit`);
     } finally {
       setIsSubmitting(false);
     }
@@ -211,7 +241,6 @@ export default function PurchaseOrderForm({
       ...form.getValues("lineItems"),
       {
         product_id: "",
-        unit_id: "",
         ordered_qty: 1,
         supplier_price: 0,
       },
@@ -397,6 +426,23 @@ export default function PurchaseOrderForm({
                     )}
                   />
                 </div>
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Enter any additional notes or instructions"
+                          className="resize-none"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
 
@@ -414,7 +460,7 @@ export default function PurchaseOrderForm({
                   <div className="space-y-2">
                     <div className="text-sm font-medium">Total Amount</div>
                     <div className="text-2xl font-bold">
-                      ${total.toFixed(2)}
+                      ₱{total.toFixed(2)}
                     </div>
                   </div>
                 </div>
@@ -424,7 +470,7 @@ export default function PurchaseOrderForm({
 
           <Card>
             <CardHeader>
-              <CardTitle>Line Items</CardTitle>
+              <CardTitle>Purchase Order Items</CardTitle>
               <CardDescription>
                 Add products to your purchase order
               </CardDescription>
@@ -436,7 +482,7 @@ export default function PurchaseOrderForm({
                     key={index}
                     className="grid grid-cols-12 gap-4 items-end"
                   >
-                    <div className="col-span-5">
+                    <div className="col-span-8">
                       <FormField
                         control={form.control}
                         name={`lineItems.${index}.product_id`}
@@ -496,66 +542,6 @@ export default function PurchaseOrderForm({
                         )}
                       />
                     </div>
-
-                    <div className="col-span-3">
-                      <FormField
-                        control={form.control}
-                        name={`lineItems.${index}.unit_id`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Unit</FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant="outline"
-                                    role="combobox"
-                                    className={cn(
-                                      "justify-between w-full",
-                                      !field.value && "text-muted-foreground"
-                                    )}
-                                  >
-                                    {field.value
-                                      ? units.find(
-                                          (unit) =>
-                                            unit.unit_id.toString() ===
-                                            field.value
-                                        )?.unit
-                                      : "Select unit"}
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="p-0">
-                                <Command>
-                                  <CommandInput placeholder="Search units..." />
-                                  <CommandList>
-                                    <CommandEmpty>No unit found.</CommandEmpty>
-                                    <CommandGroup>
-                                      {units.map((unit) => (
-                                        <CommandItem
-                                          key={unit.unit_id}
-                                          value={unit.unit}
-                                          onSelect={() => {
-                                            form.setValue(
-                                              `lineItems.${index}.unit_id`,
-                                              unit.unit_id.toString()
-                                            );
-                                          }}
-                                        >
-                                          {unit.unit}
-                                        </CommandItem>
-                                      ))}
-                                    </CommandGroup>
-                                  </CommandList>
-                                </Command>
-                              </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
                     <div className="col-span-1">
                       <FormField
                         control={form.control}
@@ -575,6 +561,7 @@ export default function PurchaseOrderForm({
                     <div className="col-span-2">
                       <FormField
                         control={form.control}
+                        disabled
                         name={`lineItems.${index}.supplier_price`}
                         render={({ field }) => (
                           <FormItem>

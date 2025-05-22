@@ -12,164 +12,107 @@ supabase = get_supabase_client()
 #Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
 
 class StockTransfer(APIView):
-    def get(self, request, stock_transfer_id=None):
+    
+    def get(self, request, direction=None, location_id=None, stock_transfer_id=None):
+        """Retrieve all stock transfers or a single stock transfer by ID with transferItems.
+        If direction and location_id are provided, filters by src or des location.
+        """
         try:
-            # ✅ Query Stock_Transfer with explicit foreign key relationships
-            query = (
-                supabase.table("Stock_Transfer")
-                .select(
-                    "stock_transfer_id, transfer_id, transfer_date, stock_transfer_status_id, "
-                    "Stock_Transfer_Status(stock_transfer_status), "
-                    "src_location, des_location, "
-                    "src_location_details:Location!Stock_Transfer_src_location_fkey(location), "
-                    "des_location_details:Location!Stock_Transfer_des_location_fkey(location), "
-                    "Stock_Transfer_Item(stock_transfer_item_id, product_id, ordered_quantity, "
-                    "Products(product_name, Drugs(dosage_form, dosage_strength)))"
-                )
+            query = supabase.table("Stock_Transfer").select(
+                "stock_transfer_id, transfer_id, transfer_date, stock_transfer_status_id, "
+                "Stock_Transfer_Status!inner(stock_transfer_status), "
+                "src_location, src_location_data:Location!src_location(location), "
+                "des_location, des_location_data:Location!des_location(location), "
+                "Stock_Transfer_Item (stock_transfer_item_id, sti_id, ordered_quantity, stock_transfer_item_status_id, "
+                "unit_id, transferred_qty, product_id, Unit (unit), "
+                "Products (product_name, Drugs (dosage_strength, dosage_form)))"
             )
 
-
-            if stock_transfer_id is not None:
+            if stock_transfer_id:
                 query = query.eq("stock_transfer_id", stock_transfer_id).single()
+            elif direction in ["src", "des"] and location_id:
+                location_column = "src_location" if direction == "src" else "des_location"
+                if location_id == 8:
+                    query = query.in_(location_column, [1, 3])
+                else:
+                    query = query.eq(location_column, location_id)
 
             response = query.execute()
 
             if not response.data:
-                return Response({"error": "No Stock Transfer found"}, status=404)
+                return Response({"error": "No stock transfers found"}, status=404)
 
-            stock_transfers = (
-                [response.data] if isinstance(response.data, dict) else response.data
-            )
+            stock_transfers = [response.data] if isinstance(response.data, dict) else response.data
+            formatted_transfers = []
 
-            # ✅ Format response properly
-            formatted_response = [
-                {
+            # Collect product_ids from Stock_Transfer_Item
+            product_ids = {
+                item["product_id"]
+                for transfer in stock_transfers
+                for item in (transfer.get("Stock_Transfer_Item") or [])
+                if item.get("product_id") is not None
+            }
+
+            # Fetch stock quantities based on Expiration table
+            stock_response = supabase.table("Expiration").select(
+                "stock_item_id, quantity"
+            ).in_("stock_item_id", list(product_ids)).filter(
+                "expiry_date", "gte", (datetime.now() + timedelta(days=180)).strftime("%Y-%m-%d")
+            ).execute()
+
+            # Manually sum quantities per stock_item_id
+            stock_items = {}
+            for item in (stock_response.data or []):
+                stock_id = item["stock_item_id"]
+                quantity = item.get("quantity", 0)
+                stock_items[stock_id] = stock_items.get(stock_id, 0) + quantity
+
+
+            for transfer in stock_transfers:
+                formatted_transfer = {
                     "stock_transfer_id": transfer["stock_transfer_id"],
                     "transfer_id": transfer["transfer_id"],
                     "transfer_date": transfer["transfer_date"],
                     "status_id": transfer["stock_transfer_status_id"],
-                    "stock_transfer_status": transfer.get("Stock_Transfer_Status", {}).get("stock_transfer_status", "Unknown"),  # ✅ Added status name
-                    "src_location_id": transfer["src_location"],  # Location ID
-                    "des_location_id": transfer["des_location"],  # Location ID
-                    "src_location_name": transfer.get("src_location_details", {}).get("location", "Unknown Location"),
-                    "des_location_name": transfer.get("des_location_details", {}).get("location", "Unknown Location"),
-                    "transferItems": [
-                        {
-                            "stock_transfer_item_id": item["stock_transfer_item_id"],
-                            "product_id": item["product_id"],
-                            "ordered_quantity": item["ordered_quantity"],
-                            "product_name": (
-                                f"{item['Products']['product_name']} "
-                                f"{item['Products']['Drugs']['dosage_form']} "
-                                f"{item['Products']['Drugs']['dosage_strength']}".strip()
-                                if item.get("Products", {}).get("Drugs")
-                                else item["Products"]["product_name"]
-                            ),
-                        }
-                        for item in transfer.get("Stock_Transfer_Item", [])
-                    ],
+                    "status": (transfer.get("Stock_Transfer_Status") or {}).get("stock_transfer_status", "Unknown"),
+                    "src_location_id": transfer.get("src_location"),
+                    "src_location_name": (transfer.get("src_location_data") or {}).get("location", "Unknown"),
+                    "des_location_id": transfer.get("des_location"),
+                    "des_location_name": (transfer.get("des_location_data") or {}).get("location", "Unknown"),
+                    "transferItems": [],
                 }
-                for transfer in stock_transfers
-            ]
 
+                for item in transfer.get("Stock_Transfer_Item") or []:
+                    product_id = item.get("product_id")
+                    stock_quantity = stock_items.get(product_id, 0) if product_id is not None else 0
+                    product = item.get("Products") or {}
+                    product_name = product.get("product_name", "Unknown")
+                    drug = product.get("Drugs") or {}
 
-            return Response(
-                formatted_response[0] if stock_transfer_id else formatted_response, status=200
-            )
+                    if drug:
+                        product_name += f" {drug.get('dosage_form', '')} {drug.get('dosage_strength', '')}"
+
+                    formatted_transfer["transferItems"].append({
+                        "stock_transfer_item_id": item["stock_transfer_item_id"],
+                        "sti_id": item.get("sti_id", ""),
+                        "product_id": product_id if product_id is not None else 0,
+                        "product_name": product_name,
+                        "ordered_quantity": item["ordered_quantity"],
+                        "transferred_qty": item.get("transferred_qty", 0),
+                        "stock_transfer_item_status_id": item.get("stock_transfer_item_status_id", "Unknown"),
+                        "unit_id": item.get("unit_id", "N/A"),
+                        "unit": (item.get("Unit") or {}).get("unit", "N/A"),
+                        "current_stock_quantity": stock_quantity
+                    })
+
+                formatted_transfers.append(formatted_transfer)
+
+            return Response(formatted_transfers if stock_transfer_id is None else formatted_transfers[0], status=200)
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
 
-        
-    # def get(self, request, stock_transfer_id=None):
-    #     """Retrieve all stock transfers or a single stock transfer by ID with transferItems"""
-    #     try:
-    #         query = supabase.table("Stock_Transfer").select(
-    #             "stock_transfer_id, transfer_id, transfer_date, stock_transfer_status_id, "
-    #             "Stock_Transfer_Status!inner(stock_transfer_status), "
-    #             "src_location, src_location_data:Location!src_location(location), "  # Source Location
-    #             "des_location, des_location_data:Location!des_location(location), "  # Destination Location
-    #             "Stock_Transfer_Item (stock_transfer_item_id, sti_id, ordered_quantity, stock_transfer_item_status_id, "
-    #             "unit_id, transferred_qty, product_id, Unit (unit), "
-    #             "Products (product_name, Drugs (dosage_strength, dosage_form)))"
-    #         )
-
-    #         if stock_transfer_id is not None:
-    #             query = query.eq("stock_transfer_id", stock_transfer_id).single()
-
-    #         response = query.execute()
-
-    #         if not response.data:
-    #             return Response({"error": "No stock transfers found"}, status=404)
-
-    #         stock_transfers = [response.data] if isinstance(response.data, dict) else response.data
-    #         formatted_transfers = []
-
-    #         # Collect product_ids to fetch stock quantities, ensuring no None values
-    #         product_ids = {
-    #             item["product_id"]
-    #             for transfer in stock_transfers
-    #             for item in (transfer.get("Stock_Transfer_Item") or [])
-    #             if item.get("product_id") is not None
-    #         }
-
-    #         if product_ids:
-    #             # Fetch stock quantities based on Expiration table
-    #             stock_response = supabase.table("Expiration").select(
-    #                 "stock_item_id, SUM(quantity) as total_quantity"
-    #             ).in_("stock_item_id", list(product_ids)).filter(
-    #                 "expiry_date", "gte", (datetime.now() + timedelta(days=180)).strftime("%Y-%m-%d")
-    #             ).group("stock_item_id").execute()
-
-    #             stock_items = {item["stock_item_id"]: item["total_quantity"] for item in stock_response.data} if stock_response.data else {}
-
-    #         for transfer in stock_transfers:
-    #             stock_transfer_items = transfer.get("Stock_Transfer_Item") or []
-
-    #             formatted_transfer = {
-    #                 "stock_transfer_id": transfer["stock_transfer_id"],
-    #                 "transfer_id": transfer["transfer_id"],
-    #                 "transfer_date": transfer["transfer_date"],
-    #                 "status_id": transfer["stock_transfer_status_id"],
-    #                 "status": (transfer.get("Stock_Transfer_Status") or {}).get("stock_transfer_status", "Unknown"),
-    #                 "src_location_id": transfer.get("src_location"),
-    #                 "src_location_name": (transfer.get("src_location_data") or {}).get("location", "Unknown"),
-    #                 "des_location_id": transfer.get("des_location"),
-    #                 "des_location_name": (transfer.get("des_location_data") or {}).get("location", "Unknown"),
-    #                 "transferItems": [],
-    #             }
-
-    #             for item in stock_transfer_items:
-    #                 product_id = item.get("product_id")
-    #                 stock_quantity = stock_items.get(product_id, 0) if product_id is not None else 0
-    #                 product = item.get("Products") or {}
-    #                 product_name = product.get("product_name", "Unknown")
-    #                 drug = product.get("Drugs") or {}
-
-    #                 if drug:
-    #                     product_name += f" {drug.get('dosage_form', '')} {drug.get('dosage_strength', '')}".strip()
-
-    #                 formatted_transfer["transferItems"].append({
-    #                     "stock_transfer_item_id": item["stock_transfer_item_id"],
-    #                     "sti_id": item.get("sti_id", ""),
-    #                     "product_id": product_id if product_id is not None else 0,
-    #                     "product_name": product_name,
-    #                     "ordered_quantity": item["ordered_quantity"],
-    #                     "transferred_qty": item.get("transferred_qty", 0),
-    #                     "stock_transfer_item_status_id": item.get("stock_transfer_item_status_id", "Unknown"),
-    #                     "unit_id": item.get("unit_id", "N/A"),
-    #                     "unit": (item.get("Unit") or {}).get("unit", "N/A"),
-    #                     "current_stock_quantity": stock_quantity
-    #                 })
-
-    #             formatted_transfers.append(formatted_transfer)
-
-    #         return Response(formatted_transfers if stock_transfer_id is None else formatted_transfers[0], status=200)
-
-    #     except Exception as e:
-    #         return Response({"error": str(e)}, status=500)
-
-
+    
     def post(self, request):
         """Create a new stock transfer with items"""
         try:

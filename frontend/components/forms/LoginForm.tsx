@@ -16,8 +16,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
-import Link from "next/link";
 import service from "@/app/lib/services/session";
+import { getSession } from "next-auth/react";
 
 // Define validation schema
 const formSchema = z.object({
@@ -43,12 +43,24 @@ export default function LoginForm() {
       console.log("Submitting", values);
 
       const res = await service.login(values);
-      console.log(res);
+      console.log("res", res);
 
-      router.push("/dashboard"); // Redirect on successful login
-    } catch (error) {
-      setErrorMessage("Invalid username or password.");
-      console.log(error);
+      const session = await getSession();
+      const userRole = session?.user?.role_name?.toLowerCase();
+
+      // Redirect based on user role
+      if (userRole && ["cashier", "pharmacist"].includes(userRole)) {
+        router.push("/pos"); // Redirect cashiers and pharmacists to POS
+      } else {
+        router.push("/dashboard"); // Redirect other roles to dashboard
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("An error occurred during login");
+      }
+      console.error(error);
     }
   };
 

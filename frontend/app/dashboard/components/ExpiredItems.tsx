@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import type React from "react";
+
+import { useEffect, useState } from "react";
 import {
   AlertCircle,
   ArrowUpDown,
@@ -21,15 +23,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -47,131 +40,60 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-// Sample data for items expiring this month
-const initialExpiringItems = [
-  {
-    id: "INV001",
-    name: "Vitamin C Tablets",
-    category: "Supplements",
-    quantity: 25,
-    location: "Shelf A2",
-    expiryDate: "2025-04-15",
-    daysRemaining: 14,
-  },
-  {
-    id: "INV002",
-    name: "Organic Milk",
-    category: "Dairy",
-    quantity: 12,
-    location: "Fridge B1",
-    expiryDate: "2025-04-20",
-    daysRemaining: 19,
-  },
-  {
-    id: "INV003",
-    name: "Whole Wheat Bread",
-    category: "Bakery",
-    quantity: 8,
-    location: "Shelf C3",
-    expiryDate: "2025-04-10",
-    daysRemaining: 9,
-  },
-  {
-    id: "INV004",
-    name: "Chicken Broth",
-    category: "Canned Goods",
-    quantity: 15,
-    location: "Shelf D4",
-    expiryDate: "2025-04-05",
-    daysRemaining: 4,
-  },
-  {
-    id: "INV005",
-    name: "Greek Yogurt",
-    category: "Dairy",
-    quantity: 20,
-    location: "Fridge B2",
-    expiryDate: "2025-04-28",
-    daysRemaining: 27,
-  },
-];
-
-// Sample data for low stock items
-const initialLowStockItems = [
-  {
-    id: "INV006",
-    name: "Protein Powder",
-    category: "Supplements",
-    quantity: 3,
-    reorderLevel: 10,
-    location: "Shelf A3",
-    supplier: "Health Essentials Inc.",
-  },
-  {
-    id: "INV007",
-    name: "Almond Milk",
-    category: "Dairy Alternatives",
-    quantity: 5,
-    reorderLevel: 15,
-    location: "Fridge B3",
-    supplier: "Organic Farms Co.",
-  },
-  {
-    id: "INV008",
-    name: "Brown Rice",
-    category: "Grains",
-    quantity: 4,
-    reorderLevel: 12,
-    location: "Shelf E2",
-    supplier: "Wholesome Foods Ltd.",
-  },
-  {
-    id: "INV009",
-    name: "Olive Oil",
-    category: "Oils",
-    quantity: 2,
-    reorderLevel: 8,
-    location: "Shelf F1",
-    supplier: "Mediterranean Imports",
-  },
-];
-
-// Sample sales data
+import { Expiration, StockItem } from "@/app/lib/types/inventory/products";
+import { getExpirations, getLowStock } from "@/app/lib/services/inventory";
+import Link from "next/link";
+import DisposeExpiryDialog from "./DisposeExpiry";
 
 export function InventoryDashboard() {
-  const [expiringItems, setExpiringItems] = useState(initialExpiringItems);
-  const [lowStockItems, setLowStockItems] = useState(initialLowStockItems);
+  // const [expiringItems, setExpiringItems] = useState<Products[]>([]);
+  const [lowStockItems, setLowStockItems] = useState<StockItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [isStockOutDialogOpen, setIsStockOutDialogOpen] = useState(false);
+  const [expirations, setExpirations] = useState<Expiration[]>([]);
   const [activeTab, setActiveTab] = useState("expiring");
+  const [loading, setLoading] = useState(true); // Loading state
+  const [error, setError] = useState<string | null>(null); // Error state
 
-  // Filter items based on search query and active tab
-  const filteredExpiringItems = expiringItems.filter(
-    (item) =>
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredLowStockItems = lowStockItems.filter(
-    (item) =>
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Handle stock out action
-  const handleStockOut = () => {
-    if (selectedItem) {
-      setExpiringItems(
-        expiringItems.filter((item) => item.id !== selectedItem.id)
-      );
-      setIsStockOutDialogOpen(false);
-      setSelectedItem(null);
+  const refreshData = async () => {
+    setLoading(true);
+    try {
+      const data = await getLowStock();
+      setLowStockItems(data);
+      const expirations = await getExpirations();
+      setExpirations(expirations);
+      setError(null);
+      console.log("EXPIRATIONS API RESPONSE:", expirations);
+    } catch (err) {
+      console.error("Error fetching low stock items:", err);
+      setError("Failed to load low stock items");
+      setLowStockItems([]);
+      setExpirations([]);
+    } finally {
+      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    refreshData();
+  }, []);
+
+  // Log the active tab whenever it changes
+  useEffect(() => {
+    console.log("Active tab changed:", activeTab);
+  }, [activeTab]);
+
+  // Filter expirations based on search query
+  const filteredExpirations = expirations.filter((item) =>
+    item.Stock_Item.Product.full_product_name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
+  );
+
+  const filteredLowStockItems = lowStockItems.filter((item) =>
+    item.product_details.full_product_name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -181,8 +103,8 @@ export function InventoryDashboard() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Expiring Items</AlertTitle>
           <AlertDescription>
-            You have {expiringItems.length} items expiring this month that need
-            attention.
+            You have {expirations.length} items expiring that need attention.
+            {error && <p className="text-sm mt-1 text-red-500">{error}</p>}
           </AlertDescription>
         </Alert>
 
@@ -190,8 +112,7 @@ export function InventoryDashboard() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Low Stock Alert</AlertTitle>
           <AlertDescription>
-            You have {lowStockItems.length} items below reorder level that need
-            restocking.
+            You have items below reorder level that need restocking.
           </AlertDescription>
         </Alert>
       </div>
@@ -231,6 +152,15 @@ export function InventoryDashboard() {
 
             {/* Expiring Items Tab */}
             <TabsContent value="expiring">
+              {/* Show error message if there is one */}
+              {/* {error && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )} */}
+
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
@@ -242,9 +172,7 @@ export function InventoryDashboard() {
                           <ArrowUpDown className="h-3 w-3" />
                         </div>
                       </TableHead>
-                      <TableHead className="hidden md:table-cell">
-                        Category
-                      </TableHead>
+
                       <TableHead className="text-center">Quantity</TableHead>
                       <TableHead className="hidden md:table-cell">
                         Location
@@ -262,24 +190,29 @@ export function InventoryDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredExpiringItems.length === 0 ? (
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-6">
+                          Loading expiry data...
+                        </TableCell>
+                      </TableRow>
+                    ) : error ? (
                       <TableRow>
                         <TableCell
-                          colSpan={8}
+                          colSpan={7}
                           className="text-center py-6 text-muted-foreground"
                         >
-                          No items expiring this month.
+                          Loading expiry data...
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredExpiringItems.map((item) => (
-                        <TableRow key={item.id}>
+                      filteredExpirations.map((item) => (
+                        <TableRow key={item.expiration_id}>
                           <TableCell className="font-medium">
-                            {item.id}
+                            EXP{item.expiration_id.toString().padStart(3, "0")}
                           </TableCell>
-                          <TableCell>{item.name}</TableCell>
-                          <TableCell className="hidden md:table-cell">
-                            {item.category}
+                          <TableCell>
+                            {item.Stock_Item.Product.full_product_name}
                           </TableCell>
                           <TableCell className="text-center">
                             {item.quantity}
@@ -287,120 +220,25 @@ export function InventoryDashboard() {
                           <TableCell className="hidden md:table-cell">
                             {item.location}
                           </TableCell>
-                          <TableCell>{item.expiryDate}</TableCell>
+                          <TableCell>{item.expiry_date}</TableCell>
                           <TableCell className="text-center">
                             <Badge
                               variant={
-                                item.daysRemaining <= 7
+                                item.days_until_expiry < 0
                                   ? "destructive"
-                                  : item.daysRemaining <= 14
-                                  ? "secondary"
-                                  : "outline"
+                                  : "secondary"
                               }
                             >
-                              {item.daysRemaining} days
+                              {item.days_until_expiry < 0
+                                ? "Expired"
+                                : `${item.days_until_expiry} days`}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Dialog
-                              open={
-                                isStockOutDialogOpen &&
-                                selectedItem?.id === item.id
-                              }
-                              onOpenChange={(open) => {
-                                setIsStockOutDialogOpen(open);
-                                if (!open) setSelectedItem(null);
-                              }}
-                            >
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                    <span className="sr-only">Open menu</span>
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                  <DropdownMenuSeparator />
-                                  <DialogTrigger asChild>
-                                    <DropdownMenuItem
-                                      onClick={() => setSelectedItem(item)}
-                                    >
-                                      Stock Out
-                                    </DropdownMenuItem>
-                                  </DialogTrigger>
-                                  <DropdownMenuItem>
-                                    View Details
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem>
-                                    Print Label
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>
-                                    Stock Out Confirmation
-                                  </DialogTitle>
-                                  <DialogDescription>
-                                    Are you sure you want to stock out this item
-                                    before it expires?
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="py-4">
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                      <p className="text-sm font-medium text-muted-foreground">
-                                        Item ID
-                                      </p>
-                                      <p className="text-sm">
-                                        {selectedItem?.id}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <p className="text-sm font-medium text-muted-foreground">
-                                        Name
-                                      </p>
-                                      <p className="text-sm">
-                                        {selectedItem?.name}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <p className="text-sm font-medium text-muted-foreground">
-                                        Quantity
-                                      </p>
-                                      <p className="text-sm">
-                                        {selectedItem?.quantity}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <p className="text-sm font-medium text-muted-foreground">
-                                        Expiry Date
-                                      </p>
-                                      <p className="text-sm">
-                                        {selectedItem?.expiryDate}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-                                <DialogFooter>
-                                  <Button
-                                    variant="outline"
-                                    onClick={() =>
-                                      setIsStockOutDialogOpen(false)
-                                    }
-                                  >
-                                    Cancel
-                                  </Button>
-                                  <Button
-                                    variant="destructive"
-                                    onClick={handleStockOut}
-                                  >
-                                    Confirm Stock Out
-                                  </Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
+                            <DisposeExpiryDialog
+                              expiration={item}
+                              onSuccess={refreshData}
+                            />
                           </TableCell>
                         </TableRow>
                       ))
@@ -416,34 +254,24 @@ export function InventoryDashboard() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[100px]">ID</TableHead>
                       <TableHead>
                         <div className="flex items-center gap-1">
                           Item Name
                           <ArrowUpDown className="h-3 w-3" />
                         </div>
                       </TableHead>
-                      <TableHead className="hidden md:table-cell">
-                        Category
-                      </TableHead>
                       <TableHead className="text-center">Quantity</TableHead>
-                      <TableHead className="text-center">
-                        Reorder Level
-                      </TableHead>
                       <TableHead className="hidden md:table-cell">
                         Location
-                      </TableHead>
-                      <TableHead className="hidden md:table-cell">
-                        Supplier
                       </TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredLowStockItems.length === 0 ? (
+                    {lowStockItems.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={8}
+                          colSpan={4}
                           className="text-center py-6 text-muted-foreground"
                         >
                           No low stock items found.
@@ -451,25 +279,15 @@ export function InventoryDashboard() {
                       </TableRow>
                     ) : (
                       filteredLowStockItems.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">
-                            {item.id}
-                          </TableCell>
-                          <TableCell>{item.name}</TableCell>
-                          <TableCell className="hidden md:table-cell">
-                            {item.category}
+                        <TableRow key={item.product_id}>
+                          <TableCell>
+                            {item.product_details.full_product_name}
                           </TableCell>
                           <TableCell className="text-center">
                             <Badge variant="destructive">{item.quantity}</Badge>
                           </TableCell>
-                          <TableCell className="text-center">
-                            {item.reorderLevel}
-                          </TableCell>
                           <TableCell className="hidden md:table-cell">
-                            {item.location}
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell">
-                            {item.supplier}
+                            {item.location_name}
                           </TableCell>
                           <TableCell className="text-right">
                             <DropdownMenu>
@@ -482,12 +300,13 @@ export function InventoryDashboard() {
                               <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem>Reorder</DropdownMenuItem>
                                 <DropdownMenuItem>
-                                  View Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  Contact Supplier
+                                  <Link
+                                    href={`/purchase-orders/create`}
+                                    className="w-full cursor-pointer"
+                                  >
+                                    Reorder
+                                  </Link>
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -502,8 +321,6 @@ export function InventoryDashboard() {
           </Tabs>
         </CardContent>
       </Card>
-
-      {/* Recent Sales Transactions */}
     </div>
   );
 }

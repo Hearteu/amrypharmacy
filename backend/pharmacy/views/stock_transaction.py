@@ -11,47 +11,220 @@ supabase = get_supabase_client()
 #Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
 
 class StockTransaction(APIView):
-    def get(self, request, stock_transaction_id=None):
+    
+    def get(self, request):
         try:
-            # Fetch Stock_Transaction records
-            query = supabase.table('Stock_Transaction').select('*')
-            if stock_transaction_id is not None:
-                query = query.eq('stock_transaction_id', stock_transaction_id)
-            
-            stock_transactions = query.execute()
+            transaction_type = request.query_params.get('transaction_type')
+            order_type = request.query_params.get('order_type')
+            branch = request.query_params.get('branch')
 
+            query = supabase.table('Stock_Transaction').select('*')
+            if transaction_type:
+                query = query.ilike('transaction_type', transaction_type)
+
+            stock_transactions = query.execute()
             if not stock_transactions.data:
                 return Response({"error": "No Stock_Transaction found"}, status=404)
 
-            # Extract stock_item_ids
-            stock_item_ids = list(set(st['stock_item_id'] for st in stock_transactions.data))
+            filtered_transactions = []
+            pos_ids = set()
+            src_location_ids = set()
+            
+            # To track which POS IDs we've already processed
+            processed_pos_ids = set()
 
-            # Fetch related Stock_Item records
-            stock_items_query = supabase.table('Stock_Item').select('*').in_('stock_item_id', stock_item_ids)
-            stock_items = stock_items_query.execute()
+            # Special case for branch 8: include transactions from branches 1 and 3
+            branch_filter = []
+            if branch == "8":
+                branch_filter = ["1", "3"]  # Include transactions from branches 1 and 3
+            elif branch:
+                branch_filter = [branch]    # Just filter for the requested branch
+            
+            
+            for txn in stock_transactions.data:
+                # Skip if src_location doesn't match our branch filter
+                if branch and str(txn.get('src_location')) not in branch_filter and branch_filter:
+                    continue
+                
+                # For POS transactions, we'll only include the first one we encounter for each POS ID
+                if txn.get('transaction_type', '').lower() == 'pos':
+                    ref_id = txn['reference_id']
+                    
+                    # Skip this transaction if we've already processed this POS ID
+                    if ref_id in processed_pos_ids:
+                        continue
+                    
+                    # Mark this POS ID as processed
+                    processed_pos_ids.add(ref_id)
+                    pos_ids.add(ref_id)
+                
+                if txn.get('src_location'):
+                    src_location_ids.add(txn['src_location'])
+                
+                filtered_transactions.append(txn)
 
-            # Extract product_ids
-            product_ids = list(set(si['product_id'] for si in stock_items.data))
+            if not filtered_transactions:
+                return Response({"error": "No Stock_Transaction matched filters"}, status=404)
 
-            # Fetch related Product records
-            products_query = supabase.table('Products').select('*').in_('product_id', product_ids)
-            products = products_query.execute()
+            # POS
+            pos_list = supabase.table('POS').select('*').in_('pos_id', list(pos_ids)).execute().data
+            pos_map = {pos['pos_id']: pos for pos in pos_list}
 
-            # Map stock items and products
-            stock_item_map = {si['stock_item_id']: si for si in stock_items.data}
-            product_map = {p['product_id']: p for p in products.data}
+            # Filter by order_type
+            if order_type:
+                filtered_transactions = [
+                    txn for txn in filtered_transactions
+                    if txn['transaction_type'].lower() != 'pos'
+                    or (
+                        txn['reference_id'] in pos_map and
+                        pos_map[txn['reference_id']].get('order_type', '').lower() == order_type.lower()
+                    )
+                ]
 
-            # Attach stock item and product details to transactions
-            for transaction in stock_transactions.data:
-                stock_item = stock_item_map.get(transaction['stock_item_id'])
-                if stock_item:
-                    transaction['stock_item'] = stock_item
-                    transaction['product'] = product_map.get(stock_item['product_id'], {})
+            # POS Items
+            pos_item_data = supabase.table('POS_Item').select('*, Products(*, Drugs(*))').in_('pos_id', list(pos_ids)).execute().data
+            pos_items_by_pos = {}
+            for item in pos_item_data:
+                pos_id = item['pos_id']
+                product = item.get("Products") or {}
+                drugs = product.get("Drugs") or {}
+                dosage = f"{drugs.get('dosage_form', '')} {drugs.get('dosage_strength', '')}".strip()
+                full_name = f"{product.get('product_name', 'Unknown Product')} {dosage}".strip()
+                total_price = item["quantity_sold"] * item["price"]
+                formatted_item = {
+                    "pos_item_id": item["pos_item_id"],
+                    "product_id": product.get("product_id", "N/A"),
+                    "full_product_name": full_name,
+                    "quantity": item["quantity_sold"],
+                    "price": item["price"],
+                    "total_price": total_price
+                }
+                pos_items_by_pos.setdefault(pos_id, []).append(formatted_item)
 
-            return Response(stock_transactions.data, status=200)
+            dswd_orders = supabase.table('Dswd_Order').select('*').in_('pos_id', list(pos_ids)).execute().data
+            dswd_map = {order['pos_id']: order for order in dswd_orders}
+            
+            
+            # Prescriptions
+            prescription_ids = [pos['prescription_id'] for pos in pos_list if pos.get('prescription_id')]
+            prescriptions = supabase.table('Prescription').select('*').in_('prescription_id', prescription_ids).execute().data
+            prescription_map = {p['prescription_id']: p for p in prescriptions}
+
+            # Customers
+            customer_ids = [p['customer_id'] for p in prescriptions if p.get('customer_id')]
+            customers = supabase.table('Customers').select('*').in_('customer_id', customer_ids).execute().data
+            customer_map = {c['customer_id']: c for c in customers}
+
+            # Customer Types
+            customer_type_ids = [c['customer_type_id'] for c in customers if c.get('customer_type_id')]
+            customer_types = supabase.table('Customer_Type').select('customer_type_id, discount').in_('customer_type_id', customer_type_ids).execute().data
+            customer_type_map = {ct['customer_type_id']: ct for ct in customer_types}
+
+            # Persons for customers
+            person_ids = [c['person_id'] for c in customers if c.get('person_id')]
+            persons = supabase.table('Person').select('*').in_('person_id', person_ids).execute().data
+            person_map = {p['person_id']: p for p in persons}
+
+            # Physicians and their persons
+            physician_ids = [p['physician_id'] for p in prescriptions if p.get('physician_id')]
+            physicians = supabase.table('Physician').select('*').in_('physician_id', physician_ids).execute().data
+            physician_map = {d['physician_id']: d for d in physicians}
+
+            physician_person_ids = [d['person_id'] for d in physicians if d.get('person_id')]
+            physician_persons = supabase.table('Person').select('*').in_('person_id', physician_person_ids).execute().data
+            physician_person_map = {p['person_id']: p for p in physician_persons}
+
+            # Locations
+            locations = supabase.table('Location').select('*').in_('location_id', list(src_location_ids)).execute().data
+            location_map = {l['location_id']: l['location'] for l in locations}
+
+            def format_dswd_details(dswd):
+                return {
+                    "dswd_order_id": dswd.get("dswd_order_id"),
+                    "gl_num": dswd.get("gl_num"),
+                    "gl_date": dswd.get("gl_date"),
+                    "claim_date": dswd.get("claim_date"),
+                    "client_name": dswd.get("client_name"),
+                    "customer_id": dswd.get("customer_id")
+                }
+                
+                
+            # Attach related data
+            for txn in filtered_transactions:
+                txn.pop('stock_item', None)
+
+                # Format transaction_date to a readable format
+                if 'transaction_date' in txn and txn['transaction_date']:
+                    try:
+                        # Parse the timestamp (it might already be a datetime object or string)
+                        if isinstance(txn['transaction_date'], str):
+                            dt = datetime.fromisoformat(txn['transaction_date'].replace('Z', '+00:00'))
+                        else:
+                            dt = txn['transaction_date']
+                            
+                        # Format as MM/DD/YYYY HH:MM AM/PM
+                        txn['transaction_date'] = dt.strftime('%m/%d/%Y %I:%M %p')
+                    except Exception as e:
+                        # Keep original if formatting fails
+                        print(f"Error formatting date: {e}")
+                
+                # Location name
+                txn['src_location_name'] = location_map.get(txn.get('src_location'))
+
+                # POS
+                pos = pos_map.get(txn['reference_id'])
+                if pos:
+                    pos['pos_items'] = pos_items_by_pos.get(pos['pos_id'], [])
+                    if "pos_items" in pos:
+                        pos["total_amount"] = round(sum(item.get("total_price", 0) for item in pos["pos_items"]), 2)
+                    txn['pos'] = pos
+                    
+                    if pos.get('pos_id') in dswd_map:
+                        txn['dswd_details'] = format_dswd_details(dswd_map[pos['pos_id']])
+                    
+                    # Prescription
+                    if pos.get('prescription_id'):
+                        prescription = prescription_map.get(pos['prescription_id'])
+                        if prescription:
+                            # Physician
+                            if prescription.get('physician_id'):
+                                physician = physician_map.get(prescription['physician_id'])
+                                if physician:
+                                    phys_person_id = physician.get("person_id")
+                                    person = physician_person_map.get(phys_person_id) if phys_person_id in physician_person_map else {}
+                                    physician.update({
+                                        "name": f"{person.get('first_name', '')} {person.get('last_name', '')}".strip(),
+                                        "address": person.get("address"),
+                                        "contact": person.get("contact"),
+                                        "email": person.get("email")
+                                    })
+                                    physician.pop("person_id", None)
+                                    prescription["physician"] = physician
+                            txn["prescription"] = prescription
+
+                            # Customer
+                            if prescription.get('customer_id'):
+                                customer = customer_map.get(prescription['customer_id'])
+                                if customer:
+                                    person_id = customer.get("person_id")
+                                    person = person_map.get(person_id) if person_id in person_map else {}
+                                    customer_type = customer_type_map.get(customer.get("customer_type_id"))
+                                    discount_rate = round((customer_type["discount"] / 100), 2) if customer_type and "discount" in customer_type else 0.0
+                                    customer.update({
+                                        "name": f"{person.get('first_name', '')} {person.get('last_name', '')}".strip(),
+                                        "address": person.get("address"),
+                                        "contact": person.get("contact"),
+                                        "email": person.get("email"),
+                                        "discountRate": discount_rate
+                                    })
+                                    customer.pop("person_id", None)
+                                    txn["customer"] = customer
+
+            return Response(filtered_transactions, status=200)
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
 
 
     def post(self, request):

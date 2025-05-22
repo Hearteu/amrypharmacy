@@ -10,10 +10,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosResponse } from "axios";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Check, ChevronsUpDown } from "lucide-react";
@@ -26,171 +24,82 @@ import {
   CommandList,
 } from "../ui/command";
 import { cn } from "@/lib/utils";
-
-// Define form validation schema
-const formSchema = z.object({
-  first_name: z
-    .string()
-    .min(2, { message: "First name must be at least 2 characters." }),
-  last_name: z
-    .string()
-    .min(2, { message: "Last name must be at least 2 characters." }),
-  address: z
-    .string()
-    .min(5, { message: "Address must be at least 5 characters." }),
-  contact: z
-    .string()
-    .regex(/^\d{10}$/, { message: "Contact must be a valid 10-digit number." }),
-  email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().optional(),
-  role_id: z.string().optional(),
-});
+import { Location } from "@/app/lib/types/location";
+import { Users } from "@/app/lib/types/persons";
+import { getRoleData, getUserData } from "@/app/lib/services/Persons";
+import { fetchUserLocations } from "@/app/lib/services/location";
+import {
+  UserFormSchema,
+  useUserForm,
+} from "@/app/lib/services/schemas/personSchema";
+import {
+  Select,
+  SelectItem,
+  SelectValue,
+  SelectContent,
+  SelectTrigger,
+} from "../ui/select";
 
 interface EditUserFormProps {
   user_id: number;
   onSuccess: (data: AxiosResponse) => void;
 }
 
-interface Person {
-  person_id: "";
-  first_name: "";
-  last_name: "";
-  address: "";
-  contact: "";
-  email: "";
-}
-
-interface User{
-  user_id: "";
-  username: "";
-  person_id: "";
-  role_id: "";
-}
 interface Role {
   role_id: number;
   role_name: string;
 }
 
-export default function EditUserForm({ user_id, onSuccess }: EditUserFormProps) {
-  const [userData, setUserData] = useState<User | null>(null);
-  const [personData, setPersonData] = useState<Person | null>(null);
-  const [roleData, setRoleData] = useState<Role | null>(null);
-  const [open, setOpen] = useState(false);
+export default function EditUserForm({
+  user_id,
+  onSuccess,
+}: EditUserFormProps) {
+  const [userData, setUserData] = useState<Users | null>(null);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      first_name: "",
-      last_name: "",
-      address: "",
-      contact: "",
-      email: "",
-      password: "",
-      role_id: "",
-    },
-    mode: "onChange",
-  });
+  const { form, resetForm } = useUserForm(userData);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const API_BASE_URL = "http://127.0.0.1:8000/pharmacy";
+    resetForm();
+  }, [userData]);
 
-        // Step 1: Fetch user data
-        const userResponse = await axios.get(
-          `${API_BASE_URL}/users/${user_id}/`,
-        );
-        const userArray = userResponse.data;
-
-        // ✅ Ensure we get the first object if API returns an array
-        const user = Array.isArray(userArray) ? userArray[0] : userArray;
-
-        setUserData(user);
-
-        // Step 2: Fetch person data ONLY IF person_id exists
-        if (user.person_id) {
-          const personResponse = await axios.get(
-            `${API_BASE_URL}/persons/${user.person_id}/`,
-          );
-          if (
-            Array.isArray(personResponse.data) &&
-            personResponse.data.length > 0
-          ) {
-            setPersonData(personResponse.data[0]); // ✅ Extract first object
-          }
-        }
-
-        // Step 3: Fetch role data ONLY IF role_id exists
-        if (user.role_id) {
-          const roleResponse = await axios.get(
-            `${API_BASE_URL}/roles/${user.role_id}/`,
-          );
-          if (
-            Array.isArray(roleResponse.data) &&
-            roleResponse.data.length > 0
-          ) {
-            setRoleData(roleResponse.data[0]); // ✅ Extract first object
-          }
-        }
-
-        console.log(userData)
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    if (user_id) {
-      fetchData();
-    }
-  }, [user_id]);
-
+  const [locationData, setLocationData] = useState<Location[]>([]);
+  const [open, setOpen] = useState(false);
+  const [openLocation, setOpenLocation] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
 
+  const refreshData = async () => {
+    try {
+      const userData = await getUserData({ user_id });
+      setUserData(userData);
+      console.log("indiv data", userData);
+      const roles = await getRoleData();
+      setRoles(roles);
+      const location = await fetchUserLocations();
+      setLocationData(location);
+    } catch (error) {
+      console.error("Error fetching data", error);
+      setRoles([]);
+      setLocationData([]);
+    }
+  };
+
   useEffect(() => {
-    const fetchRole = async () => {
-      try {
-        const roleRes = await fetch("http://127.0.0.1:8000/pharmacy/roles/");
-        const rolesData: Role[] = await roleRes.json();
-        console.log("Fetched Roles:", rolesData); // Log the fetched data
-
-        setRoles(rolesData);
-        console.log(userData)
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-
-    fetchRole();
+    refreshData();
   }, []);
 
-  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+  const onSubmit = async (data: z.infer<typeof UserFormSchema>) => {
     console.log(data);
     try {
       const response = await axios.put(
         `http://127.0.0.1:8000/pharmacy/users/${user_id}/`,
-        data,
+        data
       );
-      onSuccess(response)
+      onSuccess(response);
     } catch (error) {
       console.error("Error submitting form:", error);
     }
   };
 
-  useEffect(() => {
-    if (personData) {
-      form.reset({
-        first_name: personData.first_name || "",
-        last_name: personData.last_name || "",
-        address: personData.address || "",
-        contact: String(personData.contact) || "",
-        email: personData.email || "",
-        password: "", // Always keep empty for security
-        role_id: String(roleData?.role_id) || "",
-      });
-    }
-  }, [personData, roleData, form]);
-
-    console.log("Roles:",roles)
   return (
     <>
       <Form {...form}>
@@ -297,12 +206,13 @@ export default function EditUserForm({ user_id, onSuccess }: EditUserFormProps) 
                         role="combobox"
                         className={cn(
                           "w-[200px] justify-between",
-                          !field.value && "text-muted-foreground",
+                          !field.value && "text-muted-foreground"
                         )}
                       >
                         {
-                          roles.find((role) => role.role_id.toString() == field.value)
-                            ?.role_name
+                          roles.find(
+                            (role) => role.role_id.toString() == field.value
+                          )?.role_name
                         }
                         <ChevronsUpDown className="opacity-50" />
                       </Button>
@@ -327,13 +237,13 @@ export default function EditUserForm({ user_id, onSuccess }: EditUserFormProps) 
                                   role.role_name,
                                   " (ID:",
                                   role.role_id,
-                                  ")",
+                                  ")"
                                 );
                                 field.onChange(role.role_id.toString());
                                 setOpen(false);
                                 console.log(
                                   "🔄 Updated Form Value:",
-                                  form.getValues("role_id"),
+                                  form.getValues("role_id")
                                 );
                               }}
                             >
@@ -343,7 +253,7 @@ export default function EditUserForm({ user_id, onSuccess }: EditUserFormProps) 
                                   "ml-auto",
                                   role.role_name === field.value
                                     ? "opacity-100"
-                                    : "opacity-0",
+                                    : "opacity-0"
                                 )}
                               />
                             </CommandItem>
@@ -353,6 +263,114 @@ export default function EditUserForm({ user_id, onSuccess }: EditUserFormProps) 
                     </Command>
                   </PopoverContent>
                 </Popover>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="location_id"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Location:</FormLabel>
+                <Popover open={openLocation} onOpenChange={setOpenLocation}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "w-[200px] justify-between",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {
+                          locationData.find(
+                            (location) =>
+                              location.location_id.toString() == field.value
+                          )?.location
+                        }
+                        <ChevronsUpDown className="opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search role..."
+                        className="h-9"
+                      />
+                      <CommandList>
+                        <CommandEmpty>No roles found.</CommandEmpty>
+                        <CommandGroup>
+                          {locationData.map((location) => (
+                            <CommandItem
+                              key={location.location_id}
+                              value={location.location}
+                              onSelect={() => {
+                                console.log(
+                                  "✅ Location Selected:",
+                                  location.location,
+                                  " (ID:",
+                                  location.location_id,
+                                  ")"
+                                );
+                                field.onChange(location.location_id.toString());
+                                setOpenLocation(false);
+                                console.log(
+                                  "🔄 Updated Form Value:",
+                                  form.getValues("location_id")
+                                );
+                              }}
+                            >
+                              {location.location}
+                              <Check
+                                className={cn(
+                                  "ml-auto",
+                                  location.location === field.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem className="w-[200px]">
+                <FormLabel>Status:</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder="Select status"
+                        className="capitalize"
+                      >
+                        {field.value
+                          ? field.value.charAt(0).toUpperCase() +
+                            field.value.slice(1)
+                          : "Select status"}
+                      </SelectValue>
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
               </FormItem>
             )}
           />

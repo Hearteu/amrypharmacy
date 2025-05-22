@@ -27,7 +27,6 @@ interface DSWDFormProps {
     guaranteeLetterNo: string;
     guaranteeLetterDate: string;
     receivedDate: string;
-    invoiceNumber: string;
   };
   setCustomerInfo: React.Dispatch<
     React.SetStateAction<{
@@ -36,7 +35,6 @@ interface DSWDFormProps {
       guaranteeLetterNo: string;
       guaranteeLetterDate: string;
       receivedDate: string;
-      invoiceNumber: string;
     }>
   >;
 }
@@ -91,7 +89,6 @@ export function DSWDForm({ customerInfo, setCustomerInfo }: DSWDFormProps) {
             onChange={(e) =>
               setCustomerInfo({ ...customerInfo, patient_name: e.target.value })
             }
-            placeholder="Juan Dela Cruz"
           />
         </div>
         <div className="grid gap-2">
@@ -102,7 +99,6 @@ export function DSWDForm({ customerInfo, setCustomerInfo }: DSWDFormProps) {
             onChange={(e) =>
               setCustomerInfo({ ...customerInfo, client_name: e.target.value })
             }
-            placeholder="Juan Dela Cruz"
           />
         </div>
         <div className="grid gap-2">
@@ -116,7 +112,6 @@ export function DSWDForm({ customerInfo, setCustomerInfo }: DSWDFormProps) {
                 guaranteeLetterNo: e.target.value,
               })
             }
-            placeholder="GL-12345-2023"
           />
         </div>
         <div className="grid gap-2">
@@ -170,20 +165,6 @@ export function DSWDForm({ customerInfo, setCustomerInfo }: DSWDFormProps) {
               />
             </PopoverContent>
           </Popover>
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="contact">Invoice Number</Label>
-          <Input
-            id="contact"
-            value={customerInfo.invoiceNumber}
-            onChange={(e) =>
-              setCustomerInfo({
-                ...customerInfo,
-                invoiceNumber: e.target.value,
-              })
-            }
-            placeholder="09XX-XXX-XXXX"
-          />
         </div>
       </div>
     </>

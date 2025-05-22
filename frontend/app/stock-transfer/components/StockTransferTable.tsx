@@ -42,21 +42,29 @@ import { StockTransfer } from "@/app/lib/types/stock-transfer";
 import { getStockTransfer } from "@/app/lib/services/stock-transfer";
 import { DataTableLoading } from "@/components/data-table/DataTableLoading";
 import axios from "axios";
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 const statusMap: Record<number, string> = {
   1: "Draft",
-  2: "Processing ",
-  3: "In Transit",
+  2: "In Transit",
+  3: "Delayed",
   4: "Completed",
   5: "Cancelled",
+  6: "Processing",
 };
 
 const statusColorMap: Record<string, string> = {
   Draft: "gray",
-  Ordered: "yellow",
+  "In Transit": "yellow",
   Delayed: "orange",
   Completed: "green",
   Cancelled: "red",
+  Processing: "blue",
 };
 
 export default function StockTransferTable() {
@@ -105,8 +113,8 @@ export default function StockTransferTable() {
     console.log(orderId);
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/pharmacy/stock-transfer/${orderId}/`,
-        { purchase_order_status_id: 2 },
+        `http://127.0.0.1:8000/pharmacy/stock-transfers/${orderId}/`,
+        { stock_transfer_status_id: 6 },
         { headers: { "Content-Type": "application/json" } }
       );
 
@@ -123,8 +131,8 @@ export default function StockTransferTable() {
     console.log(orderId);
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/pharmacy/stock-transfer/${orderId}/`,
-        { purchase_order_status_id: 3 },
+        `http://127.0.0.1:8000/pharmacy/stock-transfers/${orderId}/`,
+        { stock_transfer_status_id: 2 },
         { headers: { "Content-Type": "application/json" } }
       );
 
@@ -167,7 +175,7 @@ export default function StockTransferTable() {
       header: "To",
     },
     {
-      accessorKey: "status",
+      accessorKey: "status_id",
       header: ({ column }) => (
         <Button
           variant="ghost"
@@ -177,6 +185,7 @@ export default function StockTransferTable() {
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
+      filterFn: "weakEquals",
       cell: ({ row }) => {
         const statusId = row.original.status_id;
         const statusName = statusMap[statusId] ?? "Unknown";
@@ -192,6 +201,7 @@ export default function StockTransferTable() {
                 color === "orange",
               "bg-green-100 text-green-800 border-green-200": color === "green",
               "bg-red-100 text-red-800 border-red-200": color === "red",
+              "bg-blue-100 text-blue-800 border-blue-200": color === "blue",
             })}
           >
             {statusName}
@@ -234,7 +244,7 @@ export default function StockTransferTable() {
                   href={`/stock-transfer/${stock_transfer.stock_transfer_id}/edit`}
                   className={cn(
                     "flex w-full",
-                    stock_transfer.status_id === 4 &&
+                    stock_transfer.status_id !== 1 &&
                       "pointer-events-none opacity-50"
                   )}
                 >
@@ -274,6 +284,7 @@ export default function StockTransferTable() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [statusFilter, setStatusFilter] = useState<string>("all"); // ✅ Track selected status
 
   const table = useReactTable({
     data: stockTransfer,
@@ -308,6 +319,40 @@ export default function StockTransferTable() {
           }
           className="max-w-sm"
         />
+
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => {
+            setStatusFilter(value);
+
+            if (value === "all") {
+              table.getColumn("status_id")?.setFilterValue(undefined);
+            } else {
+              const numericValue = Number(value);
+              if (!isNaN(numericValue)) {
+                table.getColumn("status_id")?.setFilterValue([numericValue]);
+              } else {
+                console.error("Invalid status value:", value);
+              }
+            }
+          }}
+        >
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Filter by Status">
+              {statusFilter === "all"
+                ? "All"
+                : statusMap[Number(statusFilter)] ?? "Select Status"}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            {Object.entries(statusMap).map(([id, name]) => (
+              <SelectItem key={id} value={id}>
+                {name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         <DataTableViewOptions table={table} />
       </div>

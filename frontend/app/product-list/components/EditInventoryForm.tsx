@@ -40,7 +40,7 @@ type EditInventoryDialogProps = {
     stock_per_location: Array<{
       location: string;
       location_id: number;
-      quantity: number;
+      total_quantity: number;
     }>;
   };
   onSuccess: () => void;
@@ -53,7 +53,7 @@ export default function EditInventoryForm({
   const form = useInventoryForm({ product_id: product.product_id });
   const [open, setOpen] = useState(false);
 
-  //   console.log("individual", product);
+  // console.log("individual", product);
 
   const onSubmit = async (values: z.infer<typeof InventorySchema>) => {
     // Validate inputs
@@ -67,13 +67,13 @@ export default function EditInventoryForm({
       console.error("Product is undefined or missing product_id");
       throw new Error("Invalid product data");
     }
-
     try {
       const response = await axios.put(
         `http://127.0.0.1:8000/pharmacy/stock-items/${product.product_id}/`,
         values
       );
-      onSuccess?.(); // Ensure onSuccess is defined before calling it
+      onSuccess();
+      return response.data;
     } catch (error) {
       console.error("Failed to update inventory:", error);
       throw new Error("Failed to update inventory");
@@ -107,7 +107,7 @@ export default function EditInventoryForm({
                       console.log("Selected location_id:", value);
                       field.onChange(value);
                     }}
-                    defaultValue={field.value}
+                    defaultValue={field.value.toString()}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -120,7 +120,8 @@ export default function EditInventoryForm({
                           key={location.location_id}
                           value={location.location_id.toString()}
                         >
-                          {location.location} (Current: {location.quantity})
+                          {location.location} (Current:{" "}
+                          {location.total_quantity})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -137,6 +138,37 @@ export default function EditInventoryForm({
                   <FormLabel>New Quantity</FormLabel>
                   <FormControl>
                     <Input type="number" min="0" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="transaction_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Reason</FormLabel>
+                  <FormControl>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a reason for the change" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Inventory Adjustment">
+                          Inventory Adjustment
+                        </SelectItem>
+                        <SelectItem value="Unaccounted for (Lost/Theft)">
+                          Unaccounted for (Lost/Theft)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -15,6 +15,8 @@ import {
   LogOut,
   ChevronRight,
   Menu,
+  ReceiptText,
+  Boxes,
 } from "lucide-react";
 
 import {
@@ -27,32 +29,78 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
-import { Session } from "next-auth";
+import { Session } from "@/app/lib/types/session";
 
 export default function NavBar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const [session, updateSession] = useState<Session | null>(null);
   const fetchSession = async () => {
-    const _session = await getSession();
+    const _session: Session | null = await getSession();
     updateSession(_session);
   };
 
   useEffect(() => {
     fetchSession();
   }, []);
-  const navItems = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/product-list", label: "Inventory", icon: Package },
-    { href: "/pos", label: "Sales Orders", icon: ShoppingCart },
-    { href: "/suppliers", label: "Suppliers", icon: Truck },
-    { href: "/purchase-orders", label: "Purchase Orders", icon: ClipboardList },
-    { href: "/stock-transfer", label: "Stock Transfer", icon: ArrowLeftRight },
-    { href: "/user-list", label: "List of Users", icon: Users },
-  ];
 
-  const router = useRouter();
+  // Define navigation items with role permissions
+  const navItems = [
+    {
+      href: "/dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      roles: ["admin"], // All roles can access dashboard
+    },
+    {
+      href: "/product-list",
+      label: "Inventory",
+      icon: Package,
+      roles: ["admin"],
+    },
+    {
+      href: "/pos",
+      label: "Point of Sale System",
+      icon: ShoppingCart,
+      roles: ["admin", "pharmacist", "cashier"],
+    },
+    {
+      href: "/transactions",
+      label: "Transaction History",
+      icon: ReceiptText,
+      roles: ["admin"],
+    },
+    {
+      href: "/stock-out-history",
+      label: "Stock Transactions",
+      icon: Boxes,
+      roles: ["admin"],
+    },
+    {
+      href: "/suppliers",
+      label: "Suppliers",
+      icon: Truck,
+      roles: ["admin"],
+    },
+    {
+      href: "/purchase-orders",
+      label: "Purchase Orders",
+      icon: ClipboardList,
+      roles: ["admin"],
+    },
+    {
+      href: "/stock-transfer",
+      label: "Stock Transfer",
+      icon: ArrowLeftRight,
+      roles: ["admin", "pharmacist"],
+    },
+    {
+      href: "/user-list",
+      label: "List of Users",
+      icon: Users,
+      roles: ["admin"], // Only admin can manage users
+    },
+  ];
 
   const handleSignOut = async () => {
     await signOut({
@@ -61,10 +109,15 @@ export default function NavBar() {
     });
   };
 
+  // Filter navigation items based on user role
+  const filteredNavItems = navItems.filter((item) => {
+    const userRole = session?.user?.role_name?.toLowerCase();
+    return userRole && item.roles.includes(userRole);
+  });
+
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       <div className="flex flex-col justify-center items-center p-6 pb-2">
-        {/* {session?.user?.role_name !== "admin" && ( */}
         <Link href="/">
           <Image
             src="/images/logo.png"
@@ -75,7 +128,6 @@ export default function NavBar() {
             className="rounded-full"
           />
         </Link>
-        {/* )} */}
         <h1 className="mt-3 text-lg font-bold text-[#303086]">Amry Pharmacy</h1>
         <div className="mt-2 text-center">
           <p className="text-sm font-medium">
@@ -92,7 +144,7 @@ export default function NavBar() {
       <div className="flex-1 overflow-auto px-3 py-2">
         <NavigationMenu orientation="vertical" className="w-full max-w-none">
           <NavigationMenuList className="flex flex-col space-y-1 items-stretch w-full">
-            {navItems.map((item) => (
+            {filteredNavItems.map((item) => (
               <NavigationMenuItem key={item.href} className="w-full">
                 <Link href={item.href} legacyBehavior passHref>
                   <NavigationMenuLink

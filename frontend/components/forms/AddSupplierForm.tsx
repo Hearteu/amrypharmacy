@@ -30,7 +30,7 @@ const formSchema = z.object({
     .min(5, { message: "Address must be at least 5 characters." }),
   contact: z
     .string()
-    .regex(/^\d{10}$/, { message: "Contact must be a valid 10-digit number." }),
+    .regex(/^\d{11}$/, { message: "Contact must be a valid 11-digit number." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
   vat_num: z.string(),
 });
@@ -182,6 +182,6 @@ export default function AddSupplierForm({ onSuccess }: AddSupplierFormProps) {
           </div>
         </form>
       </Form>
-      </>
+    </>
   );
 }

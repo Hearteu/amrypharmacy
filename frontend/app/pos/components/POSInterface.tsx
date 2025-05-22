@@ -51,7 +51,7 @@ import { useRouter } from "next/navigation";
 import { PrescriptionForm } from "../components/PrescriptionForm";
 import { DSWDForm } from "../components/DSWDForm";
 import { getSession } from "next-auth/react";
-import { Session } from "next-auth";
+import { Session } from "@/app/lib/types/session";
 
 const branches = [
   { id: 1, name: "Asuncion" },
@@ -62,12 +62,16 @@ interface Products {
   product_id: number;
   full_product_name: string;
   price: number;
+  stock_per_location: {
+    location_id: number;
+    total_quantity: number;
+  }[];
 }
 export default function PosInterface() {
-  const [session, updateSession] = useState<Session | null>(null);
+  const [session, updateSession] = useState<Session>();
   const fetchSession = async () => {
     const _session = await getSession();
-    updateSession(_session);
+    if (_session) updateSession(_session);
   };
 
   useEffect(() => {
@@ -83,27 +87,53 @@ export default function PosInterface() {
     }>
   >([]);
 
-  const [selectedBranch, setSelectedBranch] = useState("");
   const [customerType, setCustomerType] = useState("regular");
   const [hasPrescription, setHasPrescription] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Products[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState<string | undefined>(
+    undefined
+  );
+
+  useEffect(() => {
+    if (session?.user?.location_id) {
+      const locationId = session?.user?.location_id.toString();
+      const defaultBranch = locationId === "8" ? "1" : locationId;
+      setSelectedBranch(defaultBranch);
+    }
+  }, [session]);
 
   useEffect(() => {
     async function fetchSupplierItems() {
       try {
+        const locationIdRaw = session?.user?.location_id;
+        if (!locationIdRaw) return; // wait for location_id to be available
+
+        const locationId = Number(locationIdRaw);
+        const branchesToCheck = locationId === 8 ? [1, 3] : [locationId];
+
         const response = await fetch(
           `http://127.0.0.1:8000/pharmacy/products/`
         );
         const data: Products[] = await response.json();
-        setProducts(data);
+
+        const filtered = data.filter((product) => {
+          return product.stock_per_location.some(
+            (loc) =>
+              branchesToCheck.includes(loc.location_id) &&
+              loc.total_quantity > 0
+          );
+        });
+
+        setProducts(filtered);
+        console.log(filtered);
       } catch (error) {
         console.error("❌ Error fetching supplier items:", error);
       }
     }
 
     fetchSupplierItems();
-  }, []);
+  }, [session]);
 
   // Customer information for DSWD clients
   const [customerInfo, setCustomerInfo] = useState({
@@ -112,7 +142,6 @@ export default function PosInterface() {
     guaranteeLetterNo: "",
     guaranteeLetterDate: "",
     receivedDate: "",
-    invoiceNumber: "",
   });
 
   // Discount information
@@ -254,7 +283,6 @@ export default function PosInterface() {
       guaranteeLetterNo: "",
       guaranteeLetterDate: "",
       receivedDate: "",
-      invoiceNumber: "",
     });
     setDiscountInfo({
       name: "",
@@ -273,8 +301,9 @@ export default function PosInterface() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 p-4">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       {/* Left Column - Product Selection */}
+
       <div className="lg:col-span-2">
         <Card className="h-full">
           <CardHeader className="pb-3">
@@ -396,7 +425,7 @@ export default function PosInterface() {
                   </SheetHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="name">Pateient Name</Label>
+                      <Label htmlFor="name">Patient Name</Label>
                       <Input
                         id="name"
                         value={discountInfo.name}

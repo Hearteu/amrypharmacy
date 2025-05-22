@@ -22,6 +22,7 @@ import { Products } from "../../lib/types/inventory/products";
 import { ProductFormProps } from "@/app/lib/types/inventory/product-props";
 import EditProductDialog from "@/app/product-list/components/EditProductDialog";
 import EditInventoryForm from "./EditInventoryForm";
+import { ArrowUpDown } from "lucide-react";
 
 const deleteItem = async ({ product_id, onSuccess }: ProductFormProps) => {
   try {
@@ -70,12 +71,29 @@ export const columns: (onSuccess: () => void) => ColumnDef<Products>[] = (
   },
   {
     accessorKey: "category",
-    header: "Category",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="px-0 font-medium"
+        >
+          Category
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
+    sortingFn: "text", // You can use "text", "datetime", "basic" or a custom function
   },
   {
     accessorKey: "price",
     header: "Price",
+    cell: ({ row }) => {
+      const price = parseFloat(row.getValue("price"));
+      return isNaN(price) ? "N/A" : `₱${price.toFixed(2)}`;
+    },
   },
+
   {
     accessorKey: "net_content",
     header: "Net Content",
@@ -88,32 +106,39 @@ export const columns: (onSuccess: () => void) => ColumnDef<Products>[] = (
     accessorKey: "talaingod",
     header: "Talaingod",
     accessorFn: (row) =>
-      row.stock_per_location?.find((loc) => loc.location_id === 2)?.quantity ||
-      0,
+      row.stock_per_location?.find((loc) => loc.location_id === 2)
+        ?.total_quantity || 0,
   },
   {
     accessorKey: "asuncion_stockroom",
     header: "Asuncion - Stockroom",
     accessorFn: (row) =>
-      row.stock_per_location?.find((loc) => loc.location_id === 3)?.quantity ||
-      0,
+      row.stock_per_location?.find((loc) => loc.location_id === 3)
+        ?.total_quantity || 0,
   },
   {
     accessorKey: "asuncion_physical",
     header: "Asuncion - Physical",
     accessorFn: (row) =>
-      row.stock_per_location?.find((loc) => loc.location_id === 1)?.quantity ||
-      0,
+      row.stock_per_location?.find((loc) => loc.location_id === 1)
+        ?.total_quantity || 0,
   },
   {
     id: "actions",
     cell: ({ row }) => {
       const product = row.original;
       const handleDelete = () => {
-        deleteItem({
-          product_id: product.product_id,
-          onSuccess: onSuccess,
-        });
+        if (
+          product.stock_per_location.every((loc) => loc.total_quantity === 0)
+        ) {
+          deleteItem({
+            product_id: product.product_id,
+            onSuccess: onSuccess,
+          });
+        } else {
+          alert("Product has stock in other locations");
+          console.log("Product has stock in other locations");
+        }
       };
 
       return (
@@ -133,7 +158,7 @@ export const columns: (onSuccess: () => void) => ColumnDef<Products>[] = (
               }}
             />
             {/* Delete Button */}
-            <AlertDialog>
+            {/* <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive">Delete</Button>
               </AlertDialogTrigger>
@@ -154,7 +179,7 @@ export const columns: (onSuccess: () => void) => ColumnDef<Products>[] = (
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
-            </AlertDialog>
+            </AlertDialog> */}
           </div>
         </>
       );

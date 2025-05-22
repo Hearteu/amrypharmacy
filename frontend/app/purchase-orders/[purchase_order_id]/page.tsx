@@ -17,40 +17,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LineItemsTable } from "../components/LineItemsTable";
 import { Separator } from "@/components/ui/separator";
 import clsx from "clsx";
-
-interface PurchaseOrderItem {
-  purchase_order_item_id: number;
-  poi_id: string;
-  description: string;
-  quantity: number;
-  supplier_price: number;
-  poi_total: number;
-  purchase_order_item_status: number;
-  po_item_status: string;
-  received_qty: number;
-  expired_qty: number;
-  damaged_qty: number;
-}
-
-interface Supplier {
-  name: string;
-  contact: string;
-  email: string;
-  phone: string;
-  address: string;
-}
-
-interface PurchaseOrder {
-  purchase_order_id: number;
-  po_id: string;
-  supplier: Supplier;
-  order_date: string;
-  expected_date: string;
-  po_total: number;
-  status: string;
-  notes: string;
-  lineItems: PurchaseOrderItem[];
-}
+import { PurchaseOrder } from "@/app/lib/types/purchase-order";
+import { ExportPOPDF } from "../components/POExportButton";
+import PurchaseOrderSkeleton from "../components/PurchaseOrderSkeleton";
 
 const statusColorMap: Record<string, string> = {
   Draft: "bg-gray-500",
@@ -91,7 +60,7 @@ export default function PurchaseOrderPage({
     fetchPurchaseOrderData();
   }, []);
 
-  if (loading) return <p>Loading purchase order...</p>;
+  if (loading) return <PurchaseOrderSkeleton />;
   if (error) return <p className="text-red-500">{error}</p>;
 
   return (
@@ -117,17 +86,8 @@ export default function PurchaseOrderPage({
             >
               {purchaseOrder?.status ?? "Unknown"}
             </Badge>
-
-            {/* <Badge
-                              variant="outline"
-                              className={clsx(
-                                "text-white px-2 py-1 rounded-md",
-                                statusColorMap[item.po_item_status] || "bg-gray-500"
-                              )}
-                            >
-                              {item.po_item_status}
-                            </Badge> */}
           </div>
+          {purchaseOrder && <ExportPOPDF purchaseOrder={purchaseOrder} />}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -159,7 +119,7 @@ export default function PurchaseOrderPage({
                     <div className="w-64 space-y-2">
                       <div className="flex justify-between text-lg font-bold">
                         <span>Total:</span>
-                        <span>${purchaseOrder?.po_total.toFixed(2)}</span>
+                        <span>₱{purchaseOrder?.po_total.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -177,49 +137,55 @@ export default function PurchaseOrderPage({
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-lg">
-                    {purchaseOrder?.supplier?.name}
+                <div className="overflow-hidden">
+                  <h3 className="font-semibold text-lg truncate">
+                    {purchaseOrder?.supplier?.name || "N/A"}
                   </h3>
-                  <p className="text-sm text-muted-foreground whitespace-pre-line">
-                    {purchaseOrder?.supplier?.address}
+                  <p className="text-sm text-muted-foreground break-words">
+                    {purchaseOrder?.supplier?.address || "No address available"}
                   </p>
                 </div>
                 <Separator />
                 <div className="space-y-2">
-                  <div className="grid grid-cols-[100px_1fr]">
+                  <div className="grid grid-cols-[90px_1fr] gap-2">
                     <span className="text-sm font-medium">Contact:</span>
-                    <span>{purchaseOrder?.supplier?.contact}</span>
+                    <span className="text-sm truncate">
+                      {purchaseOrder?.supplier?.contact || "N/A"}
+                    </span>
                   </div>
-                  <div className="grid grid-cols-[100px_1fr]">
+                  <div className="grid grid-cols-[90px_1fr] gap-2">
                     <span className="text-sm font-medium">Email:</span>
-                    <span>{purchaseOrder?.supplier?.email}</span>
+                    <span className="text-sm break-all">
+                      {purchaseOrder?.supplier?.email || "N/A"}
+                    </span>
                   </div>
-                  <div className="grid grid-cols-[100px_1fr]">
+                  <div className="grid grid-cols-[90px_1fr] gap-2">
                     <span className="text-sm font-medium">Phone:</span>
-                    <span>{purchaseOrder?.supplier?.phone}</span>
+                    <span className="text-sm truncate">
+                      {purchaseOrder?.supplier?.phone || "N/A"}
+                    </span>
                   </div>
                 </div>
                 <Separator />
                 <div className="space-y-2">
-                  <div className="grid grid-cols-[100px_1fr]">
+                  <div className="grid grid-cols-[90px_1fr] gap-2">
                     <span className="text-sm font-medium">Order Date:</span>
-                    <span>
+                    <span className="text-sm">
                       {purchaseOrder?.order_date
                         ? new Date(
                             purchaseOrder.order_date
                           ).toLocaleDateString()
-                        : "No delivery date available"}
+                        : "No date available"}
                     </span>
                   </div>
-                  <div className="grid grid-cols-[100px_1fr]">
+                  <div className="grid grid-cols-[90px_1fr] gap-2">
                     <span className="text-sm font-medium">Expected:</span>
-                    <span>
+                    <span className="text-sm">
                       {purchaseOrder?.expected_date
                         ? new Date(
                             purchaseOrder.expected_date
                           ).toLocaleDateString()
-                        : "No delivery date available"}
+                        : "No date available"}
                     </span>
                   </div>
                 </div>

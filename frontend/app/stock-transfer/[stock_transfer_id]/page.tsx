@@ -80,6 +80,7 @@ export default function StockTransferPaga({
         { headers: { "Content-Type": "application/json" } }
       );
       console.log("Stock transfer acknowledged:", response.data);
+      fetchStockTransfer();
     } catch (error) {
       console.error("Error acknowledging receipt", error);
     }

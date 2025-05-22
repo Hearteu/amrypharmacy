@@ -31,22 +31,42 @@ export default function AssignedItemsPage({
   const [supplierItemData, setSupplierItemData] = useState<AssignedItems[]>([]);
   const [loading, setLoading] = useState(true); // Loading state
   const [open, setOpen] = useState(false);
+  const [supplierName, setSupplierName] = useState<string>("");
 
   async function getData(): Promise<AssignedItems[]> {
     try {
+      // First fetch the supplier info to get the name
+      const supplierRes = await fetch(
+        `http://127.0.0.1:8000/pharmacy/suppliers/${params.supplier_id}/`
+      );
+
+      if (!supplierRes.ok) {
+        throw new Error("Failed to fetch supplier data");
+      }
+
+      const supplierData = await supplierRes.json();
+      const supplierName = supplierData.supplier_name;
+      setSupplierName(supplierData.supplier_name);
+
+      // Then fetch the supplier items
       const supItemsRes = await fetch(
         `http://127.0.0.1:8000/pharmacy/supplier-items/${params.supplier_id}/`
       );
 
       if (!supItemsRes.ok) {
+        // If there are no items, return an empty array but with supplier name
+        if (supItemsRes.status === 404) {
+          return [];
+        }
         throw new Error("Failed to fetch supplier items data");
       }
 
       const supItemsData: AssignedItems[] = await supItemsRes.json();
 
+      // Map the data, using the supplier name we got earlier
       const supplierItemData: AssignedItems[] = supItemsData.map((items) => ({
         supplier_item_id: items.supplier_item_id,
-        supplier_name: items.supplier_name,
+        supplier_name: supplierName, // Use the name from supplier endpoint
         product_name: items.product_name,
         supplier_price: items.supplier_price,
       }));
@@ -87,8 +107,7 @@ export default function AssignedItemsPage({
               </Button>
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">
-                  Items Provided by Supplier:{" "}
-                  {supplierItemData[0]?.supplier_name || "Loading..."}
+                  Items Provided by Supplier: {supplierName || "Loading..."}
                 </h1>
                 <p className="text-muted-foreground">
                   Assign items to this supplier and manage their product
