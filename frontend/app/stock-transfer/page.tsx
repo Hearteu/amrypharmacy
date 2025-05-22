@@ -69,108 +69,111 @@ export default function StockTransferList() {
                 Manage and track your stock transfers
               </p>
             </div>
-            <Button asChild>
-              <Link href="/stock-transfer/create">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                New Stock Transfer
-              </Link>
-            </Button>
+            {session?.user?.role_name === "admin" && (
+              <Button asChild>
+                <Link href="/stock-transfer/create">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  New Stock Transfer
+                </Link>
+              </Button>
+            )}
           </div>
+          {session?.user?.role_name === "admin" && <StockTransferTable />}
+          {session?.user?.role_name === "pharmacist" && (
+            <div className=" space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    Incoming Stock Transfers for {session?.user?.location}{" "}
+                    Branch
+                  </CardTitle>
+                  <CardDescription>
+                    Review and process stock transfers sent to your branch
+                  </CardDescription>
+                </CardHeader>
 
-          <StockTransferTable />
+                <CardContent>
+                  <Tabs
+                    value={activeIncomingTab}
+                    onValueChange={setActiveIncomingTab}
+                  >
+                    <TabsList className="mb-4">
+                      <TabsTrigger value="intransit">In Transit</TabsTrigger>
+                      <TabsTrigger value="delayed">Delayed</TabsTrigger>
+                      <TabsTrigger value="received">Received</TabsTrigger>
+                      <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
+                    </TabsList>
+                    {activeIncomingTab === "intransit" && (
+                      <IncomingTransfersList
+                        data={incomingGrouped["intransit"] || []}
+                      />
+                    )}
+                    {activeIncomingTab === "delayed" && (
+                      <IncomingTransfersList
+                        data={incomingGrouped["delayed"] || []}
+                      />
+                    )}
+                    {activeIncomingTab === "received" && (
+                      <IncomingTransfersList
+                        data={incomingGrouped["received"] || []}
+                      />
+                    )}
+                    {activeIncomingTab === "cancelled" && (
+                      <IncomingTransfersList
+                        data={incomingGrouped["cancelled"] || []}
+                      />
+                    )}
+                  </Tabs>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    Outgoing Stock Transfers for {session?.user?.location}{" "}
+                    Branch
+                  </CardTitle>
+                  <CardDescription>
+                    Track transfer requests you&apos;ve sent to other locations
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Tabs
+                    value={activeOutgoingTab}
+                    onValueChange={setActiveOutgoingTab}
+                  >
+                    <TabsList className="mb-4">
+                      <TabsTrigger value="intransit">In Transit</TabsTrigger>
+                      <TabsTrigger value="delayed">Delayed</TabsTrigger>
+                      <TabsTrigger value="received">Received</TabsTrigger>
+                      <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
+                    </TabsList>
+                    {activeOutgoingTab === "intransit" && (
+                      <OutgoingTransfersList
+                        data={outgoingGrouped["intransit"] || []}
+                      />
+                    )}
+                    {activeOutgoingTab === "delayed" && (
+                      <OutgoingTransfersList
+                        data={outgoingGrouped["delayed"] || []}
+                      />
+                    )}
+                    {activeOutgoingTab === "received" && (
+                      <OutgoingTransfersList
+                        data={outgoingGrouped["received"] || []}
+                      />
+                    )}
+                    {activeOutgoingTab === "cancelled" && (
+                      <OutgoingTransfersList
+                        data={outgoingGrouped["cancelled"] || []}
+                      />
+                    )}
+                  </Tabs>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
-      </div>
-
-      <p>Meant for pharmacist view</p>
-      {/* pharamict view */}
-      <div className="p-4 space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              Incoming Stock Transfers for {session?.user?.location} Branch
-            </CardTitle>
-            <CardDescription>
-              Review and process stock transfers sent to your branch
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs
-              value={activeIncomingTab}
-              onValueChange={setActiveIncomingTab}
-            >
-              <TabsList className="mb-4">
-                <TabsTrigger value="intransit">In Transit</TabsTrigger>
-                <TabsTrigger value="delayed">Delayed</TabsTrigger>
-                <TabsTrigger value="received">Received</TabsTrigger>
-                <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
-              </TabsList>
-              {activeIncomingTab === "intransit" && (
-                <IncomingTransfersList
-                  data={incomingGrouped["intransit"] || []}
-                />
-              )}
-              {activeIncomingTab === "delayed" && (
-                <IncomingTransfersList
-                  data={incomingGrouped["delayed"] || []}
-                />
-              )}
-              {activeIncomingTab === "received" && (
-                <IncomingTransfersList
-                  data={incomingGrouped["received"] || []}
-                />
-              )}
-              {activeIncomingTab === "cancelled" && (
-                <IncomingTransfersList
-                  data={incomingGrouped["cancelled"] || []}
-                />
-              )}
-            </Tabs>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              Outgoing Stock Transfers for {session?.user?.location} Branch
-            </CardTitle>
-            <CardDescription>
-              Track transfer requests you&apos;ve sent to other locations
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs
-              value={activeOutgoingTab}
-              onValueChange={setActiveOutgoingTab}
-            >
-              <TabsList className="mb-4">
-                <TabsTrigger value="intransit">In Transit</TabsTrigger>
-                <TabsTrigger value="delayed">Delayed</TabsTrigger>
-                <TabsTrigger value="received">Received</TabsTrigger>
-                <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
-              </TabsList>
-              {activeOutgoingTab === "intransit" && (
-                <OutgoingTransfersList
-                  data={outgoingGrouped["intransit"] || []}
-                />
-              )}
-              {activeOutgoingTab === "delayed" && (
-                <OutgoingTransfersList
-                  data={outgoingGrouped["delayed"] || []}
-                />
-              )}
-              {activeOutgoingTab === "received" && (
-                <OutgoingTransfersList
-                  data={outgoingGrouped["received"] || []}
-                />
-              )}
-              {activeOutgoingTab === "cancelled" && (
-                <OutgoingTransfersList
-                  data={outgoingGrouped["cancelled"] || []}
-                />
-              )}
-            </Tabs>
-          </CardContent>
-        </Card>
       </div>
     </>
   );

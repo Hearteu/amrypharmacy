@@ -9,6 +9,7 @@ interface Record {
 declare module "next-auth" {
     interface User {
         status?: string;
+        role_name?: string;
     }
 
     interface Session {

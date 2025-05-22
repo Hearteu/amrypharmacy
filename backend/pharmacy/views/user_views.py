@@ -70,6 +70,10 @@ class UserList(APIView):
         location_id = user_data.pop("location_id", None)  # Extract for Users table
         role_id = user_data.pop("role_id", None)  # Extract for Users table
 
+        # Remove status if it's in user_data to prevent it from being added to Person table
+        if "status" in user_data:
+            user_data.pop("status")
+
         try:
             # Insert into Person table first
             person = supabase.table("Person").insert([user_data]).execute()
@@ -91,7 +95,8 @@ class UserList(APIView):
                     "username": username,
                     "password": hashed_password,
                     "role_id": role_id,  # Add FK reference here
-                    "location_id": location_id  # Add FK reference here
+                    "location_id": location_id,  # Add FK reference here
+                    "status": "Active"
                 }]).execute()
 
                 return Response({"message": "User created successfully"}, status=201)
