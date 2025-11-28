@@ -1,4 +1,4 @@
-# amrypharmacy
+# amrypharmacy inventory and management system
 
 ## Frontend  
 Go to the frontend folder:  
