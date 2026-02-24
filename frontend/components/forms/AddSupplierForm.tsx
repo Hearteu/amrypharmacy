@@ -1,5 +1,7 @@
 "use client";
 
+import { API_URL } from "@/app/lib/api-config";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosResponse } from "axios";
 import { useForm } from "react-hook-form";
@@ -55,7 +57,7 @@ export default function AddSupplierForm({ onSuccess }: AddSupplierFormProps) {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       const response = await axios.post(
-        "http://127.0.0.1:8000/pharmacy/suppliers/",
+        `${API_URL}/suppliers/`,
         values
       );
       console.log("Supplier added", response);

@@ -1,10 +1,23 @@
 "use client";
 
+import { API_URL } from "@/app/lib/api-config";
+
+import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosResponse } from "axios";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "../ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "../ui/command";
 import {
   Form,
   FormControl,
@@ -14,18 +27,7 @@ import {
   FormMessage,
 } from "../ui/form";
 import { Input } from "../ui/input";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "../ui/command";
-import { useEffect, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { cn } from "@/lib/utils";
-import { Check, ChevronsUpDown } from "lucide-react";
 
 const formSchema = z.object({
   supplier_id: z.string().nonempty(),
@@ -58,7 +60,7 @@ export default function AddSupplierItemForm({
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       const response = await axios.post(
-        "http://127.0.0.1:8000/pharmacy/supplier-items/",
+        `${API_URL}/supplier-items/`,
         values
       );
       console.log("Supplier added", response);
@@ -78,7 +80,7 @@ export default function AddSupplierItemForm({
   const fetchProducts = async () => {
     try {
       const productsRes = await fetch(
-        "http://127.0.0.1:8000/pharmacy/products/"
+        `${API_URL}/products/`
       );
       const productsData: Products[] = await productsRes.json();
 
@@ -96,7 +98,7 @@ export default function AddSupplierItemForm({
     const fetchSupplierName = async () => {
       try {
         const res = await fetch(
-          `http://127.0.0.1:8000/pharmacy/suppliers/${supplier_id}/`
+          `${API_URL}/suppliers/${supplier_id}/`
         );
         const data = await res.json();
         setSupplierName(data.supplier_name); // Assuming the response has 'supplier_name'
@@ -114,7 +116,7 @@ export default function AddSupplierItemForm({
           <FormField
             control={form.control}
             name="supplier_id"
-            render={({}) => (
+            render={({ }) => (
               <FormItem>
                 <FormLabel>Supplier</FormLabel>
                 <FormControl>

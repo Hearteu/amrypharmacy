@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/app/lib/api-config";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosResponse } from "axios";
@@ -96,7 +97,7 @@ export default function EditSupplierForm({
     const fetchSupplierData = async () => {
       try {
         const supplierResponse = await axios.get(
-          `http://127.0.0.1:8000/pharmacy/suppliers/${supplier_id}/`
+          `${API_URL}/suppliers/${supplier_id}/`
         );
 
         console.log("Raw API Response:", supplierResponse.data);
@@ -145,7 +146,7 @@ export default function EditSupplierForm({
 
   const fetchStatus = async () => {
     try {
-      const statusRes = await fetch("http://127.0.0.1:8000/pharmacy/status/");
+      const statusRes = await fetch(`${API_URL}/status/`);
       const statusData: Status[] = await statusRes.json();
       setStatus(statusData);
     } catch (error) {
@@ -160,7 +161,7 @@ export default function EditSupplierForm({
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/pharmacy/suppliers/${supplier_id}/`,
+        `${API_URL}/suppliers/${supplier_id}/`,
         values
       );
       onSuccess(response);

@@ -20,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoreHorizontal } from "lucide-react";
 import { useState } from "react";
+
+import { API_URL } from "@/app/lib/api-config";
 import { Expiration } from "@/app/lib/types/inventory/products";
 import { format } from "date-fns";
 
@@ -52,7 +54,7 @@ export default function DisposeExpiryDialog({
       console.log(disposalData);
 
       const response = await fetch(
-        "http://127.0.0.1:8000/pharmacy/expirations/",
+        `${API_URL}/expirations/`,
         {
           method: "PUT",
           headers: {

@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { API_URL } from "@/app/lib/api-config";
+
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { format } from "date-fns";
 import {
   CalendarIcon,
   Check,
@@ -12,10 +11,21 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-import { format } from "date-fns";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   Form,
   FormControl,
@@ -31,16 +41,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 interface StockTransferFormProps {
   initialData?: Partial<TransferFormValues>;
@@ -107,7 +109,7 @@ export function StockTransferForm({
 
   async function fetchLocations() {
     try {
-      const response = await fetch("http://127.0.0.1:8000/pharmacy/locations/");
+      const response = await fetch(`${API_URL}/locations/`);
       const data: Location[] = await response.json();
 
       // Filter locations with ID 1, 2, or 3
@@ -123,7 +125,7 @@ export function StockTransferForm({
 
   async function fetchProducts() {
     try {
-      const response = await fetch("http://127.0.0.1:8000/pharmacy/products/");
+      const response = await fetch(`${API_URL}/products/`);
       const data: Products[] = await response.json();
       setProducts(data);
       console.log("products", data);
@@ -208,8 +210,8 @@ export function StockTransferForm({
 
     try {
       const url = isEditing
-        ? `http://127.0.0.1:8000/pharmacy/stock-transfers/${formattedData.stock_transfer_id}/`
-        : "http://127.0.0.1:8000/pharmacy/stock-transfers/";
+        ? `${API_URL}/stock-transfers/${formattedData.stock_transfer_id}/`
+        : `${API_URL}/stock-transfers/`;
 
       await fetch(url, {
         method: isEditing ? "PUT" : "POST",
@@ -666,8 +668,8 @@ export function StockTransferForm({
                   ? "Updating..."
                   : "Creating..."
                 : isEditing
-                ? "Update Stock Transfer"
-                : "Create Stock Transfer"}
+                  ? "Update Stock Transfer"
+                  : "Create Stock Transfer"}
             </Button>
           </div>
         </form>

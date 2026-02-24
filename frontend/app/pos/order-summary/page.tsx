@@ -1,11 +1,13 @@
 "use client";
 
+import { API_URL } from "@/app/lib/api-config";
+
 import type React from "react";
 
 import { format } from "date-fns";
 import { Calculator, FileText, Receipt, User } from "lucide-react";
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -168,7 +170,7 @@ export default function OrderSummaryPage() {
 
     console.log("Submitting transaction:", transactionData);
 
-    fetch("http://127.0.0.1:8000/pharmacy/pos/", {
+    fetch(`${API_URL}/pos/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(transactionData),
@@ -211,8 +213,8 @@ export default function OrderSummaryPage() {
               {isDSWD
                 ? "DSWD"
                 : hasDiscount
-                ? `${orderData.discountInfo?.type} (20%)`
-                : "Regular"}
+                  ? `${orderData.discountInfo?.type} (20%)`
+                  : "Regular"}
             </Badge>
           </CardHeader>
           <CardContent>
@@ -405,9 +407,8 @@ export default function OrderSummaryPage() {
                         <div className="space-y-1">
                           <Label>Change</Label>
                           <div
-                            className={`text-xl font-bold ${
-                              change < 0 ? "text-red-500" : ""
-                            }`}
+                            className={`text-xl font-bold ${change < 0 ? "text-red-500" : ""
+                              }`}
                           >
                             {change < 0
                               ? "Insufficient"

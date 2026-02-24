@@ -1,59 +1,52 @@
-# views.py
-
+from django.forms.models import model_to_dict
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from ..supabase_client import get_supabase_client
+from ..models import Physician as PhysicianModel
 
-supabase = get_supabase_client()
-
-#Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
 
 class Physician(APIView):
     def get(self, request, physician_id=None):
         try:
-            query = supabase.table('Physician').select('*')
             if physician_id is not None:
-                query = query.eq('physician_id', physician_id)
-            
-            response = query.execute()
+                try:
+                    obj = PhysicianModel.objects.get(physician_id=physician_id)
+                except PhysicianModel.DoesNotExist:
+                    return Response({"error": "No Physician found"}, status=404)
+                return Response(model_to_dict(obj), status=200)
 
-            if not response.data:
+            qs = PhysicianModel.objects.all()
+            if not qs.exists():
                 return Response({"error": "No Physician found"}, status=404)
-
-            return Response(response.data, status=200)
+            return Response(list(qs.values()), status=200)
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
-        
-    def post(self, request):
-        data = request.data 
-        try:
-           
-            response = supabase.table("Physician").insert(data).execute()
-            return Response(response.data, status=201)
-        except Exception as e:
-            return Response({"error": str(e)}, status=400)
- 
-    def put(self, request, physician_id):
-        data = request.data 
-        try:
-            response = supabase.table("Physician").update(data).eq('physician_id', physician_id).execute()
 
-            if response.data:
-                return Response(response.data, status=200)
-            else:
-                return Response({"error": "Physician not found or update failed"}, status=400)
+    def post(self, request):
+        data = request.data
+        try:
+            obj = PhysicianModel.objects.create(**data)
+            return Response(model_to_dict(obj), status=201)
         except Exception as e:
             return Response({"error": str(e)}, status=400)
-   
+
+    def put(self, request, physician_id):
+        data = request.data
+        try:
+            updated = PhysicianModel.objects.filter(physician_id=physician_id).update(**data)
+            if updated:
+                obj = PhysicianModel.objects.get(physician_id=physician_id)
+                return Response(model_to_dict(obj), status=200)
+            return Response({"error": "Physician not found or update failed"}, status=400)
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
+
     def delete(self, request, physician_id):
         try:
-            response = supabase.table("Physician").delete().eq('physician_id', physician_id).execute()
-
-            if response.data:
+            deleted, _ = PhysicianModel.objects.filter(physician_id=physician_id).delete()
+            if deleted:
                 return Response({"message": "Physician deleted successfully"}, status=204)
-            else:
-                return Response({"error": "Physician not found or deletion failed"}, status=400)
+            return Response({"error": "Physician not found or deletion failed"}, status=400)
         except Exception as e:
             return Response({"error": str(e)}, status=400)

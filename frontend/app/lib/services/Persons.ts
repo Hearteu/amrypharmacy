@@ -1,8 +1,9 @@
 import axios from "axios";
+import { API_URL } from "../api-config";
 import { Roles, Users } from "../types/persons";
 
 export async function getUsersData(): Promise<Users[]> {
-    const Res = await fetch("http://127.0.0.1:8000/pharmacy/users/");
+    const Res = await fetch(`${API_URL}/users/`);
 
     if (!Res.ok) {
         throw new Error("Failed to fetch data");
@@ -15,7 +16,7 @@ export async function getUsersData(): Promise<Users[]> {
 
 export async function getUserData({ user_id }: { user_id: number }): Promise<Users> {
     const Res = await axios.get<Users>(
-        `http://127.0.0.1:8000/pharmacy/users/${user_id}/`
+        `${API_URL}/users/${user_id}/`
     );
 
     const data = Array.isArray(Res.data)
@@ -26,7 +27,7 @@ export async function getUserData({ user_id }: { user_id: number }): Promise<Use
 }
 
 export async function getRoleData(): Promise<Roles[]> {
-    const Res = await fetch("http://127.0.0.1:8000/pharmacy/roles/");
+    const Res = await fetch(`${API_URL}/roles/`);
 
     if (!Res.ok) {
         throw new Error("Failed to fetch data");

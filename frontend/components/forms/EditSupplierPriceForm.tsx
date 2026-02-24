@@ -1,10 +1,12 @@
 "use client";
 
+import { API_URL } from "@/app/lib/api-config";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosResponse } from "axios";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { Button } from "../ui/button";
 import {
   Form,
   FormControl,
@@ -14,7 +16,6 @@ import {
   FormMessage,
 } from "../ui/form";
 import { Input } from "../ui/input";
-import { Button } from "../ui/button";
 
 interface EditSupplierPriceProps {
   supplier_item_id: number;
@@ -40,7 +41,7 @@ export default function EditSupplierPriceForm({
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/pharmacy/supplier-items/edit/${supplier_item_id}/`,
+        `${API_URL}/supplier-items/edit/${supplier_item_id}/`,
         values
       );
       onSuccess(response);

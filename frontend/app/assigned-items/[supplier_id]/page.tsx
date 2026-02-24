@@ -1,5 +1,11 @@
 "use client";
 
+import { API_URL } from "@/app/lib/api-config";
+
+import { DataTable } from "@/components/data-table/DataTable";
+import { DataTableLoading } from "@/components/data-table/DataTableLoading";
+import AddSupplierItemForm from "@/components/forms/AddSupplierItemForm";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -7,14 +13,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { columns } from "./columns";
-import { Button } from "@/components/ui/button";
-import AddSupplierItemForm from "@/components/forms/AddSupplierItemForm";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { DataTable } from "@/components/data-table/DataTable";
-import { DataTableLoading } from "@/components/data-table/DataTableLoading";
 
 interface AssignedItems {
   supplier_item_id: number;
@@ -37,7 +39,7 @@ export default function AssignedItemsPage({
     try {
       // First fetch the supplier info to get the name
       const supplierRes = await fetch(
-        `http://127.0.0.1:8000/pharmacy/suppliers/${params.supplier_id}/`
+        `${API_URL}/suppliers/${params.supplier_id}/`
       );
 
       if (!supplierRes.ok) {
@@ -50,7 +52,7 @@ export default function AssignedItemsPage({
 
       // Then fetch the supplier items
       const supItemsRes = await fetch(
-        `http://127.0.0.1:8000/pharmacy/supplier-items/${params.supplier_id}/`
+        `${API_URL}/supplier-items/${params.supplier_id}/`
       );
 
       if (!supItemsRes.ok) {

@@ -1,0 +1,22 @@
+[Unit]
+Description=Amry Pharmacy Django Backend (Gunicorn)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/amrypharmacy/backend
+EnvironmentFile=/home/ubuntu/amrypharmacy/backend/.env
+ExecStart=/home/ubuntu/amrypharmacy/backend/venv/bin/gunicorn \
+    --workers 3 \
+    --bind 127.0.0.1:8001 \
+    --timeout 120 \
+    --access-logfile /var/log/pharmacy/backend-access.log \
+    --error-logfile /var/log/pharmacy/backend-error.log \
+    backend.wsgi:application
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,17 +1,17 @@
-# views.py
-
+import traceback
 from calendar import month_name
 from collections import defaultdict
 from datetime import datetime
 
+from django.db.models import Sum
+from django.forms.models import model_to_dict
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from ..supabase_client import get_supabase_client
+from ..models import (Customer, CustomerType, POS, POSItem, Person,
+                       Prescription, Receipt as ReceiptModel,
+                       StockTransaction)
 
-supabase = get_supabase_client()
-
-#Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
 
 class Receipt(APIView):
     def get(self, request):
@@ -21,43 +21,54 @@ class Receipt(APIView):
             month_lookup = {name.lower(): i for i, name in enumerate(month_name) if name}
             month_number = month_lookup.get(month_param) if month_param else None
 
-            # Load Stock_Transaction data
-            stock_transactions = supabase.table('Stock_Transaction').select('*').ilike('transaction_type', 'pos').execute()
-            transactions = stock_transactions.data or []
+            # Load POS-type Stock Transactions
+            transactions = StockTransaction.objects.filter(
+                transaction_type__iexact='pos'
+            ).values()
+
+            transactions = list(transactions)
 
             if not transactions:
                 return Response({"error": "No POS transactions found"}, status=404)
 
             # POS and related data
             pos_ids = list({txn['reference_id'] for txn in transactions if txn.get('reference_id')})
-            pos_list = supabase.table('POS').select('*').in_('pos_id', pos_ids).execute().data
-            pos_map = {pos['pos_id']: pos for pos in pos_list}
+            pos_map = {pos.pos_id: pos for pos in POS.objects.filter(pos_id__in=pos_ids)}
 
-            pos_items = supabase.table('POS_Item').select('*').in_('pos_id', pos_ids).execute().data
+            # POS Items
+            pos_items = POSItem.objects.filter(pos_id__in=pos_ids).values(
+                'pos_id', 'price', 'quantity_sold'
+            )
             pos_items_by_pos = defaultdict(list)
             for item in pos_items:
-                total_price = item["quantity_sold"] * item["price"]
+                total_price = float(item["quantity_sold"]) * float(item["price"])
                 item["total_price"] = total_price
                 pos_items_by_pos[item['pos_id']].append(item)
 
-            prescription_ids = [pos['prescription_id'] for pos in pos_list if pos.get('prescription_id')]
-            prescriptions = supabase.table('Prescription').select('*').in_('prescription_id', prescription_ids).execute().data
-            prescription_map = {p['prescription_id']: p for p in prescriptions}
+            # Prescriptions, Customers, Customer Types
+            prescription_ids = [pos.prescription_id for pos in pos_map.values() if pos.prescription_id]
+            prescription_map = {}
+            customer_map = {}
+            customer_type_map = {}
 
-            customer_ids = [p['customer_id'] for p in prescriptions if p.get('customer_id')]
-            customers = supabase.table('Customers').select('*').in_('customer_id', customer_ids).execute().data
-            customer_map = {c['customer_id']: c for c in customers}
+            if prescription_ids:
+                prescriptions = Prescription.objects.filter(prescription_id__in=prescription_ids)
+                prescription_map = {p.prescription_id: p for p in prescriptions}
 
-            customer_type_ids = [c['customer_type_id'] for c in customers if c.get('customer_type_id')]
-            customer_types = supabase.table('Customer_Type').select('*').in_('customer_type_id', customer_type_ids).execute().data
-            customer_type_map = {ct['customer_type_id']: ct for ct in customer_types}
+                customer_ids = [p.customer_id for p in prescriptions if p.customer_id]
+                if customer_ids:
+                    customers = Customer.objects.filter(customer_id__in=customer_ids).select_related('customer_type')
+                    customer_map = {c.customer_id: c for c in customers}
+                    for c in customers:
+                        if c.customer_type:
+                            customer_type_map[c.customer_type_id] = c.customer_type
 
             # Organize monthly -> daily sales
             monthly_sales = defaultdict(lambda: defaultdict(lambda: {
                 "Asuncion": 0.0,
                 "Talaingod": 0.0,
                 "regular_sales": 0.0,
-                "total_dswd": 0.0
+                "total_dswd": 0.0,
             }))
 
             for txn in transactions:
@@ -69,25 +80,29 @@ class Receipt(APIView):
                 if not txn_date_str:
                     continue
 
-                txn_date = datetime.fromisoformat(txn_date_str.replace('Z', '+00:00'))
+                if isinstance(txn_date_str, str):
+                    txn_date = datetime.fromisoformat(txn_date_str.replace('Z', '+00:00'))
+                else:
+                    txn_date = txn_date_str
+
                 if month_number and txn_date.month != month_number:
                     continue
 
                 date_key = txn_date.strftime('%m/%d/%Y')
-                month_key = txn_date.strftime('%B')  # e.g., "May"
+                month_key = txn_date.strftime('%B')
                 month_index = txn_date.month
 
                 branch = str(txn.get('src_location'))
-                items = pos_items_by_pos.get(pos['pos_id'], [])
+                items = pos_items_by_pos.get(pos.pos_id, [])
                 total_amount = sum(item['total_price'] for item in items)
 
                 is_dswd = False
-                presc = prescription_map.get(pos.get('prescription_id'))
+                presc = prescription_map.get(pos.prescription_id)
                 if presc:
-                    cust = customer_map.get(presc.get('customer_id'))
-                    cust_type = customer_type_map.get(cust.get('customer_type_id')) if cust else None
-                    if cust_type and cust_type.get("discount", 0) >= 100:
-                        is_dswd = True
+                    cust = customer_map.get(presc.customer_id)
+                    if cust and cust.customer_type:
+                        if cust.customer_type.discount >= 100:
+                            is_dswd = True
 
                 sales = monthly_sales[(month_index, month_key)][date_key]
                 if is_dswd:
@@ -111,12 +126,9 @@ class Receipt(APIView):
                         "Asuncion": "{:.2f}".format(values['Asuncion']),
                         "Talaingod": "{:.2f}".format(values['Talaingod']),
                         "regular_sales": "{:.2f}".format(values['regular_sales']),
-                        "total_dswd": "{:.2f}".format(values['total_dswd'])
+                        "total_dswd": "{:.2f}".format(values['total_dswd']),
                     }
-                    daily_sales.append({
-                        "date": date,
-                        **rounded_values
-                    })
+                    daily_sales.append({"date": date, **rounded_values})
                     monthly_regular += values['regular_sales']
                     monthly_dswd += values['total_dswd']
 
@@ -125,43 +137,40 @@ class Receipt(APIView):
                     "daily_sales_summary": daily_sales,
                     "monthly_summary": {
                         "monthly_regular_sales": "{:.2f}".format(monthly_regular),
-                        "monthly_total_dswd": "{:.2f}".format(monthly_dswd)
-                    }
+                        "monthly_total_dswd": "{:.2f}".format(monthly_dswd),
+                    },
                 })
 
             return Response(all_months_response, status=200)
 
         except Exception as e:
+            traceback.print_exc()
             return Response({"error": str(e)}, status=500)
-        
-    def post(self, request):
-        data = request.data 
-        try:
-           
-            response = supabase.table("Receipt").insert(data).execute()
-            return Response(response.data, status=201)
-        except Exception as e:
-            return Response({"error": str(e)}, status=400)
- 
-    def put(self, request, receipt_id):
-        data = request.data 
-        try:
-            response = supabase.table("Receipt").update(data).eq('receipt_id', receipt_id).execute()
 
-            if response.data:
-                return Response(response.data, status=200)
-            else:
-                return Response({"error": "Receipt not found or update failed"}, status=400)
+    def post(self, request):
+        data = request.data
+        try:
+            obj = ReceiptModel.objects.create(**data)
+            return Response(model_to_dict(obj), status=201)
         except Exception as e:
             return Response({"error": str(e)}, status=400)
-   
+
+    def put(self, request, receipt_id):
+        data = request.data
+        try:
+            updated = ReceiptModel.objects.filter(receipt_id=receipt_id).update(**data)
+            if updated:
+                obj = ReceiptModel.objects.get(receipt_id=receipt_id)
+                return Response(model_to_dict(obj), status=200)
+            return Response({"error": "Receipt not found or update failed"}, status=400)
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
+
     def delete(self, request, receipt_id):
         try:
-            response = supabase.table("Receipt").delete().eq('receipt_id', receipt_id).execute()
-
-            if response.data:
+            deleted, _ = ReceiptModel.objects.filter(receipt_id=receipt_id).delete()
+            if deleted:
                 return Response({"message": "Receipt deleted successfully"}, status=204)
-            else:
-                return Response({"error": "Receipt not found or deletion failed"}, status=400)
+            return Response({"error": "Receipt not found or deletion failed"}, status=400)
         except Exception as e:
             return Response({"error": str(e)}, status=400)

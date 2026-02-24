@@ -1,274 +1,178 @@
-# views.py
+import traceback
 
+from django.db import transaction
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from ..supabase_client import get_supabase_client
+from ..models import Product, Drug, StockItem, Expiration as ExpirationModel
 
-supabase = get_supabase_client()
-
-#Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
 
 class Products(APIView):
-    def get(self, request, product_id=None):
-        # Base query including stock items
-        query = supabase.table("Products").select(
-            "product_id, product_name, current_price, net_content, "
-            "Brand(brand_id, brand_name), Product_Category(category_id, category_name), "
-            "Unit(unit_id, unit), Drugs(dosage_strength, dosage_form), "
-            "Stock_Item(stock_item_id, location_id, quantity, Location(location))"
-        )
+    def get(self, request):
+        try:
+            product_id = request.GET.get('product_id')
+            location_id = request.GET.get('location_id')
 
-        if product_id:
-            query = query.eq("product_id", product_id)
+            products = Product.objects.select_related('brand', 'category', 'unit').prefetch_related('stock_items', 'stock_items__location')
 
-        # Execute query
-        response = query.execute()
-        products = response.data
+            if product_id:
+                products = products.filter(product_id=int(product_id))
 
-        if product_id:
-            if not products:
-                return Response({"error": "Product not found"}, status=404)
+            if not products.exists():
+                return Response({"error": "No products found"}, status=404)
 
-            product = products[0]  # Get the first (and only) result
-            drug_info = product.get("Drugs", {})
-            stock_items = product.get("Stock_Item", [])
+            result = []
+            for product in products:
+                # Get drug info if exists
+                try:
+                    drug = product.drug
+                    drug_info = {
+                        "dosage_strength": drug.dosage_strength,
+                        "dosage_form": drug.dosage_form,
+                    }
+                except Drug.DoesNotExist:
+                    drug_info = None
 
-            stock_per_location = []
-            for item in stock_items:
-                stock_item_id = item["stock_item_id"]
+                # Build full product name
+                brand_name = (product.brand.brand_name.strip() if product.brand else "")
+                if drug_info:
+                    dosage_strength = (drug_info.get("dosage_strength") or "").strip()
+                    dosage_form = (drug_info.get("dosage_form") or "").strip()
+                    full_product_name = f"{product.product_name} {dosage_strength} {dosage_form} ({brand_name})"
+                else:
+                    full_product_name = f"{product.product_name} {product.net_content or ''} per {product.unit.unit if product.unit else ''} ({brand_name})"
 
-                # ✅ Fetch Expiration details sorted by nearest expiry
-                expiry_query = (
-                    supabase.table("Expiration")
-                    .select("expiry_date, quantity")
-                    .eq("stock_item_id", stock_item_id)
-                    .gt("quantity", 0)  # Ignore fully used stock
-                    .order("expiry_date", desc=False)  # Sort FIFO (ascending order)
-                    .execute()
-                )
-                
-                expiry_data = expiry_query.data or []
+                # Get stock items
+                stock_items = product.stock_items.select_related('location').all()
+                if location_id:
+                    stock_items = stock_items.filter(location_id=int(location_id))
 
-                stock_per_location.append({
-                    "location_id": item["location_id"],
-                    "location": item["Location"]["location"],
-                    "total_quantity": item["quantity"],
-                    "expiry_details": [
-                        {"expiry_date": exp["expiry_date"], "quantity": exp["quantity"]}
-                        for exp in expiry_data
-                    ]  # FIFO order maintained
+                stock_data = []
+                for si in stock_items:
+                    # Get expiration details
+                    expirations = ExpirationModel.objects.filter(
+                        stock_item_id=si.stock_item_id,
+                        quantity__gt=0
+                    ).order_by('expiry_date')
+
+                    expiry_list = [{
+                        "expiry_date": str(exp.expiry_date),
+                        "quantity": exp.quantity,
+                    } for exp in expirations]
+
+                    stock_data.append({
+                        "stock_item_id": si.stock_item_id,
+                        "location_id": si.location_id,
+                        "quantity": si.quantity,
+                        "Location": {
+                            "location": si.location.location if si.location else None,
+                        },
+                        "expirations": expiry_list,
+                    })
+
+                result.append({
+                    "product_id": product.product_id,
+                    "full_product_name": full_product_name,
+                    "product_name": product.product_name,
+                    "current_price": float(product.current_price),
+                    "net_content": product.net_content,
+                    "Brand": {
+                        "brand_id": product.brand_id,
+                        "brand_name": brand_name,
+                    } if product.brand else None,
+                    "Product_Category": {
+                        "category_id": product.category_id,
+                        "category_name": product.category.category_name if product.category else None,
+                    } if product.category else None,
+                    "Unit": {
+                        "unit_id": product.unit_id,
+                        "unit": product.unit.unit if product.unit else None,
+                    } if product.unit else None,
+                    "Drugs": drug_info,
+                    "Stock_Item": stock_data,
                 })
 
-            # ✅ Check if it's a drug
-            if isinstance(drug_info, dict) and drug_info:
-                return Response({
-                    "product_id": product.get("product_id"),
-                    "product_name": product.get("product_name", "").strip(),
-                    "category_id": product.get("Product_Category", {}).get("category_id"),
-                    "brand_id": product.get("Brand", {}).get("brand_id"),
-                    "current_price": product.get("current_price", 0),
-                    "dosage_strength": drug_info.get("dosage_strength", "").strip(),
-                    "dosage_form": drug_info.get("dosage_form", "").strip(),
-                    "net_content": product.get("net_content", "").strip(),
-                    "unit_id": product.get("Unit", {}).get("unit_id"),
-                    "stock_per_location": stock_per_location
-                })
-            else:
-                return Response({
-                    "product_id": product.get("product_id"),
-                    "product_name": product.get("product_name", "").strip(),
-                    "category_id": product.get("Product_Category", {}).get("category_id"),
-                    "brand_id": product.get("Brand", {}).get("brand_id"),
-                    "current_price": product.get("current_price", 0),
-                    "net_content": product.get("net_content", "").strip(),
-                    "unit_id": product.get("Unit", {}).get("unit_id"),
-                    "stock_per_location": stock_per_location
-                })
+            return Response(result, status=200)
 
-        # If no product_id, return a list of products
-        formatted_products = []
-        for product in products:
-            brand_name = product.get("Brand", {}).get("brand_name", "").strip()
-            category_name = product.get("Product_Category", {}).get("category_name", "").strip()
-            unit_name = product.get("Unit", {}).get("unit", "").strip()
-            drug_info = product.get("Drugs", {})
-            stock_items = product.get("Stock_Item", [])
+        except Exception as e:
+            traceback.print_exc()
+            return Response({"error": str(e)}, status=500)
 
-            stock_per_location = []
-            for item in stock_items:
-                stock_item_id = item["stock_item_id"]
-
-                # ✅ Fetch Expiration details sorted by nearest expiry
-                expiry_query = (
-                    supabase.table("Expiration")
-                    .select("expiry_date, quantity")
-                    .eq("stock_item_id", stock_item_id)
-                    .gt("quantity", 0)  # Ignore fully used stock
-                    .order("expiry_date", desc=False)  # Sort FIFO (ascending order)
-                    .execute()
-                )
-
-                expiry_data = expiry_query.data or []
-
-                stock_per_location.append({
-                    "location_id": item["location_id"],
-                    "location": item["Location"]["location"],
-                    "total_quantity": item["quantity"],
-                    "expiry_details": [
-                        {"expiry_date": exp["expiry_date"], "quantity": exp["quantity"]}
-                        for exp in expiry_data
-                    ]  # FIFO order maintained
-                })
-
-            if isinstance(drug_info, dict) and drug_info:
-                dosage_strength = drug_info.get("dosage_strength", "").strip()
-                dosage_form = drug_info.get("dosage_form", "").strip()
-                full_name = f"{product['product_name']} {dosage_strength} {dosage_form} ({brand_name})"
-            else:
-                full_name = f"{product['product_name']} {product['net_content']} per {unit_name} ({brand_name})"
-
-            formatted_products.append({
-                "product_id": product.get("product_id"),
-                "full_product_name": full_name,
-                "category": category_name,
-                "price": product["current_price"],
-                "net_content": product["net_content"],
-                "unit": unit_name,
-                "stock_per_location": stock_per_location
-            })
-
-        return Response(formatted_products)
-
-    
+    @transaction.atomic
     def post(self, request):
         data = request.data
-        print(data)
-
         try:
-            # ✅ Step 1: Insert into Products table
-            product_response = supabase.table("Products").insert({
-                "product_name": data["product_name"],
-                "category_id": data["category_id"],
-                "brand_id": data["brand_id"],
-                "current_price": data["current_price"],
-                "net_content": data["net_content"],
-                "unit_id": data["unit_id"]
-            }).execute()
+            # Insert into Products table
+            product = Product.objects.create(
+                product_name=data["product_name"],
+                category_id=data.get("category_id"),
+                brand_id=data.get("brand_id"),
+                current_price=data.get("current_price", 0),
+                net_content=data.get("net_content"),
+                unit_id=data.get("unit_id"),
+            )
 
-            if not product_response.data:
-                return Response({"error": "Products insertion failed"}, status=400)
+            # Initialize Stock_Item for predefined locations (1, 2, 3)
+            for loc_id in [1, 2, 3]:
+                StockItem.objects.create(
+                    product_id=product.product_id,
+                    location_id=loc_id,
+                    quantity=0,
+                )
 
-            # ✅ Step 2: Get the generated product_id
-            product_id = product_response.data[0]["product_id"]
-
-            # ✅ Step 3: Insert into Stock_Item table for locations 1, 2, and 3 (Initial quantity = 0)
-            stock_items = []
-            for location_id in [1, 2, 3]:
-                stock_item_response = supabase.table("Stock_Item").insert({
-                    "product_id": product_id,
-                    "location_id": location_id,  # Assigning predefined locations
-                    "quantity": 0
-                }).execute()
-
-                if stock_item_response.data:
-                    stock_items.append(stock_item_response.data[0])
-                else:
-                    print(f"⚠️ Failed to initialize Stock_Item for location {location_id}")
-
-            if not stock_items:
-                return Response({"error": "Failed to initialize stock items for locations"}, status=400)
-
-            # ✅ Step 4: If it's a drug, insert into Drugs table
-            if "dosage_strength" in data and "dosage_form" in data:
-                drug_response = supabase.table("Drugs").insert({
-                    "product_id": product_id,
-                    "dosage_strength": data["dosage_strength"],
-                    "dosage_form": data["dosage_form"]
-                }).execute()
-
-                if not drug_response.data:
-                    return Response({"error": "Drugs insertion failed"}, status=400)
+            # Insert into Drugs table if drug info provided
+            if data.get("dosage_strength") or data.get("dosage_form"):
+                Drug.objects.create(
+                    product_id=product.product_id,
+                    dosage_strength=data.get("dosage_strength"),
+                    dosage_form=data.get("dosage_form"),
+                )
 
             return Response({
-                "message": "Product added successfully",
-                "product": product_response.data,
-                "stock_items": stock_items  # Includes initialized locations
+                "product_id": product.product_id,
+                "product_name": product.product_name,
             }, status=201)
 
         except Exception as e:
+            traceback.print_exc()
             return Response({"error": str(e)}, status=400)
 
-    def put(self, request, product_id=None):
+    def put(self, request, product_id):
         data = request.data
-        print(data)
         try:
-            # Update the Products table
-            product_response = supabase.table("Products").update({
-                "product_name": data["product_name"],
-                "category_id": data["category_id"],
-                "brand_id": data["brand_id"],
-                "current_price": data["current_price"],
-                "net_content": data["net_content"],
-                "unit_id": data["unit_id"]
-            }).eq("product_id", product_id).execute()
-
-            if not product_response.data:
-                return Response({"error": "Product not found or update failed"}, status=400)
-
-            # Check if it's a drug (has dosage_strength and dosage_form)
-            if "dosage_strength" in data and "dosage_form" in data:
-                # Check if the drug entry already exists
-                drug_check = supabase.table("Drugs").select("product_id").eq("product_id", product_id).execute()
-
-                if drug_check.data:
-                    # Update existing drug entry
-                    drug_response = supabase.table("Drugs").update({
-                        "dosage_strength": data["dosage_strength"],
-                        "dosage_form": data["dosage_form"]
-                    }).eq("product_id", product_id).execute()
-                else:
-                    # Insert new drug entry if it doesn't exist
-                    drug_response = supabase.table("Drugs").insert({
-                        "product_id": product_id,
-                        "dosage_strength": data["dosage_strength"],
-                        "dosage_form": data["dosage_form"]
-                    }).execute()
-
-                if not drug_response.data:
-                    return Response({"error": "Drugs update failed"}, status=400)
-
-            return Response({"message": "Product updated successfully", "product": product_response.data}, status=200)
-
-        except Exception as e:
-            return Response({"error": str(e)}, status=400)
-   
-   
-    def delete(self, request, product_id=None):
-        data = request.data
-        print(data)
-        
-        try:
-            # Check if the product exists
-            product_check = supabase.table("Products").select("product_id").eq("product_id", product_id).execute()
-            if not product_check.data:
+            if not Product.objects.filter(product_id=product_id).exists():
                 return Response({"error": "Product not found"}, status=404)
 
-            # Check if the product exists in the Drugs table
-            drug_check = supabase.table("Drugs").select("product_id").eq("product_id", product_id).execute()
+            # Separate product and drug fields
+            drug_fields = ["dosage_strength", "dosage_form"]
+            drug_data = {k: v for k, v in data.items() if k in drug_fields}
+            product_data = {k: v for k, v in data.items() if k not in drug_fields}
 
-            if drug_check.data:
-                # Delete from Drugs table first
-                supabase.table("Drugs").delete().eq("product_id", product_id).execute()
+            if product_data:
+                Product.objects.filter(product_id=product_id).update(**product_data)
 
-            # Delete from Products table
-            response = supabase.table("Products").delete().eq("product_id", product_id).execute()
+            if drug_data:
+                Drug.objects.update_or_create(
+                    product_id=product_id,
+                    defaults=drug_data,
+                )
 
-            if response.data:
-                return Response({"message": "Product deleted successfully"}, status=200)
-            else:
-                return Response({"error": "Product deletion failed"}, status=400)
+            product = Product.objects.get(product_id=product_id)
+            return Response({
+                "product_id": product.product_id,
+                "product_name": product.product_name,
+                "current_price": float(product.current_price),
+            }, status=200)
 
         except Exception as e:
+            traceback.print_exc()
             return Response({"error": str(e)}, status=400)
 
+    def delete(self, request, product_id):
+        try:
+            deleted, _ = Product.objects.filter(product_id=product_id).delete()
+            if deleted:
+                return Response({"message": "Product deleted successfully"}, status=204)
+            return Response({"error": "Product not found or deletion failed"}, status=400)
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)

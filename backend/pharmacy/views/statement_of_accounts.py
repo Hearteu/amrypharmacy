@@ -1,64 +1,64 @@
-# pharmacy/views/statement_of_accounts.py
+import traceback
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from ..supabase_client import get_supabase_client
+from ..models import Customer, DswdOrder, POS, POSItem, Person
 
-supabase = get_supabase_client()
 
 class StatementOfAccounts(APIView):
     def get(self, request):
         try:
-            # 🔄 Get ALL DSWD orders
-            dswd_orders = supabase.table("Dswd_Order").select("*").execute().data
+            # Get ALL DSWD orders
+            dswd_orders = DswdOrder.objects.all()
             results = []
 
             for order in dswd_orders:
-                customer_id = order.get("customer_id")
-                dswd_order_id = order.get("dswd_order_id")
+                customer_id = order.customer_id
 
-                # 🔍 Get customer
-                customer_data = supabase.table("Customers").select("*").eq("customer_id", customer_id).execute().data
-                customer = customer_data[0] if customer_data else None
-
-                # 🔍 Get person
+                # Get customer
+                customer = None
                 person = None
-                if customer:
-                    person_id = customer.get("person_id")
-                    person_data = supabase.table("Person").select("*").eq("person_id", person_id).execute().data
-                    person = person_data[0] if person_data else None
+                if customer_id:
+                    try:
+                        customer = Customer.objects.select_related('person').get(customer_id=customer_id)
+                        person = customer.person
+                    except Customer.DoesNotExist:
+                        pass
 
-                # 🔢 Get invoice from DSWD order
-                pos_id = order.get("pos_id")
+                # Get invoice from POS
+                pos_id = order.pos_id
+                invoice = "Unknown"
                 amount = 0
 
-                pos_data = supabase.table("POS").select("invoice").eq("pos_id", pos_id).execute().data
+                if pos_id:
+                    try:
+                        pos = POS.objects.get(pos_id=pos_id)
+                        invoice = pos.invoice or "Unknown"
+                    except POS.DoesNotExist:
+                        pass
 
-                pos_item_data = supabase.table("POS_Item").select("price", "quantity_sold").eq("pos_id", pos_id).execute().data
+                    # Calculate amount from POS items
+                    pos_items = POSItem.objects.filter(pos_id=pos_id)
+                    for pos_item in pos_items:
+                        if pos_item.price and pos_item.quantity_sold:
+                            amount += float(pos_item.price) * pos_item.quantity_sold
 
-                for pos_item in pos_item_data:
-                    price = pos_item.get("price")
-                    quantity_sold = pos_item.get("quantity_sold")
-                    if price and quantity_sold:
-                        amount += price * quantity_sold
-
-                # 📦 Construct entry
+                # Construct entry
                 entry = {
-                    "gl_date": order["gl_date"],
-                    "gl_no": order["gl_num"],
-                    "patient_name": f"{person['first_name']} {person['last_name']}" if person else "Unknown",
-                    "client_name": order["client_name"],
-                    "date_received": order["claim_date"],
-                    "invoice": pos_data[0]["invoice"] if pos_data else "Unknown",
-                    "amount": f"{amount:,.2f}"
+                    "gl_date": str(order.gl_date) if order.gl_date else None,
+                    "gl_no": order.gl_num,
+                    "patient_name": f"{person.first_name} {person.last_name}" if person else "Unknown",
+                    "client_name": order.client_name,
+                    "date_received": str(order.claim_date) if order.claim_date else None,
+                    "invoice": invoice,
+                    "amount": f"{amount:,.2f}",
                 }
 
                 results.append(entry)
 
-            print(f"\n✅ Total entries returned: {len(results)}")
             return Response(results, status=200)
 
         except Exception as e:
-            print(f"❌ Error in StatementOfAccounts view: {e}")
+            traceback.print_exc()
             return Response({"error": str(e)}, status=500)

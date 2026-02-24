@@ -1,5 +1,14 @@
 "use client";
 
+import { API_URL } from "@/app/lib/api-config";
+import { getRoleData, getUserData } from "@/app/lib/services/Persons";
+import { fetchUserLocations } from "@/app/lib/services/location";
+import {
+  UserFormSchema,
+  useUserForm,
+} from "@/app/lib/services/schemas/personSchema";
+import { Location } from "@/app/lib/types/location";
+import { Users } from "@/app/lib/types/persons";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -10,11 +19,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import axios, { AxiosResponse } from "axios";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { Check, ChevronsUpDown } from "lucide-react";
 import {
   Command,
   CommandEmpty,
@@ -23,21 +32,13 @@ import {
   CommandItem,
   CommandList,
 } from "../ui/command";
-import { cn } from "@/lib/utils";
-import { Location } from "@/app/lib/types/location";
-import { Users } from "@/app/lib/types/persons";
-import { getRoleData, getUserData } from "@/app/lib/services/Persons";
-import { fetchUserLocations } from "@/app/lib/services/location";
-import {
-  UserFormSchema,
-  useUserForm,
-} from "@/app/lib/services/schemas/personSchema";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import {
   Select,
-  SelectItem,
-  SelectValue,
   SelectContent,
+  SelectItem,
   SelectTrigger,
+  SelectValue,
 } from "../ui/select";
 
 interface EditUserFormProps {
@@ -91,7 +92,7 @@ export default function EditUserForm({
     console.log(data);
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/pharmacy/users/${user_id}/`,
+        `${API_URL}/users/${user_id}/`,
         data
       );
       onSuccess(response);
@@ -360,7 +361,7 @@ export default function EditUserForm({
                       >
                         {field.value
                           ? field.value.charAt(0).toUpperCase() +
-                            field.value.slice(1)
+                          field.value.slice(1)
                           : "Select status"}
                       </SelectValue>
                     </SelectTrigger>

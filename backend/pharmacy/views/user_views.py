@@ -1,257 +1,196 @@
-# views.py
+import traceback
+from datetime import datetime
 
 from django.contrib.auth.hashers import check_password, make_password
+from django.db import transaction
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken  # type: ignore
+from rest_framework_simplejwt.tokens import RefreshToken
 
-from ..supabase_client import get_supabase_client
+from ..models import Location as LocationModel
+from ..models import Person
+from ..models import User as UserModel
+from ..models import UserRole
 
-supabase = get_supabase_client()
-
-#Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
 
 class UserList(APIView):
     def get(self, request, user_id=None):
         try:
-            # Join Person, User_Role, and Location
-            query = supabase.table("Users").select(
-                "user_id, username, role_id, location_id, person_id, status, "
-                "Person(first_name, last_name, address, contact, email), "
-                "User_Role(role_name), "
-                "Location(location)"
-            )
+            users = UserModel.objects.select_related('person', 'role', 'location')
 
             if user_id is not None:
-                query = query.eq("user_id", user_id)
+                users = users.filter(user_id=user_id)
 
-            response = query.execute()
-
-            if not response.data:
+            if not users.exists():
                 return Response({"error": "No Users found"}, status=404)
 
-            users = response.data if isinstance(response.data, list) else [response.data]
-
-            formatted_users = []
+            result = []
             for user in users:
-                person = user.get("Person") or {}
-                first_name = person.get("first_name", "")
-                last_name = person.get("last_name", "")
-                formatted = {
-                    "user_id": user.get("user_id"),
-                    "username": user.get("username"),
-                    "person_id": user.get("person_id"),
-                    "first_name": (user.get("Person") or {}).get("first_name"),
-                    "last_name": (user.get("Person") or {}).get("last_name"),
-                    "full_name": f"{first_name} {last_name}".strip(),
-                    "address": (user.get("Person") or {}).get("address"),
-                    "contact": (user.get("Person") or {}).get("contact"),
-                    "email": (user.get("Person") or {}).get("email"),
-                    "role_id": user.get("role_id"),
-                    "role_name": (user.get("User_Role") or {}).get("role_name"),
-                    "location_id": user.get("location_id"),
-                    "location": (user.get("Location") or {}).get("location"),
-                    "status": user.get("status"),
-                }
-                formatted_users.append(formatted)
+                result.append({
+                    "user_id": user.user_id,
+                    "username": user.username,
+                    "status": user.status,
+                    "role_id": user.role_id,
+                    "location_id": user.location_id,
+                    "person_id": user.person_id,
+                    "Person": {
+                        "person_id": user.person.person_id,
+                        "first_name": user.person.first_name,
+                        "last_name": user.person.last_name,
+                        "contact": user.person.contact,
+                        "email": user.person.email,
+                        "address": user.person.address,
+                    } if user.person else None,
+                    "User_Role": {
+                        "role_id": user.role.role_id,
+                        "role_name": user.role.role_name,
+                    } if user.role else None,
+                    "Location": {
+                        "location_id": user.location.location_id,
+                        "location": user.location.location,
+                    } if user.location else None,
+                })
 
-            return Response(
-                formatted_users if user_id is None else formatted_users[0],
-                status=200
+            return Response(result, status=200)
+
+        except Exception as e:
+            traceback.print_exc()
+            return Response({"error": str(e)}, status=500)
+
+    @transaction.atomic
+    def post(self, request):
+        data = request.data
+        try:
+            # Create Person
+            person = Person.objects.create(
+                first_name=data.get("first_name"),
+                last_name=data.get("last_name"),
+                contact=data.get("contact"),
+                email=data.get("email"),
+                address=data.get("address"),
             )
 
-        except Exception as e:
-            return Response({"error": str(e)}, status=500)
-    
-    def post(self, request):
-        user_data = request.data.copy()
-        # Extract password and location_id separately
-        password = user_data.pop("password", None)
-        location_id = user_data.pop("location_id", None)  # Extract for Users table
-        role_id = user_data.pop("role_id", None)  # Extract for Users table
-
-        # Remove status if it's in user_data to prevent it from being added to Person table
-        if "status" in user_data:
-            user_data.pop("status")
-
-        try:
-            # Insert into Person table first
-            person = supabase.table("Person").insert([user_data]).execute()
-
-            if person.data and password:
-                person_id = person.data[0]['person_id']  # Retrieve generated person_id
-                first_name = user_data.get("first_name", "").strip()
-                last_name = user_data.get("last_name", "").strip()
-
-                # Generate initials for all first names
-                first_initials = "".join([word[0] for word in first_name.split()]) if first_name else ""
-                username = (first_initials + last_name).lower() if first_initials and last_name else f"user_{person_id}"
-
-                hashed_password = make_password(password)
-
-                # Insert into Users table (including location_id)
-                user = supabase.table("Users").insert([{
-                    "person_id": person_id,
-                    "username": username,
-                    "password": hashed_password,
-                    "role_id": role_id,  # Add FK reference here
-                    "location_id": location_id,  # Add FK reference here
-                    "status": "Active"
-                }]).execute()
-
-                return Response({"message": "User created successfully"}, status=201)
-
-            return Response({"error": "Failed to create user"}, status=400)
-
-        except Exception as e:
-            print("Error:", str(e))
-            return Response({"error": str(e)}, status=400)
-
-    
-    def put(self, request, user_id):
-        print(request.data)
-        request_data = request.data.copy()
-        print("Request data", request_data)
-        password = request_data.pop("password", None)
-
-        user_fields = [
-            "user_id",
-            "username",
-            "password",
-            "person_id",
-            "role_id",
-            "location_id",  # ✅ Include location_id
-            "status",
-        ]
-        persons_fields = [
-            "person_id",
-            "first_name",
-            "address",
-            "contact",
-            "email",
-            "last_name",
-        ]
-
-        # Remove empty fields
-        user_data = {
-            k: v for k, v in request_data.items() if v != "" and k in user_fields
-        }
-        print("Person data", request_data.items())
-        print("Person data", "first_name" in persons_fields, persons_fields)
-        person_data = {
-            k: v for k, v in request_data.items() if k in persons_fields
-        }
-
-        print(user_data)
-        print(person_data)
-
-        try:
-            # Fetch person_id safely
-            user_query = supabase.table("Users").select("person_id").eq("user_id", user_id).execute()
-            if not user_query.data:
-                return Response({"error": "User not found"}, status=404)
-
-            person_id = user_query.data[0].get("person_id")
-            if not person_id:
-                return Response({"error": "Person ID not found"}, status=400)
-
-            # Update Person table
-            supabase.table("Person").update(person_data).eq("person_id", person_id).execute()
+            password = data.get("password", "")
+            role_id = data.get("role_id")
+            location_id = data.get("location_id")
 
             # Generate username
-            first_name = person_data.get("first_name", "").strip()
-            last_name = person_data.get("last_name", "").strip()
-            first_initials = "".join([word[0] for word in first_name.split()]) if first_name else ""
-            username = (first_initials + last_name).lower() if first_initials and last_name else f"user_{user_id}"
+            first = (data.get("first_name") or "").strip()
+            last = (data.get("last_name") or "").strip()
+            username = data.get("username") or f"{first.lower()}.{last.lower()}"
 
-            # Prepare user update data
-            user_data["username"] = username
-            if password:  # Only update password if provided
-                user_data["password"] = make_password(password)
+            hashed_password = make_password(password)
 
-            # Update Users table (with optional location_id)
-            user_update = supabase.table("Users").update(user_data).eq("user_id", user_id).execute()
-            print(user_update)
+            user = UserModel.objects.create(
+                person_id=person.person_id,
+                username=username,
+                password=hashed_password,
+                role_id=role_id,
+                location_id=location_id,
+                status="Active",
+            )
 
-            if user_update.data:
-                return Response(user_update.data, status=200)
-            else:
-                return Response({"error": "Users not found or update failed"}, status=400)
+            return Response({
+                "user_id": user.user_id,
+                "username": user.username,
+                "person_id": person.person_id,
+            }, status=201)
 
         except Exception as e:
+            traceback.print_exc()
             return Response({"error": str(e)}, status=400)
 
+    @transaction.atomic
+    def put(self, request, user_id):
+        data = request.data
+        try:
+            try:
+                user = UserModel.objects.get(user_id=user_id)
+            except UserModel.DoesNotExist:
+                return Response({"error": "User not found"}, status=404)
+
+            # Update Person fields
+            person_fields = ["first_name", "last_name", "contact", "email", "address"]
+            person_data = {k: v for k, v in data.items() if k in person_fields and v is not None}
+            if person_data and user.person_id:
+                Person.objects.filter(person_id=user.person_id).update(**person_data)
+
+            # Update User fields
+            user_fields = ["username", "role_id", "location_id", "status"]
+            user_data = {k: v for k, v in data.items() if k in user_fields and v is not None}
+
+            # Handle password change
+            if data.get("password"):
+                user_data["password"] = make_password(data["password"])
+
+            if user_data:
+                UserModel.objects.filter(user_id=user_id).update(**user_data)
+
+            user.refresh_from_db()
+            return Response({
+                "user_id": user.user_id,
+                "username": user.username,
+                "status": user.status,
+            }, status=200)
+
+        except Exception as e:
+            traceback.print_exc()
+            return Response({"error": str(e)}, status=400)
 
     def delete(self, request, user_id):
         try:
-            response = supabase.table("Users").delete().eq('user_id', user_id).execute()
-
-            if response.data:
-                return Response({"message": "Users deleted successfully"}, status=204)
-            else:
-                return Response({"error": "Users not found or deletion failed"}, status=400)
+            deleted, _ = UserModel.objects.filter(user_id=user_id).delete()
+            if deleted:
+                return Response({"message": "User deleted successfully"}, status=204)
+            return Response({"error": "User not found or deletion failed"}, status=400)
         except Exception as e:
             return Response({"error": str(e)}, status=400)
-        
+
 
 class UserLoginView(APIView):
     def post(self, request):
-        username = request.data.get("username")
-        password = request.data.get("password")
-        
-        # Fetch user details including location and role_id
-        user_response = supabase.table("Users").select(
-            "user_id, password, role_id, username, status, location_id, Location(location)"
-        ).eq("username", username).execute()
-        
-        if not user_response.data:
-            return Response({"error": "User not found"}, status=404)
-
-        user = user_response.data[0]
-
-        if not check_password(password, user["password"]):
-            return Response({"error": "Invalid password"}, status=400)
-
-        # Fetch role_name using role_id
-        role_response = supabase.table("User_Role").select("role_name").eq("role_id", user["role_id"]).execute()
-        role_name = role_response.data[0]["role_name"] if role_response.data else None
-
-        location_id = user.get("location_id")
-        location = user.get("Location", {}).get("location")  # Safe access
-
-        # Add custom claims to token
-        refresh = RefreshToken()
-        refresh["user_id"] = user["user_id"]
-        refresh["username"] = user["username"]
-        refresh["role_name"] = role_name
-        refresh["location_id"] = location_id
-        refresh["location"] = location
-        refresh["status"] = user["status"]
-
-        return Response({
-            "user_id": user["user_id"],
-            "username": user["username"],
-            "role_name": role_name,
-            "location_id": location_id,
-            "location": location,
-            "access": str(refresh.access_token),
-            "refresh": str(refresh),
-            "status": user["status"],
-        })
-
-    
-    #not working yet
-class ResetPassword(APIView):
-    def put(self, request, user_id):
-        user_data = request.data 
-        if 'password' in user_data:
-            user_data['password'] = make_password(user_data['password'])
         try:
-            response = supabase.table("Users").update(user_data).eq('user_id', user_id).execute()
+            username = request.data.get("username")
+            password = request.data.get("password")
 
-            if response.data:
-                return Response(response.data, status=200)
-            else:
-                return Response({"error": "Users not found or update failed"}, status=400)
+            if not username or not password:
+                return Response({"error": "Username and password are required"}, status=400)
+
+            # Fetch user with related data
+            try:
+                user = UserModel.objects.select_related('location', 'role').get(username=username)
+            except UserModel.DoesNotExist:
+                return Response({"error": "Invalid username or password"}, status=401)
+
+            # Verify password
+            if not check_password(password, user.password):
+                return Response({"error": "Invalid username or password"}, status=401)
+
+            # Get role name
+            role_name = user.role.role_name if user.role else ""
+            location_id = user.location_id
+            location = user.location.location if user.location else ""
+
+            # Generate JWT tokens
+            refresh = RefreshToken()
+            refresh["user_id"] = user.user_id
+            refresh["username"] = user.username
+            refresh["role_name"] = role_name
+            refresh["location_id"] = location_id
+            refresh["location"] = location
+            refresh["status"] = user.status
+
+            return Response({
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+                "user_id": user.user_id,
+                "username": user.username,
+                "role_name": role_name,
+                "location_id": location_id,
+                "location": location,
+                "status": user.status,
+            }, status=200)
+
         except Exception as e:
-            return Response({"error": str(e)}, status=400)
+            traceback.print_exc()
+            return Response({"error": str(e)}, status=500)

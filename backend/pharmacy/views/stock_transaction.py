@@ -1,231 +1,124 @@
-# views.py
+import traceback
+from collections import defaultdict
 from datetime import datetime
 
+from django.db.models import Q
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from ..supabase_client import get_supabase_client
+from ..models import (Customer, CustomerType, DswdOrder, Location, POS,
+                       POSItem, Person, Prescription, StockTransaction)
 
-supabase = get_supabase_client()
 
-#Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
-
-class StockTransaction(APIView):
-    
+class StockTransactionView(APIView):
     def get(self, request):
         try:
-            transaction_type = request.query_params.get('transaction_type')
-            order_type = request.query_params.get('order_type')
-            branch = request.query_params.get('branch')
+            transaction_type = request.GET.get('transaction_type')
+            branch = request.GET.get('branch')
 
-            query = supabase.table('Stock_Transaction').select('*')
+            qs = StockTransaction.objects.all().order_by('-transaction_date')
+
             if transaction_type:
-                query = query.ilike('transaction_type', transaction_type)
+                qs = qs.filter(transaction_type__iexact=transaction_type)
+            if branch:
+                qs = qs.filter(src_location=int(branch))
 
-            stock_transactions = query.execute()
-            if not stock_transactions.data:
-                return Response({"error": "No Stock_Transaction found"}, status=404)
+            if not qs.exists():
+                return Response({"error": "No transactions found"}, status=404)
 
-            filtered_transactions = []
-            pos_ids = set()
-            src_location_ids = set()
-            
-            # To track which POS IDs we've already processed
+            transactions = list(qs.values())
+
+            # For POS transactions: only include first occurrence per reference_id
             processed_pos_ids = set()
+            pos_ids = set()
+            filtered = []
 
-            # Special case for branch 8: include transactions from branches 1 and 3
-            branch_filter = []
-            if branch == "8":
-                branch_filter = ["1", "3"]  # Include transactions from branches 1 and 3
-            elif branch:
-                branch_filter = [branch]    # Just filter for the requested branch
-            
-            
-            for txn in stock_transactions.data:
-                # Skip if src_location doesn't match our branch filter
-                if branch and str(txn.get('src_location')) not in branch_filter and branch_filter:
-                    continue
-                
-                # For POS transactions, we'll only include the first one we encounter for each POS ID
+            for txn in transactions:
                 if txn.get('transaction_type', '').lower() == 'pos':
                     ref_id = txn['reference_id']
-                    
-                    # Skip this transaction if we've already processed this POS ID
                     if ref_id in processed_pos_ids:
                         continue
-                    
-                    # Mark this POS ID as processed
                     processed_pos_ids.add(ref_id)
                     pos_ids.add(ref_id)
-                
-                if txn.get('src_location'):
-                    src_location_ids.add(txn['src_location'])
-                
-                filtered_transactions.append(txn)
+                filtered.append(txn)
 
-            if not filtered_transactions:
-                return Response({"error": "No Stock_Transaction matched filters"}, status=404)
+            # Enrich POS transactions with related data
+            if pos_ids:
+                pos_map = {}
+                for pos in POS.objects.filter(pos_id__in=pos_ids):
+                    pos_map[pos.pos_id] = {
+                        "pos_id": pos.pos_id,
+                        "invoice": pos.invoice,
+                        "order_type": pos.order_type,
+                        "sale_date": str(pos.sale_date) if pos.sale_date else None,
+                        "prescription_id": pos.prescription_id,
+                    }
 
-            # POS
-            pos_list = supabase.table('POS').select('*').in_('pos_id', list(pos_ids)).execute().data
-            pos_map = {pos['pos_id']: pos for pos in pos_list}
+                # Get prescriptions, customers, customer types
+                prescription_ids = [p["prescription_id"] for p in pos_map.values() if p.get("prescription_id")]
+                prescription_map = {}
+                customer_map = {}
+                customer_type_map = {}
 
-            # Filter by order_type
-            if order_type:
-                filtered_transactions = [
-                    txn for txn in filtered_transactions
-                    if txn['transaction_type'].lower() != 'pos'
-                    or (
-                        txn['reference_id'] in pos_map and
-                        pos_map[txn['reference_id']].get('order_type', '').lower() == order_type.lower()
-                    )
-                ]
+                if prescription_ids:
+                    for presc in Prescription.objects.filter(prescription_id__in=prescription_ids).select_related('customer'):
+                        prescription_map[presc.prescription_id] = {
+                            "prescription_id": presc.prescription_id,
+                            "customer_id": presc.customer_id,
+                        }
 
-            # POS Items
-            pos_item_data = supabase.table('POS_Item').select('*, Products(*, Drugs(*))').in_('pos_id', list(pos_ids)).execute().data
-            pos_items_by_pos = {}
-            for item in pos_item_data:
-                pos_id = item['pos_id']
-                product = item.get("Products") or {}
-                drugs = product.get("Drugs") or {}
-                dosage = f"{drugs.get('dosage_form', '')} {drugs.get('dosage_strength', '')}".strip()
-                full_name = f"{product.get('product_name', 'Unknown Product')} {dosage}".strip()
-                total_price = item["quantity_sold"] * item["price"]
-                formatted_item = {
-                    "pos_item_id": item["pos_item_id"],
-                    "product_id": product.get("product_id", "N/A"),
-                    "full_product_name": full_name,
-                    "quantity": item["quantity_sold"],
-                    "price": item["price"],
-                    "total_price": total_price
-                }
-                pos_items_by_pos.setdefault(pos_id, []).append(formatted_item)
+                    customer_ids = [p["customer_id"] for p in prescription_map.values() if p.get("customer_id")]
+                    if customer_ids:
+                        for cust in Customer.objects.filter(customer_id__in=customer_ids).select_related('person', 'customer_type'):
+                            customer_map[cust.customer_id] = {
+                                "customer_id": cust.customer_id,
+                                "customer_type_id": cust.customer_type_id,
+                                "person_name": str(cust.person) if cust.person else None,
+                            }
+                            if cust.customer_type:
+                                customer_type_map[cust.customer_type_id] = {
+                                    "customer_type_id": cust.customer_type.customer_type_id,
+                                    "description": cust.customer_type.description,
+                                    "discount": float(cust.customer_type.discount),
+                                }
 
-            dswd_orders = supabase.table('Dswd_Order').select('*').in_('pos_id', list(pos_ids)).execute().data
-            dswd_map = {order['pos_id']: order for order in dswd_orders}
-            
-            
-            # Prescriptions
-            prescription_ids = [pos['prescription_id'] for pos in pos_list if pos.get('prescription_id')]
-            prescriptions = supabase.table('Prescription').select('*').in_('prescription_id', prescription_ids).execute().data
-            prescription_map = {p['prescription_id']: p for p in prescriptions}
+                # Get locations
+                location_ids = set()
+                for txn in filtered:
+                    if txn.get('src_location'):
+                        location_ids.add(txn['src_location'])
+                    if txn.get('des_location'):
+                        location_ids.add(txn['des_location'])
 
-            # Customers
-            customer_ids = [p['customer_id'] for p in prescriptions if p.get('customer_id')]
-            customers = supabase.table('Customers').select('*').in_('customer_id', customer_ids).execute().data
-            customer_map = {c['customer_id']: c for c in customers}
+                loc_map = {}
+                if location_ids:
+                    for loc in Location.objects.filter(location_id__in=location_ids):
+                        loc_map[loc.location_id] = loc.location
 
-            # Customer Types
-            customer_type_ids = [c['customer_type_id'] for c in customers if c.get('customer_type_id')]
-            customer_types = supabase.table('Customer_Type').select('customer_type_id, discount').in_('customer_type_id', customer_type_ids).execute().data
-            customer_type_map = {ct['customer_type_id']: ct for ct in customer_types}
+                # Enrich filtered transactions
+                for txn in filtered:
+                    txn['src_location_name'] = loc_map.get(txn.get('src_location'))
+                    txn['des_location_name'] = loc_map.get(txn.get('des_location'))
 
-            # Persons for customers
-            person_ids = [c['person_id'] for c in customers if c.get('person_id')]
-            persons = supabase.table('Person').select('*').in_('person_id', person_ids).execute().data
-            person_map = {p['person_id']: p for p in persons}
+                    if txn.get('transaction_type', '').lower() == 'pos' and txn.get('reference_id') in pos_map:
+                        pos_data = pos_map[txn['reference_id']]
+                        txn['POS'] = pos_data
 
-            # Physicians and their persons
-            physician_ids = [p['physician_id'] for p in prescriptions if p.get('physician_id')]
-            physicians = supabase.table('Physician').select('*').in_('physician_id', physician_ids).execute().data
-            physician_map = {d['physician_id']: d for d in physicians}
+                        presc = prescription_map.get(pos_data.get('prescription_id'))
+                        if presc:
+                            txn['Prescription'] = presc
+                            cust = customer_map.get(presc.get('customer_id'))
+                            if cust:
+                                txn['Customer'] = cust
+                                ct = customer_type_map.get(cust.get('customer_type_id'))
+                                if ct:
+                                    txn['Customer_Type'] = ct
 
-            physician_person_ids = [d['person_id'] for d in physicians if d.get('person_id')]
-            physician_persons = supabase.table('Person').select('*').in_('person_id', physician_person_ids).execute().data
-            physician_person_map = {p['person_id']: p for p in physician_persons}
-
-            # Locations
-            locations = supabase.table('Location').select('*').in_('location_id', list(src_location_ids)).execute().data
-            location_map = {l['location_id']: l['location'] for l in locations}
-
-            def format_dswd_details(dswd):
-                return {
-                    "dswd_order_id": dswd.get("dswd_order_id"),
-                    "gl_num": dswd.get("gl_num"),
-                    "gl_date": dswd.get("gl_date"),
-                    "claim_date": dswd.get("claim_date"),
-                    "client_name": dswd.get("client_name"),
-                    "customer_id": dswd.get("customer_id")
-                }
-                
-                
-            # Attach related data
-            for txn in filtered_transactions:
-                txn.pop('stock_item', None)
-
-                # Format transaction_date to a readable format
-                if 'transaction_date' in txn and txn['transaction_date']:
-                    try:
-                        # Parse the timestamp (it might already be a datetime object or string)
-                        if isinstance(txn['transaction_date'], str):
-                            dt = datetime.fromisoformat(txn['transaction_date'].replace('Z', '+00:00'))
-                        else:
-                            dt = txn['transaction_date']
-                            
-                        # Format as MM/DD/YYYY HH:MM AM/PM
-                        txn['transaction_date'] = dt.strftime('%m/%d/%Y %I:%M %p')
-                    except Exception as e:
-                        # Keep original if formatting fails
-                        print(f"Error formatting date: {e}")
-                
-                # Location name
-                txn['src_location_name'] = location_map.get(txn.get('src_location'))
-
-                # POS
-                pos = pos_map.get(txn['reference_id'])
-                if pos:
-                    pos['pos_items'] = pos_items_by_pos.get(pos['pos_id'], [])
-                    if "pos_items" in pos:
-                        pos["total_amount"] = round(sum(item.get("total_price", 0) for item in pos["pos_items"]), 2)
-                    txn['pos'] = pos
-                    
-                    if pos.get('pos_id') in dswd_map:
-                        txn['dswd_details'] = format_dswd_details(dswd_map[pos['pos_id']])
-                    
-                    # Prescription
-                    if pos.get('prescription_id'):
-                        prescription = prescription_map.get(pos['prescription_id'])
-                        if prescription:
-                            # Physician
-                            if prescription.get('physician_id'):
-                                physician = physician_map.get(prescription['physician_id'])
-                                if physician:
-                                    phys_person_id = physician.get("person_id")
-                                    person = physician_person_map.get(phys_person_id) if phys_person_id in physician_person_map else {}
-                                    physician.update({
-                                        "name": f"{person.get('first_name', '')} {person.get('last_name', '')}".strip(),
-                                        "address": person.get("address"),
-                                        "contact": person.get("contact"),
-                                        "email": person.get("email")
-                                    })
-                                    physician.pop("person_id", None)
-                                    prescription["physician"] = physician
-                            txn["prescription"] = prescription
-
-                            # Customer
-                            if prescription.get('customer_id'):
-                                customer = customer_map.get(prescription['customer_id'])
-                                if customer:
-                                    person_id = customer.get("person_id")
-                                    person = person_map.get(person_id) if person_id in person_map else {}
-                                    customer_type = customer_type_map.get(customer.get("customer_type_id"))
-                                    discount_rate = round((customer_type["discount"] / 100), 2) if customer_type and "discount" in customer_type else 0.0
-                                    customer.update({
-                                        "name": f"{person.get('first_name', '')} {person.get('last_name', '')}".strip(),
-                                        "address": person.get("address"),
-                                        "contact": person.get("contact"),
-                                        "email": person.get("email"),
-                                        "discountRate": discount_rate
-                                    })
-                                    customer.pop("person_id", None)
-                                    txn["customer"] = customer
-
-            return Response(filtered_transactions, status=200)
+            return Response(filtered, status=200)
 
         except Exception as e:
+            traceback.print_exc()
             return Response({"error": str(e)}, status=500)
-
-
 
     def post(self, request):
         data = request.data
@@ -233,78 +126,63 @@ class StockTransaction(APIView):
             stock_item_id = data.get("stock_item_id")
             transaction_type = data.get("transaction_type")
             reference_id = data.get("reference_id")
-            quantity_change = data.get("quantity_change")
             src_location = data.get("src_location")
             des_location = data.get("des_location")
-            
-            # Ensure transaction_date is in ISO format (Supabase timestamptz requirement)
-            transaction_date = data.get("transaction_date", datetime.utcnow().isoformat() + "Z")  # Default to now in UTC
+            quantity_change = int(data.get("quantity_change", 0))
+            transaction_date = data.get("transaction_date")
 
+            from ..models import StockItem
             # Validate stock item
-            stock_item_query = supabase.table("Stock_Item").select("*").eq("stock_item_id", stock_item_id).single()
-            stock_item = stock_item_query.execute()
-
-            if not stock_item.data:
+            try:
+                stock_item = StockItem.objects.get(stock_item_id=stock_item_id)
+            except StockItem.DoesNotExist:
                 return Response({"error": "Stock item not found"}, status=404)
 
-            current_quantity = stock_item.data["quantity"]
+            current_quantity = stock_item.quantity
 
-            # Validate reference_id based on transaction type
-            valid_reference = False
-            if transaction_type == "POI":
-                valid_reference = supabase.table("Purchase_Order_Item").select("poi_id").eq("poi_id", reference_id).execute().data
-            elif transaction_type == "POS":
-                valid_reference = supabase.table("POS_Item").select("pos_item_id").eq("pos_item_id", reference_id).execute().data
-            elif transaction_type == "Stock_Transfer":
-                valid_reference = supabase.table("Stock_Transfer").select("stock_transfer_id").eq("stock_transfer_id", reference_id).execute().data
-
-            if not valid_reference:
-                return Response({"error": f"Invalid reference ID for transaction type {transaction_type}"}, status=400)
-
-            # Ensure stock doesn't go negative for outbound transactions
-            if quantity_change < 0 and current_quantity + quantity_change < 0:
+            # Check stock doesn't go negative for outbound
+            if quantity_change < 0 and (current_quantity + quantity_change) < 0:
                 return Response({"error": "Insufficient stock"}, status=400)
 
-            # Insert stock transaction
-            transaction_data = {
-                "stock_item_id": stock_item_id,
-                "transaction_type": transaction_type,
-                "reference_id": reference_id,
-                "src_location": src_location,
-                "des_location": des_location,
-                "quantity_change": quantity_change,
-                "transaction_date": transaction_date  # Ensure this is in ISO format
-            }
-            response = supabase.table("Stock_Transaction").insert(transaction_data).execute()
+            # Insert transaction
+            txn = StockTransaction.objects.create(
+                stock_item_id=stock_item_id,
+                transaction_type=transaction_type,
+                reference_id=reference_id,
+                src_location=src_location,
+                des_location=des_location,
+                quantity_change=quantity_change,
+                transaction_date=transaction_date,
+            )
 
-            # Update Stock_Item quantity
-            updated_quantity = current_quantity + quantity_change
-            supabase.table("Stock_Item").update({"quantity": updated_quantity}).eq("stock_item_id", stock_item_id).execute()
+            # Update stock item quantity
+            stock_item.quantity = current_quantity + quantity_change
+            stock_item.save()
 
-            return Response(response.data, status=201)
+            return Response({
+                "stock_transaction_id": txn.stock_transaction_id,
+                "message": "Stock transaction created successfully",
+            }, status=201)
 
         except Exception as e:
+            traceback.print_exc()
             return Response({"error": str(e)}, status=400)
 
     def put(self, request, stock_transaction_id):
-        data = request.data 
+        data = request.data
         try:
-            response = supabase.table("Stock_Transaction").update(data).eq('stock_transaction_id', stock_transaction_id).execute()
-
-            if response.data:
-                return Response(response.data, status=200)
-            else:
-                return Response({"error": "Customer not found or update failed"}, status=400)
+            updated = StockTransaction.objects.filter(stock_transaction_id=stock_transaction_id).update(**data)
+            if updated:
+                return Response({"message": "Stock transaction updated successfully"}, status=200)
+            return Response({"error": "Stock transaction not found"}, status=400)
         except Exception as e:
             return Response({"error": str(e)}, status=400)
-   
+
     def delete(self, request, stock_transaction_id):
         try:
-            response = supabase.table("Stock_Transaction").delete().eq('stock_transaction_id', stock_transaction_id).execute()
-
-            if response.data:
-                return Response({"message": "Customer deleted successfully"}, status=204)
-            else:
-                return Response({"error": "Customer not found or deletion failed"}, status=400)
+            deleted, _ = StockTransaction.objects.filter(stock_transaction_id=stock_transaction_id).delete()
+            if deleted:
+                return Response({"message": "Stock transaction deleted successfully"}, status=204)
+            return Response({"error": "Stock transaction not found or deletion failed"}, status=400)
         except Exception as e:
             return Response({"error": str(e)}, status=400)

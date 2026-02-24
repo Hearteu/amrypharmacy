@@ -1,6 +1,6 @@
-import NextAuth from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
 import axios from "axios";
+import NextAuth from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
 
 export const authOptions = {
     pages: {
@@ -29,7 +29,7 @@ export const authOptions = {
                 const { username, password } = credentials
                 try {
                     const res = await axios.post(
-                        "http://127.0.0.1:8000/pharmacy/login/",
+                        `${API_URL}/login/`,
                         { username, password }
                     );
                     const user = res.data
@@ -80,4 +80,5 @@ export const authOptions = {
 
 const handler = NextAuth(authOptions)
 
-export { handler as GET, handler as POST }
+export { handler as GET, handler as POST };
+

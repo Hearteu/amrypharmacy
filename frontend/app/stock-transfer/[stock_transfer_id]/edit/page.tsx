@@ -1,11 +1,13 @@
 "use client";
 
+import { API_URL } from "@/app/lib/api-config";
+
 import { Button } from "@/components/ui/button";
+import axios from "axios";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { StockTransferForm } from "../../components/StockTransferForm";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { StockTransferForm } from "../../components/StockTransferForm";
 
 interface LineItems {
   stock_transfer_item_id: string;
@@ -44,7 +46,7 @@ export default function EditPurchaseOrderPage({
         );
 
         const response = await axios.get(
-          `http://127.0.0.1:8000/pharmacy/stock-transfers/${params.stock_transfer_id}/`
+          `${API_URL}/stock-transfers/${params.stock_transfer_id}/`
         );
 
         console.log("✅ API Response:", response.data); // Debug API response

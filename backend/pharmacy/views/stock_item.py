@@ -1,15 +1,12 @@
-# views.py
+import traceback
 
-from datetime import datetime, timedelta
-
+from django.db import transaction
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from ..supabase_client import get_supabase_client
+from ..models import (Brand, Drug, Location, Product, ProductCategory,
+                       StockItem as StockItemModel, StockTransaction)
 
-supabase = get_supabase_client()
-
-#Handling Input: You can access the individual fields in the request data (e.g., request.data['name'], request.data['email']) and use them in your logic (e.g., saving them to a database).
 
 class StockItem(APIView):
     def get(self, request):
@@ -17,118 +14,74 @@ class StockItem(APIView):
             threshold = request.query_params.get('threshold')
             branch = request.query_params.get('branch')  # Treated as location_id
 
-            query = supabase.table('Stock_Item').select('*')
+            qs = StockItemModel.objects.select_related(
+                'product', 'product__brand', 'product__category',
+                'product__unit', 'location'
+            )
 
             if threshold is not None:
-                query = query.lt('quantity', int(threshold))
+                qs = qs.filter(quantity__lt=int(threshold))
 
             if branch is not None:
-                query = query.eq('location_id', int(branch))
+                qs = qs.filter(location_id=int(branch))
 
-            response = query.execute()
-            if not response.data:
+            if not qs.exists():
                 return Response({"error": "No low stock items found"}, status=404)
 
-            stock_items = response.data
-            product_ids = list(set(item['product_id'] for item in stock_items))
-            location_ids = list(set(item['location_id'] for item in stock_items))
-
-            # Fetch Products
-            products_resp = supabase.table('Products').select('product_id, product_name, current_price, category_id, brand_id').in_('product_id', product_ids).execute()
-            product_map = {prod['product_id']: prod for prod in products_resp.data}
-
-            # Fetch Drugs
-            drugs_resp = supabase.table('Drugs').select('product_id, dosage_form, dosage_strength').in_('product_id', product_ids).execute()
-            drug_map = {drug['product_id']: drug for drug in drugs_resp.data}
-
-            # Fetch Categories
-            category_ids = list(set(prod['category_id'] for prod in products_resp.data if prod.get('category_id')))
-            categories_resp = supabase.table('Product_Category').select('category_id, category_name').in_('category_id', category_ids).execute()
-            category_map = {
-                cat['category_id']: cat['category_name'].strip() if cat.get('category_name') else None
-                for cat in categories_resp.data
-            }
-
-            # Fetch Brands
-            brand_ids = list(set(prod['brand_id'] for prod in products_resp.data if prod.get('brand_id')))
-            brands_resp = supabase.table('Brand').select('brand_id, brand_name').in_('brand_id', brand_ids).execute()
-            brand_map = {brand['brand_id']: brand['brand_name'] for brand in brands_resp.data}
-
-            # Fetch Locations
-            locations_resp = supabase.table('Location').select('location_id, location').in_('location_id', location_ids).execute()
-            location_map = {loc['location_id']: loc['location'] for loc in locations_resp.data}
-
             formatted_items = []
-            for item in stock_items:
-                product = product_map.get(item['product_id'], {})
-                drugs = drug_map.get(item['product_id'], {})
-                location_name = location_map.get(item['location_id'], 'Unknown Location')
+            for item in qs:
+                product = item.product
+                location_name = item.location.location if item.location else 'Unknown Location'
 
+                # Get drug info
+                drug = getattr(product, 'drug', None)
                 dosage_parts = []
-                if drugs.get('dosage_form'):
-                    dosage_parts.append(drugs['dosage_form'])
-                if drugs.get('dosage_strength'):
-                    dosage_parts.append(drugs['dosage_strength'])
+                if drug:
+                    if drug.dosage_form:
+                        dosage_parts.append(drug.dosage_form)
+                    if drug.dosage_strength:
+                        dosage_parts.append(drug.dosage_strength)
                 dosage = ' '.join(dosage_parts)
-                full_name = f"{product.get('product_name', 'Unknown Product')} {dosage}".strip()
+                full_name = f"{product.product_name} {dosage}".strip()
 
                 product_details = {
-                    "product_id": item["product_id"],
+                    "product_id": product.product_id,
                     "full_product_name": full_name,
-                    "current_price": product.get("current_price"),
-                    "category_id": product.get("category_id"),
-                    "category_name": category_map.get(product.get("category_id")),
-                    "brand_id": product.get("brand_id"),
-                    "brand_name": brand_map.get(product.get("brand_id"))
+                    "current_price": float(product.current_price),
+                    "category_id": product.category_id,
+                    "category_name": product.category.category_name.strip() if product.category and product.category.category_name else None,
+                    "brand_id": product.brand_id,
+                    "brand_name": product.brand.brand_name if product.brand else None,
                 }
 
                 formatted_items.append({
-                    "product_id": item["product_id"],
-                    "product_id": item["product_id"],
-                    "location_id": item["location_id"],
+                    "product_id": product.product_id,
+                    "location_id": item.location_id,
                     "location_name": location_name,
-                    "quantity": item["quantity"],
-                    "product_details": product_details
+                    "quantity": item.quantity,
+                    "product_details": product_details,
                 })
 
             return Response(formatted_items, status=200)
 
         except Exception as e:
+            traceback.print_exc()
             return Response({"error": str(e)}, status=500)
 
     def post(self, request):
         data = request.data
         try:
-           
-            response = supabase.table("Stock_Item").insert(data).execute()
-            return Response(response.data, status=201)
+            obj = StockItemModel.objects.create(**data)
+            return Response({
+                "stock_item_id": obj.stock_item_id,
+                "product_id": obj.product_id,
+                "location_id": obj.location_id,
+                "quantity": obj.quantity,
+            }, status=201)
         except Exception as e:
             return Response({"error": str(e)}, status=400)
- 
-    # def put(self, request, product_id):
-    #     data = request.data
-    #     try:
-    #         # Convert location_id to an integer
-    #         location_id = int(data.get("location_id", 0))
 
-    #         # Update the stock item directly in one query
-    #         response = supabase.table("Stock_Item").update({
-    #             "quantity": data["quantity"]
-    #         }) \
-    #         .eq("product_id", product_id) \
-    #         .eq("location_id", location_id) \
-    #         .execute()
-
-    #         if response.data:
-    #             return Response(response.data, status=200)
-    #         else:
-    #             return Response({"error": "Stock_Item not found or update failed"}, status=404)
-
-    #     except ValueError:
-    #         return Response({"error": "Invalid location_id format"}, status=400)
-    #     except Exception as e:
-    #         return Response({"error": str(e)}, status=400)
-
+    @transaction.atomic
     def put(self, request, product_id):
         data = request.data
         location_id = int(data.get("location_id"))
@@ -139,41 +92,37 @@ class StockItem(APIView):
         try:
             quantity = int(quantity)
 
-            # 1. Get current stock quantity and src_location
-            stock_response = supabase.table("Stock_Item").select("quantity, stock_item_id").eq("product_id", product_id).eq("location_id", location_id).execute()
-            print(stock_response.data)
-            if not stock_response.data:
+            # 1. Get current stock quantity
+            try:
+                stock_item = StockItemModel.objects.get(product_id=product_id, location_id=location_id)
+            except StockItemModel.DoesNotExist:
                 return Response({"error": "Stock item not found"}, status=404)
 
-            current_quantity = int(stock_response.data[0]["quantity"])
+            current_quantity = stock_item.quantity
 
-            # 3. Insert stock transaction with src_location
-            transaction_data = {
-                "stock_item_id": stock_response.data[0]["stock_item_id"],
-                "transaction_type": transaction_type,
-                "quantity_change": current_quantity - quantity,
-                "src_location": location_id
-            }
-            supabase.table("Stock_Transaction").insert(transaction_data).execute()
+            # 2. Insert stock transaction
+            StockTransaction.objects.create(
+                stock_item_id=stock_item.stock_item_id,
+                transaction_type=transaction_type,
+                quantity_change=current_quantity - quantity,
+                src_location=location_id,
+            )
 
-            # 4. Update stock item quantity
-            supabase.table("Stock_Item").update({"quantity": quantity}).eq("product_id", product_id).eq("location_id", location_id).execute()
+            # 3. Update stock item quantity
+            stock_item.quantity = quantity
+            stock_item.save()
 
             return Response({"message": "Disposal recorded and quantities updated"}, status=200)
 
         except Exception as e:
-            import traceback
             traceback.print_exc()
             return Response({"error": str(e)}, status=500)
 
-   
     def delete(self, request, product_id):
         try:
-            response = supabase.table("Stock_Item").delete().eq('product_id', product_id).execute()
-
-            if response.data:
+            deleted, _ = StockItemModel.objects.filter(product_id=product_id).delete()
+            if deleted:
                 return Response({"message": "Stock_Item deleted successfully"}, status=204)
-            else:
-                return Response({"error": "Stock_Item not found or deletion failed"}, status=400)
+            return Response({"error": "Stock_Item not found or deletion failed"}, status=400)
         except Exception as e:
             return Response({"error": str(e)}, status=400)

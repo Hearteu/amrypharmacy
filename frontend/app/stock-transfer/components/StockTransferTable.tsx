@@ -1,16 +1,17 @@
 "use client";
 
+import { API_URL } from "@/app/lib/api-config";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { getStockTransfer } from "@/app/lib/services/stock-transfer";
+import { StockTransfer } from "@/app/lib/types/stock-transfer";
+import { DataTableLoading } from "@/components/data-table/DataTableLoading";
+import { DataTablePagination } from "@/components/data-table/DataTablePagination";
+import { DataTableViewOptions } from "@/components/data-table/DataTableViewOptions";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,8 +20,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DataTableViewOptions } from "@/components/data-table/DataTableViewOptions";
-import { DataTablePagination } from "@/components/data-table/DataTablePagination";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -33,22 +49,8 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
-import { StockTransfer } from "@/app/lib/types/stock-transfer";
-import { getStockTransfer } from "@/app/lib/services/stock-transfer";
-import { DataTableLoading } from "@/components/data-table/DataTableLoading";
 import axios from "axios";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 const statusMap: Record<number, string> = {
   1: "Draft",
   2: "In Transit",
@@ -95,7 +97,7 @@ export default function StockTransferTable() {
     console.log(orderId);
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/pharmacy/stock-transfer/${orderId}/`,
+        `${API_URL}/stock-transfer/${orderId}/`,
         { purchase_order_status_id: 5 },
         { headers: { "Content-Type": "application/json" } }
       );
@@ -113,7 +115,7 @@ export default function StockTransferTable() {
     console.log(orderId);
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/pharmacy/stock-transfers/${orderId}/`,
+        `${API_URL}/stock-transfers/${orderId}/`,
         { stock_transfer_status_id: 6 },
         { headers: { "Content-Type": "application/json" } }
       );
@@ -131,7 +133,7 @@ export default function StockTransferTable() {
     console.log(orderId);
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/pharmacy/stock-transfers/${orderId}/`,
+        `${API_URL}/stock-transfers/${orderId}/`,
         { stock_transfer_status_id: 2 },
         { headers: { "Content-Type": "application/json" } }
       );
@@ -245,7 +247,7 @@ export default function StockTransferTable() {
                   className={cn(
                     "flex w-full",
                     stock_transfer.status_id !== 1 &&
-                      "pointer-events-none opacity-50"
+                    "pointer-events-none opacity-50"
                   )}
                 >
                   Edit
@@ -367,9 +369,9 @@ export default function StockTransferTable() {
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   );
                 })}

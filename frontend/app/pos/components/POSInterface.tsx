@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { API_URL } from "@/app/lib/api-config";
+
+import { Session } from "@/app/lib/types/session";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,9 +12,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -19,15 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Sheet,
   SheetContent,
@@ -36,22 +31,29 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Search,
-  Plus,
-  Minus,
-  Trash2,
-  FileText,
-  User,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
   CreditCard,
+  FileText,
+  Minus,
+  Plus,
+  Search,
+  Trash2,
+  User,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { PrescriptionForm } from "../components/PrescriptionForm";
-import { DSWDForm } from "../components/DSWDForm";
 import { getSession } from "next-auth/react";
-import { Session } from "@/app/lib/types/session";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { DSWDForm } from "../components/DSWDForm";
+import { PrescriptionForm } from "../components/PrescriptionForm";
 
 const branches = [
   { id: 1, name: "Asuncion" },
@@ -113,7 +115,7 @@ export default function PosInterface() {
         const branchesToCheck = locationId === 8 ? [1, 3] : [locationId];
 
         const response = await fetch(
-          `http://127.0.0.1:8000/pharmacy/products/`
+          `${API_URL}/products/`
         );
         const data: Products[] = await response.json();
 

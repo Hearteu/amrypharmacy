@@ -1,3 +1,4 @@
+import { API_URL } from "@/app/lib/api-config";
 import axios from "axios";
 import { z } from "zod";
 import {
@@ -69,7 +70,7 @@ export default function EditInventoryForm({
     }
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/pharmacy/stock-items/${product.product_id}/`,
+        `${API_URL}/stock-items/${product.product_id}/`,
         values
       );
       onSuccess();

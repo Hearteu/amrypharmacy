@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/app/lib/api-config";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -226,7 +227,7 @@ export default function ReceiveItemsForm({
     async function fetchPOItemStatus() {
       try {
         const response = await axios.get<POItemStatus[]>(
-          "http://127.0.0.1:8000/pharmacy/purchase-order-item-status/"
+          `${API_URL}/purchase-order-item-status/`
         );
         setPOItemStatus(response.data);
       } catch (error) {
@@ -240,7 +241,7 @@ export default function ReceiveItemsForm({
     async function fetchPOItemData() {
       try {
         const response = await axios.get(
-          `http://127.0.0.1:8000/pharmacy/purchase-order-items/${purchase_order_item_id}/`
+          `${API_URL}/purchase-order-items/${purchase_order_item_id}/`
         );
         const data = response.data;
 
@@ -323,7 +324,7 @@ export default function ReceiveItemsForm({
 
     try {
       await axios.put(
-        `http://127.0.0.1:8000/pharmacy/purchase-order-items/${purchase_order_item_id}/`,
+        `${API_URL}/purchase-order-items/${purchase_order_item_id}/`,
         formattedData,
         { headers: { "Content-Type": "application/json" } }
       );
@@ -371,10 +372,10 @@ export default function ReceiveItemsForm({
                         >
                           {field.value
                             ? poItemStatus.find(
-                                (status) =>
-                                  status.purchase_order_item_status_id.toString() ===
-                                  field.value
-                              )?.po_item_status
+                              (status) =>
+                                status.purchase_order_item_status_id.toString() ===
+                                field.value
+                            )?.po_item_status
                             : "Select status"}
                         </Button>
                       </FormControl>

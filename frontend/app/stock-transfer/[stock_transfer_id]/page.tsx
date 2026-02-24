@@ -1,5 +1,7 @@
 "use client";
 
+import { API_URL } from "@/app/lib/api-config";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -55,7 +57,7 @@ export default function StockTransferPaga({
   const fetchStockTransfer = async () => {
     try {
       const response = await axios.get<StockTransfer>(
-        `http://127.0.0.1:8000/pharmacy/stock-transfers/${params.stock_transfer_id}/`
+        `${API_URL}/stock-transfers/${params.stock_transfer_id}/`
       );
 
       setStockTransfer(response.data);
@@ -75,7 +77,7 @@ export default function StockTransferPaga({
   const acknowledgeTransfer = async () => {
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/pharmacy/stock-transfers/${params.stock_transfer_id}/`,
+        `${API_URL}/stock-transfers/${params.stock_transfer_id}/`,
         { stock_transfer_status_id: 4 },
         { headers: { "Content-Type": "application/json" } }
       );

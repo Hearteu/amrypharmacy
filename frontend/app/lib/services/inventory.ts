@@ -1,12 +1,13 @@
 import axios from "axios";
-import { ProductDetails } from "../types/inventory/product-details";
-import { Expiration, Products, StockItem } from "../types/inventory/products";
+import { API_URL } from "../api-config";
 import { Brand } from "../types/inventory/brand";
 import { Category } from "../types/inventory/category";
+import { ProductDetails } from "../types/inventory/product-details";
+import { Expiration, Products, StockItem } from "../types/inventory/products";
 import { Unit } from "../types/inventory/unit";
 
 export async function getProductsData(): Promise<Products[]> {
-    const prodRes = await fetch("http://127.0.0.1:8000/pharmacy/products/");
+    const prodRes = await fetch(`${API_URL}/products/`);
 
     if (!prodRes.ok) {
         throw new Error("Failed to fetch data");
@@ -19,7 +20,7 @@ export async function getProductsData(): Promise<Products[]> {
 
 export async function getProductData({ product_id }: { product_id: number }): Promise<ProductDetails> {
     const prodRes = await axios.get<ProductDetails>(
-        `http://127.0.0.1:8000/pharmacy/products/${product_id}/`
+        `${API_URL}/products/${product_id}/`
     );
 
     const product = Array.isArray(prodRes.data)
@@ -30,7 +31,7 @@ export async function getProductData({ product_id }: { product_id: number }): Pr
 }
 
 export const getBrand = async () => {
-    const brandRes = await fetch("http://127.0.0.1:8000/pharmacy/brands/");
+    const brandRes = await fetch(`${API_URL}/brands/`);
 
     if (!brandRes.ok) {
         throw new Error("Failed to fetch data");
@@ -45,7 +46,7 @@ export const getBrand = async () => {
 export const getCategory = async () => {
 
     const catRes = await fetch(
-        "http://127.0.0.1:8000/pharmacy/product-categories/"
+        `${API_URL}/product-categories/`
     );
     if (!catRes.ok) {
         throw new Error("Failed to fetch data");
@@ -56,7 +57,7 @@ export const getCategory = async () => {
 };
 
 export const getUnit = async () => {
-    const unitRes = await fetch("http://127.0.0.1:8000/pharmacy/unit/");
+    const unitRes = await fetch(`${API_URL}/unit/`);
     if (!unitRes.ok) {
         throw new Error("Failed to fetch data");
     }
@@ -67,7 +68,7 @@ export const getUnit = async () => {
 };
 
 export const getLowStock = async () => {
-    const lowRes = await fetch("http://127.0.0.1:8000/pharmacy/stock-items/?threshold=10");
+    const lowRes = await fetch(`${API_URL}/stock-items/?threshold=10`);
     if (!lowRes.ok) {
         throw new Error("Failed to fetch data");
     }
@@ -78,7 +79,7 @@ export const getLowStock = async () => {
 };
 
 export const getExpirations = async () => {
-    const expRes = await fetch("http://127.0.0.1:8000/pharmacy/expirations/");
+    const expRes = await fetch(`${API_URL}/expirations/`);
     if (!expRes.ok) {
         throw new Error("Failed to fetch data");
     }

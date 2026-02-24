@@ -1,19 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { API_URL } from "@/app/lib/api-config";
+
+import { exportExpiryPDF } from "@/app/dashboard/components/pdf-reports-buttons/ExpiryExportButton";
 import { exportInventoryPDF } from "@/app/dashboard/components/pdf-reports-buttons/inventoryExportButton";
+import { exportLowStockPDF } from "@/app/dashboard/components/pdf-reports-buttons/lowStockExportButton";
 import { exportSalesPDF } from "@/app/dashboard/components/pdf-reports-buttons/salesExportButton";
 import { exportSOAPDF } from "@/app/dashboard/components/pdf-reports-buttons/SOAExportButton";
-import { exportExpiryPDF } from "@/app/dashboard/components/pdf-reports-buttons/ExpiryExportButton";
-import { exportLowStockPDF } from "@/app/dashboard/components/pdf-reports-buttons/lowStockExportButton";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Card,
   CardContent,
@@ -22,14 +16,21 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  AlertCircle,
-  Calendar,
-  FileText,
-  Package,
-  Loader,
-  Printer,
-} from "lucide-react";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import axios from "axios";
+import {
+  AlertCircle,
+  FileText,
+  Loader,
+  Package,
+  Printer
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function Reports() {
   const [loading, setLoading] = useState(false);
@@ -40,7 +41,7 @@ export default function Reports() {
 
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:8000/pharmacy/receipts/")
+      .get(`${API_URL}/receipts/`)
       .then((res) => {
         const months = res.data.map((entry: any) => entry.month);
         setSalesMonths(months);
@@ -66,7 +67,7 @@ export default function Reports() {
       setLoading(true);
       try {
         const res = await axios.get(
-          `http://127.0.0.1:8000/pharmacy/receipts/?month=${month}`
+          `${API_URL}/receipts/?month=${month}`
         );
         const reportData = res.data[0];
         exportSalesPDF(reportData);
@@ -95,47 +96,47 @@ export default function Reports() {
                 Sales Report
               </Button>
             </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Select Month for Sales Report</DialogTitle>
-                </DialogHeader>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Select Month for Sales Report</DialogTitle>
+              </DialogHeader>
 
-                {/* Add this year selector block */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">Select Year</label>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(e.target.value)}
-                    className="w-full border rounded px-3 py-2 text-sm"
-                  >
-                    {dummyYears.map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Month buttons stay the same */}
-                <div className="grid grid-cols-2 gap-3">
-                  {salesMonths.map((month) => (
-                    <Button
-                      key={month}
-                      variant="outline"
-                      onClick={() => handleSalesReport(month)}
-                    >
-                      {month} {selectedYear}
-                    </Button>
+              {/* Add this year selector block */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Select Year</label>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  className="w-full border rounded px-3 py-2 text-sm"
+                >
+                  {dummyYears.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
                   ))}
-                </div>
-              </DialogContent>
+                </select>
+              </div>
+
+              {/* Month buttons stay the same */}
+              <div className="grid grid-cols-2 gap-3">
+                {salesMonths.map((month) => (
+                  <Button
+                    key={month}
+                    variant="outline"
+                    onClick={() => handleSalesReport(month)}
+                  >
+                    {month} {selectedYear}
+                  </Button>
+                ))}
+              </div>
+            </DialogContent>
 
           </Dialog>
 
           <Button
             variant="outline"
             className="flex items-center gap-2"
-            onClick={() => generateAndExport("http://127.0.0.1:8000/pharmacy/statement-of-accounts/", exportSOAPDF)}
+            onClick={() => generateAndExport(`${API_URL}/statement-of-accounts/`, exportSOAPDF)}
             disabled={loading}
           >
             {loading ? (
@@ -152,7 +153,7 @@ export default function Reports() {
           <Button
             variant="outline"
             className="flex items-center gap-2"
-            onClick={() => generateAndExport("http://127.0.0.1:8000/pharmacy/products/", exportInventoryPDF)}
+            onClick={() => generateAndExport(`${API_URL}/products/`, exportInventoryPDF)}
             disabled={loading}
           >
             {loading ? (
@@ -169,7 +170,7 @@ export default function Reports() {
           <Button
             variant="outline"
             className="flex items-center gap-2"
-            onClick={() => generateAndExport("http://127.0.0.1:8000/pharmacy/expirations/", exportExpiryPDF)}
+            onClick={() => generateAndExport(`${API_URL}/expirations/`, exportExpiryPDF)}
             disabled={loading}
           >
             {loading ? (
@@ -186,7 +187,7 @@ export default function Reports() {
           <Button
             variant="outline"
             className="flex items-center gap-2"
-            onClick={() => generateAndExport("http://127.0.0.1:8000/pharmacy/stock-items/?threshold=10", exportLowStockPDF)}
+            onClick={() => generateAndExport(`${API_URL}/stock-items/?threshold=10`, exportLowStockPDF)}
             disabled={loading}
           >
             {loading ? (

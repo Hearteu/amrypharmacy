@@ -1,13 +1,18 @@
 "use client";
 
+import { API_URL } from "@/app/lib/api-config";
+
+import { getBrand, getCategory, getUnit } from "@/app/lib/services/inventory";
+import {
+  medFormSchema,
+  nonMedFormSchema,
+  useMedProductForm,
+  useNonMedProductForm,
+} from "@/app/lib/services/schemas/productFormSchema";
+import { Brand } from "@/app/lib/types/inventory/brand";
+import { Category } from "@/app/lib/types/inventory/category";
+import { Unit } from "@/app/lib/types/inventory/unit";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useEffect, useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
-import axios from "axios";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { z } from "zod";
 import {
   Command,
   CommandEmpty,
@@ -24,21 +29,18 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { getBrand, getCategory, getUnit } from "@/app/lib/services/inventory";
-import { Brand } from "@/app/lib/types/inventory/brand";
-import { Category } from "@/app/lib/types/inventory/category";
-import { Unit } from "@/app/lib/types/inventory/unit";
-import {
-  medFormSchema,
-  nonMedFormSchema,
-  useMedProductForm,
-  useNonMedProductForm,
-} from "@/app/lib/services/schemas/productFormSchema";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+import axios from "axios";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { useEffect, useState } from "react";
+import { z } from "zod";
 
 export default function AddProductForm({
   onSuccess,
@@ -94,7 +96,7 @@ export default function AddProductForm({
     {
       try {
         const response = await axios.post(
-          "http://127.0.0.1:8000/pharmacy/brands/",
+          `${API_URL}/brands/`,
           {
             brand_name: trimmedBrandName,
           }
@@ -125,7 +127,7 @@ export default function AddProductForm({
     {
       try {
         const response = await axios.post(
-          "http://127.0.0.1:8000/pharmacy/product-categories/",
+          `${API_URL}/product-categories/`,
           {
             category_name: trimmedCatName,
           }
@@ -155,7 +157,7 @@ export default function AddProductForm({
     {
       try {
         const response = await axios.post(
-          "http://127.0.0.1:8000/pharmacy/unit/",
+          `${API_URL}/unit/`,
           {
             unit: trimmedUnitName,
           }
@@ -195,7 +197,7 @@ export default function AddProductForm({
   const onSubmit = async (values: z.infer<typeof medFormSchema>) => {
     try {
       const response = await axios.post(
-        "http://127.0.0.1:8000/pharmacy/products/",
+        `${API_URL}/products/`,
         values
       );
       onSuccess();
@@ -212,7 +214,7 @@ export default function AddProductForm({
   const onNonMedSubmit = async (values: z.infer<typeof nonMedFormSchema>) => {
     try {
       const response = await axios.post(
-        "http://127.0.0.1:8000/pharmacy/products/",
+        `${API_URL}/products/`,
         values
       );
       onSuccess();

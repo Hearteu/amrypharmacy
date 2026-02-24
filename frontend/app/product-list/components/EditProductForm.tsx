@@ -1,12 +1,18 @@
 "use client";
 
+import { API_URL } from "@/app/lib/api-config";
+
+import { getBrand, getCategory, getProductData, getUnit } from "@/app/lib/services/inventory";
+import {
+  ProductFormSchema,
+  useProductForm,
+} from "@/app/lib/services/schemas/productFormSchema";
+import { Brand } from "@/app/lib/types/inventory/brand";
+import { Category } from "@/app/lib/types/inventory/category";
+import { ProductDetails } from "@/app/lib/types/inventory/product-details";
+import { ProductFormProps } from "@/app/lib/types/inventory/product-props";
+import { Unit } from "@/app/lib/types/inventory/unit";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
-import axios from "axios";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { z } from "zod";
 import {
   Command,
   CommandEmpty,
@@ -23,22 +29,17 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  ProductFormSchema,
-  useProductForm,
-} from "@/app/lib/services/schemas/productFormSchema";
-import { ProductDetails } from "@/app/lib/types/inventory/product-details";
-import { ProductFormProps } from "@/app/lib/types/inventory/product-props";
-import { Brand } from "@/app/lib/types/inventory/brand";
-import { getBrand, getCategory, getUnit } from "@/app/lib/services/inventory";
-import { Category } from "@/app/lib/types/inventory/category";
-import { Unit } from "@/app/lib/types/inventory/unit";
-import { getProductData } from "@/app/lib/services/inventory";
+import { cn } from "@/lib/utils";
+import axios from "axios";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { useEffect, useState } from "react";
+import { z } from "zod";
 
 export default function EditProductForm({
   product_id,
@@ -97,7 +98,7 @@ export default function EditProductForm({
     {
       try {
         const response = await axios.post(
-          "http://127.0.0.1:8000/pharmacy/brands/",
+          `${API_URL}/brands/`,
           {
             brand_name: trimmedBrandName,
           }
@@ -128,7 +129,7 @@ export default function EditProductForm({
     {
       try {
         const response = await axios.post(
-          "http://127.0.0.1:8000/pharmacy/product-categories/",
+          `${API_URL}/product-categories/`,
           {
             category_name: trimmedCatName,
           }
@@ -158,7 +159,7 @@ export default function EditProductForm({
     {
       try {
         const response = await axios.post(
-          "http://127.0.0.1:8000/pharmacy/unit/",
+          `${API_URL}/unit/`,
           {
             unit: trimmedUnitName,
           }
@@ -198,7 +199,7 @@ export default function EditProductForm({
   const onSubmit = async (values: z.infer<typeof ProductFormSchema>) => {
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/pharmacy/products/${product_id}/`,
+        `${API_URL}/products/${product_id}/`,
         values
       );
       onSuccess();

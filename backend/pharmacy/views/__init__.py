@@ -9,7 +9,7 @@ from .inventory import Inventory
 from .location import Location
 from .order import Order
 from .person_views import PersonList
-from .pos import POS
+from .pos import POS  # noqa: F401
 from .prescription import Prescription
 from .price_history import PriceHistory
 from .product_brand import Brand
@@ -22,7 +22,7 @@ from .purchase_order_status import Purchase_Order_Status
 from .receipt import Receipt
 from .status import Status
 from .stock_item import StockItem
-from .stock_transaction import StockTransaction
+from .stock_transaction import StockTransactionView
 from .stock_transfer import StockTransfer
 from .stock_transfer_item import STI
 from .stock_transfer_item_status import Stock_Transfer_Item_Status

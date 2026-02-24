@@ -1,9 +1,10 @@
+import { API_URL } from "../api-config";
 import { StockTransfer } from "../types/stock-transfer";
 
 export const getStockTransfer = async () => {
 
     const response = await fetch(
-        "http://127.0.0.1:8000/pharmacy/stock-transfers/"
+        `${API_URL}/stock-transfers/`
     );
     if (!response.ok) {
         throw new Error("Failed to fetch data");
@@ -16,7 +17,7 @@ export const getStockTransfer = async () => {
 
 export const getIncomingStockTransfer = async (src_location: string) => {
     const response = await fetch(
-        `http://127.0.0.1:8000/pharmacy/stock-transfer-src/${src_location}/`
+        `${API_URL}/stock-transfer-src/${src_location}/`
     );
 
     if (!response.ok) {
@@ -39,7 +40,7 @@ export const getIncomingStockTransfer = async (src_location: string) => {
 
 export const getOutgoingStockTransfer = async (des_location: string) => {
     const response = await fetch(
-        `http://127.0.0.1:8000/pharmacy/stock-transfer-des/${des_location}/`
+        `${API_URL}/stock-transfer-des/${des_location}/`
     );
 
     if (!response.ok) {

@@ -1,0 +1,17 @@
+[Unit]
+Description=Amry Pharmacy Next.js Frontend
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/amrypharmacy/frontend
+EnvironmentFile=/home/ubuntu/amrypharmacy/frontend/.env.production
+ExecStart=/usr/bin/node /home/ubuntu/amrypharmacy/frontend/.next/standalone/server.js
+Environment=PORT=3001
+Environment=HOSTNAME=127.0.0.1
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

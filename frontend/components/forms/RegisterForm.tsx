@@ -1,9 +1,23 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
-import axios, { AxiosResponse } from "axios";
-import { z } from "zod";
+import { API_URL } from "@/app/lib/api-config";
+import { getRoleData } from "@/app/lib/services/Persons";
+import { fetchUserLocations } from "@/app/lib/services/location";
+import {
+  UserFormSchema,
+  useUserForm,
+} from "@/app/lib/services/schemas/personSchema";
+import { Location } from "@/app/lib/types/location";
+import { Roles } from "@/app/lib/types/persons";
 import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   Form,
   FormControl,
@@ -13,26 +27,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Check, ChevronsUpDown } from "lucide-react";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import {
-  UserFormSchema,
-  useUserForm,
-} from "@/app/lib/services/schemas/personSchema";
+import axios, { AxiosResponse } from "axios";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Roles } from "@/app/lib/types/persons";
-import { getRoleData } from "@/app/lib/services/Persons";
-import { fetchUserLocations } from "@/app/lib/services/location";
-import { Location } from "@/app/lib/types/location";
+import { z } from "zod";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 
 interface RegisterFormProps {
   onSuccess: (data: AxiosResponse) => void;
@@ -71,7 +72,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
   const handleRegister = async (values: z.infer<typeof UserFormSchema>) => {
     try {
       const response = await axios.post(
-        "http://127.0.0.1:8000/pharmacy/users/",
+        `${API_URL}/users/`,
         values
       );
       console.log("User registered successfully:", response.data);

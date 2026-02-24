@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -15,7 +14,11 @@ import {
 } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
+import { API_URL } from "@/app/lib/api-config";
+import { DataTablePagination } from "@/components/data-table/DataTablePagination";
+import { DataTableViewOptions } from "@/components/data-table/DataTableViewOptions";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -34,8 +37,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DataTableViewOptions } from "@/components/data-table/DataTableViewOptions";
-import { DataTablePagination } from "@/components/data-table/DataTablePagination";
 import axios from "axios";
 
 const statusMap: Record<number, string> = {
@@ -54,6 +55,10 @@ const statusColorMap: Record<string, string> = {
   Cancelled: "red",
 };
 
+import { getPO } from "@/app/lib/services/purchase-order";
+import { PurchaseOrders } from "@/app/lib/types/purchase-order";
+import { DataTableLoading } from "@/components/data-table/DataTableLoading";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -61,10 +66,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PurchaseOrders } from "@/app/lib/types/purchase-order";
-import { getPO } from "@/app/lib/services/purchase-order";
-import { DataTableLoading } from "@/components/data-table/DataTableLoading";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 export default function PurchaseOrdersTable() {
@@ -95,7 +96,7 @@ export default function PurchaseOrdersTable() {
     console.log(orderId);
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/pharmacy/purchase-orders/${orderId}/`,
+        `${API_URL}/purchase-orders/${orderId}/`,
         { purchase_order_status_id: 5 },
         { headers: { "Content-Type": "application/json" } }
       );
@@ -113,7 +114,7 @@ export default function PurchaseOrdersTable() {
     console.log(orderId);
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/pharmacy/purchase-orders/${orderId}/`,
+        `${API_URL}/purchase-orders/${orderId}/`,
         { purchase_order_status_id: 2 },
         { headers: { "Content-Type": "application/json" } }
       );
@@ -343,9 +344,9 @@ export default function PurchaseOrdersTable() {
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   );
                 })}

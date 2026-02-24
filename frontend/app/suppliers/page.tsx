@@ -1,5 +1,9 @@
 "use client";
 
+import { API_URL } from "@/app/lib/api-config";
+
+import { DataTable } from "@/components/data-table/DataTable";
+import { DataTableLoading } from "@/components/data-table/DataTableLoading";
 import AddSupplierForm from "@/components/forms/AddSupplierForm";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,11 +13,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { PlusCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { columns } from "./columns";
-import { PlusCircle } from "lucide-react";
-import { DataTableLoading } from "@/components/data-table/DataTableLoading";
-import { DataTable } from "@/components/data-table/DataTable";
 
 interface Suppliers {
   supplier_id: number;
@@ -35,7 +37,7 @@ export default function SupplierList() {
 
   async function getData(): Promise<Suppliers[]> {
     try {
-      const supRes = await fetch("http://127.0.0.1:8000/pharmacy/suppliers/");
+      const supRes = await fetch(`${API_URL}/suppliers/`);
 
       if (!supRes.ok) {
         throw new Error("Failed to fetch supplier data");

@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/app/lib/api-config";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -68,9 +69,9 @@ export default function UserListTable() {
     const fetchData = async () => {
       try {
         const [usersRes, personsRes, rolesRes] = await Promise.all([
-          fetch("http://127.0.0.1:8000/pharmacy/users/"),
-          fetch("http://127.0.0.1:8000/pharmacy/persons/"),
-          fetch("http://127.0.0.1:8000/pharmacy/roles/"),
+          fetch(`${API_URL}/users/`),
+          fetch(`${API_URL}/persons/`),
+          fetch(`${API_URL}/roles/`),
         ]);
 
         const usersData: User[] = await usersRes.json();
@@ -114,7 +115,7 @@ export default function UserListTable() {
       );
 
       const response = await fetch(
-        `http://127.0.0.1:8000/pharmacy/users/${user_id}/`,
+        `${API_URL}/users/${user_id}/`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -148,7 +149,7 @@ export default function UserListTable() {
     <Card className="my-2">
       <CardHeader>
         <CardTitle>User List</CardTitle>
-        
+
       </CardHeader>
       <CardContent className="flex flex-col items-center">
         <Table>

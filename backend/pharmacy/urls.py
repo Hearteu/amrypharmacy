@@ -7,7 +7,7 @@ from .views import (POI, POS, STI, Branch, Brand, Customers, CustomerType,
                     ProductCategory, Products, Purchase_Order_Item_Status,
                     Purchase_Order_Status, PurchaseOrder, Receipt,
                     StatementOfAccounts, Status, Stock_Transfer_Item_Status,
-                    Stock_Transfer_Status, StockItem, StockTransaction,
+                    Stock_Transfer_Status, StockItem, StockTransactionView,
                     StockTransfer, Supplier, SupplierItem, Unit, UserList,
                     UserLoginView, UserRole)
 
@@ -39,7 +39,7 @@ resources = [
     ("supplier-items", SupplierItem),
     ("purchase-order-status", Purchase_Order_Status),
     ("purchase-order-item-status", Purchase_Order_Item_Status),
-    ("stock-transactions", StockTransaction),
+    ("stock-transactions", StockTransactionView),
     ("purchase-order-items", POI),
     ("locations", Location),
     ("stock-transfer-items", STI),

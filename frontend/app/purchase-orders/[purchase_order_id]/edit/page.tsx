@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/app/lib/api-config";
 import { Button } from "@/components/ui/button";
 import axios from "axios";
 import { ArrowLeft } from "lucide-react";
@@ -45,7 +46,7 @@ export default function EditPurchaseOrderPage({
         );
 
         const response = await axios.get(
-          `http://127.0.0.1:8000/pharmacy/purchase-orders/${params.purchase_order_id}/`
+          `${API_URL}/purchase-orders/${params.purchase_order_id}/`
         );
 
         console.log("✅ API Response:", response.data); // Debug API response

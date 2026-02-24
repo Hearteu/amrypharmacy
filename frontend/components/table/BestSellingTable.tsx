@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { API_URL } from "@/app/lib/api-config";
 import {
   Table,
   TableBody,
@@ -9,7 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
 // Define the Person type
 interface Person {
@@ -26,7 +27,7 @@ export default function BestSellingTable() {
   useEffect(() => {
     const fetchPersons = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/pharmacy/persons/");
+        const res = await fetch(`${API_URL}/persons/`);
         const data: Person[] = await res.json(); // Explicitly cast the fetched data to Person[]
         setPersons(data);
       } catch (error) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/app/lib/api-config";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -99,7 +100,7 @@ export default function PurchaseOrderForm({
     async function fetchSuppliers() {
       try {
         const response = await fetch(
-          "http://127.0.0.1:8000/pharmacy/suppliers/"
+          `${API_URL}/suppliers/`
         );
         const data: Supplier[] = await response.json();
         setSuppliers(data);
@@ -118,7 +119,7 @@ export default function PurchaseOrderForm({
       try {
         console.log(`📡 Fetching products for supplier: ${selectedSupplier}`);
         const response = await fetch(
-          `http://127.0.0.1:8000/pharmacy/supplier-items/${selectedSupplier}/`
+          `${API_URL}/supplier-items/${selectedSupplier}/`
         );
         const data: SupplierItem[] = await response.json();
         setItems(data);
@@ -200,8 +201,8 @@ export default function PurchaseOrderForm({
       );
 
       const url = isEditing
-        ? `http://127.0.0.1:8000/pharmacy/purchase-orders/${formattedData.purchase_order_id}/`
-        : "http://127.0.0.1:8000/pharmacy/purchase-orders/";
+        ? `${API_URL}/purchase-orders/${formattedData.purchase_order_id}/`
+        : `${API_URL}/purchase-orders/`;
 
       const response = await fetch(url, {
         method: isEditing ? "PUT" : "POST",
@@ -310,10 +311,10 @@ export default function PurchaseOrderForm({
                             >
                               {field.value
                                 ? suppliers.find(
-                                    (supplier) =>
-                                      supplier.supplier_id.toString() ===
-                                      field.value
-                                  )?.supplier_name
+                                  (supplier) =>
+                                    supplier.supplier_id.toString() ===
+                                    field.value
+                                )?.supplier_name
                                 : "Select vendor"}
                             </Button>
                           </FormControl>
@@ -502,10 +503,10 @@ export default function PurchaseOrderForm({
                                   >
                                     {field.value
                                       ? items.find(
-                                          (item) =>
-                                            item.product_id.toString() ===
-                                            field.value
-                                        )?.product_name
+                                        (item) =>
+                                          item.product_id.toString() ===
+                                          field.value
+                                      )?.product_name
                                       : "Select product"}
                                   </Button>
                                 </FormControl>
@@ -620,8 +621,8 @@ export default function PurchaseOrderForm({
                     ? "Updating..."
                     : "Creating..."
                   : isEditing
-                  ? "Update Purchase Order"
-                  : "Create Purchase Order"}
+                    ? "Update Purchase Order"
+                    : "Create Purchase Order"}
               </Button>
             </CardFooter>
           </Card>

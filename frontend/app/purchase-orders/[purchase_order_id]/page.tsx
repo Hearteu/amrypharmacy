@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "axios";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { API_URL } from "@/app/lib/api-config";
+import { PurchaseOrder } from "@/app/lib/types/purchase-order";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -13,11 +11,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LineItemsTable } from "../components/LineItemsTable";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import axios from "axios";
 import clsx from "clsx";
-import { PurchaseOrder } from "@/app/lib/types/purchase-order";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { LineItemsTable } from "../components/LineItemsTable";
 import { ExportPOPDF } from "../components/POExportButton";
 import PurchaseOrderSkeleton from "../components/PurchaseOrderSkeleton";
 
@@ -43,7 +44,7 @@ export default function PurchaseOrderPage({
   const fetchPurchaseOrderData = async () => {
     try {
       const response = await axios.get<PurchaseOrder>(
-        `http://127.0.0.1:8000/pharmacy/purchase-orders/${params.purchase_order_id}/`
+        `${API_URL}/purchase-orders/${params.purchase_order_id}/`
       );
 
       setPurchaseOrder(response.data);
@@ -81,7 +82,7 @@ export default function PurchaseOrderPage({
               className={clsx(
                 "text-white px-2 py-1 rounded-md",
                 statusColorMap[purchaseOrder?.status ?? "Pending"] ||
-                  "bg-gray-500" // Default to "Pending"
+                "bg-gray-500" // Default to "Pending"
               )}
             >
               {purchaseOrder?.status ?? "Unknown"}
@@ -173,8 +174,8 @@ export default function PurchaseOrderPage({
                     <span className="text-sm">
                       {purchaseOrder?.order_date
                         ? new Date(
-                            purchaseOrder.order_date
-                          ).toLocaleDateString()
+                          purchaseOrder.order_date
+                        ).toLocaleDateString()
                         : "No date available"}
                     </span>
                   </div>
@@ -183,8 +184,8 @@ export default function PurchaseOrderPage({
                     <span className="text-sm">
                       {purchaseOrder?.expected_date
                         ? new Date(
-                            purchaseOrder.expected_date
-                          ).toLocaleDateString()
+                          purchaseOrder.expected_date
+                        ).toLocaleDateString()
                         : "No date available"}
                     </span>
                   </div>
