@@ -51,7 +51,7 @@ const authOptions = {
         strategy: 'jwt'
     },
     callbacks: {
-        async jwt({ token, user, account }) {
+        async jwt({ token, user, account }: any) {
             if (account) {
                 token.user_id = user.user_id
                 token.username = user.username
@@ -63,7 +63,7 @@ const authOptions = {
 
             return token
         },
-        async session({ session, token }) {
+        async session({ session, token }: any) {
             if (token) {
                 session.user = {
                     username: token.username,
@@ -77,7 +77,7 @@ const authOptions = {
             return session
         },
     },
-}
+} as any
 
 const handler = NextAuth(authOptions)
 
