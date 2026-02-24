@@ -4,7 +4,7 @@ import { API_URL } from "@/app/lib/api-config";
 
 import { exportExpiryPDF } from "@/app/dashboard/components/pdf-reports-buttons/ExpiryExportButton";
 import { exportInventoryPDF } from "@/app/dashboard/components/pdf-reports-buttons/inventoryExportButton";
-import { exportLowStockPDF } from "@/app/dashboard/components/pdf-reports-buttons/lowStockExportButton";
+import { exportLowStockPDF } from "@/app/dashboard/components/pdf-reports-buttons/LowStockExportButton";
 import { exportSalesPDF } from "@/app/dashboard/components/pdf-reports-buttons/salesExportButton";
 import { exportSOAPDF } from "@/app/dashboard/components/pdf-reports-buttons/SOAExportButton";
 import { Button } from "@/components/ui/button";
