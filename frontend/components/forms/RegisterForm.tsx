@@ -36,10 +36,10 @@ import { z } from "zod";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 
 interface RegisterFormProps {
-  onSuccess: (data: AxiosResponse) => void;
+  onSuccess?: (data: AxiosResponse) => void;
 }
 
-export default function RegisterForm({ onSuccess }: RegisterFormProps) {
+export default function RegisterForm({ onSuccess }: RegisterFormProps = {}) {
   const router = useRouter();
   const pathname = usePathname();
 
