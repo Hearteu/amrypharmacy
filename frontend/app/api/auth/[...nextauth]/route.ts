@@ -7,6 +7,7 @@ const authOptions = {
     pages: {
         signIn: '/',
         signOut: '/',
+        error: '/',
     },
     providers: [
         CredentialsProvider({
