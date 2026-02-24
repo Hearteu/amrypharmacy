@@ -1,10 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useRouter } from "next/navigation"; // Use Next.js router for redirects
+import service from "@/app/lib/services/session";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -15,9 +11,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import Image from "next/image";
-import service from "@/app/lib/services/session";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { getSession } from "next-auth/react";
+import Image from "next/image";
+import { useRouter } from "next/navigation"; // Use Next.js router for redirects
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
 // Define validation schema
 const formSchema = z.object({
@@ -69,7 +69,7 @@ export default function LoginForm() {
       <div className="flex flex-col items-center justify-center mx-auto w-5/12 min-h-screen">
         <div className="bg-white p-8 flex flex-col items-center rounded-xl">
           <Image
-            src="/images/logo.png"
+            src={`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/images/logo.png`}
             alt="alt"
             width={150}
             height={150}
@@ -125,6 +125,20 @@ export default function LoginForm() {
               </div>
             </form>
           </Form>
+
+          {/* Demo credentials banner */}
+          <div className="mt-6 w-full p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm font-semibold text-blue-800 text-center mb-2">
+              🔑 Demo Account (Read-Only)
+            </p>
+            <div className="text-sm text-blue-700 text-center space-y-1">
+              <p>Username: <span className="font-mono font-bold">demo</span></p>
+              <p>Password: <span className="font-mono font-bold">demo123</span></p>
+            </div>
+            <p className="text-xs text-blue-500 text-center mt-2">
+              You can browse all features but cannot modify data.
+            </p>
+          </div>
         </div>
       </div>
     </div>
