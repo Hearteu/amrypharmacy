@@ -1,35 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { getSession, signOut } from "next-auth/react";
 import {
+  ArrowLeftRight,
+  Boxes,
+  ChevronRight,
+  ClipboardList,
   LayoutDashboard,
+  LogOut,
+  Menu,
   Package,
+  ReceiptText,
   ShoppingCart,
   Truck,
-  ClipboardList,
-  ArrowLeftRight,
   Users,
-  LogOut,
-  ChevronRight,
-  Menu,
-  ReceiptText,
-  Boxes,
 } from "lucide-react";
+import { getSession, signOut } from "next-auth/react";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
+import { Session } from "@/app/lib/types/session";
+import { Button } from "@/components/ui/button";
 import {
   NavigationMenu,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
 } from "@/components/ui/navigation-menu";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { Session } from "@/app/lib/types/session";
 
 export default function NavBar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -120,7 +120,7 @@ export default function NavBar() {
       <div className="flex flex-col justify-center items-center p-6 pb-2">
         <Link href="/">
           <Image
-            src="/images/logo.png"
+            src={`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/images/logo.png`}
             alt="Amry Pharmacy Logo"
             width={80}
             height={80}
