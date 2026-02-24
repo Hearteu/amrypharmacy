@@ -2,6 +2,6 @@
 __pycache__/
 *.pyc
 
-.env
+backend/.env
 .env.*
 !.env.example
