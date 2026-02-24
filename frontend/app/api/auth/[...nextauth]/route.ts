@@ -1,8 +1,9 @@
+import { API_URL } from "@/app/lib/api-config";
 import axios from "axios";
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-export const authOptions = {
+const authOptions = {
     pages: {
         signIn: '/',
         signOut: '/',
