@@ -1,4 +1,3 @@
-import { API_URL } from "@/app/lib/api-config";
 import axios from "axios";
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -18,31 +17,28 @@ const authOptions = {
                 password: { label: "Password", type: "password" }
             },
             async authorize(credentials) {
-                // You need to provide your own logic here that takes the credentials
-                // submitted and returns either a object representing a user or value
-                // that is false/null if the credentials are invalid.
-                // e.g. return { id: 1, name: 'J Smith', email: 'jsmith@example.com' }
-                // You can also use the `req` object to obtain additional parameters
-                // (i.e., the request IP address)
                 if (!credentials) {
-                    throw new Error("Missing credentials");
+                    return null;
                 }
 
                 const { username, password } = credentials
+
+                // Server-side: call Django directly (not through Nginx/public URL)
+                const BACKEND_URL = process.env.BACKEND_INTERNAL_URL || "http://127.0.0.1:8001/pharmacy";
+
                 try {
                     const res = await axios.post(
-                        `${API_URL}/login/`,
+                        `${BACKEND_URL}/login/`,
                         { username, password }
                     );
                     const user = res.data
 
-                    // If no error and we have user data, return it
                     if (user) {
-                        console.log("Return user", user)
                         return user
                     }
+                    return null
                 } catch (e) {
-                    console.error(e)
+                    console.error("Auth error:", e)
                     return null
                 }
             },
