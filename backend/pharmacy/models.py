@@ -417,6 +417,41 @@ class StockTransaction(models.Model):
         return f"{self.transaction_type} ({self.quantity_change})"
 
 
+# ── Cash & Shift Management ──────────────────────────────────────────
+
+class CashShift(models.Model):
+    shift_id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, db_column='user_id')
+    location = models.ForeignKey(Location, on_delete=models.CASCADE, db_column='location_id')
+    start_time = models.DateTimeField(auto_now_add=True)
+    end_time = models.DateTimeField(blank=True, null=True)
+    starting_cash = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    expected_ending_cash = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    ending_cash = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    status = models.CharField(max_length=20, default='OPEN') # OPEN, CLOSED
+    
+    class Meta:
+        db_table = 'Cash_Shift'
+
+    def __str__(self):
+        return f"Shift {self.shift_id} - {self.user.username}"
+
+
+class CashMovement(models.Model):
+    movement_id = models.AutoField(primary_key=True)
+    shift = models.ForeignKey(CashShift, on_delete=models.CASCADE, db_column='shift_id', related_name='movements')
+    movement_type = models.CharField(max_length=10) # IN, OUT
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    reason = models.CharField(max_length=255)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'Cash_Movement'
+        
+    def __str__(self):
+        return f"{self.movement_type} {self.amount} - {self.reason}"
+
+
 # ── POS (Point of Sale) ─────────────────────────────────────────────
 
 class Prescription(models.Model):
@@ -444,6 +479,9 @@ class POS(models.Model):
     prescription = models.ForeignKey(
         Prescription, on_delete=models.SET_NULL, null=True, blank=True,
         db_column='prescription_id'
+    )
+    shift = models.ForeignKey(
+        CashShift, on_delete=models.SET_NULL, null=True, blank=True, db_column='shift_id'
     )
 
     class Meta:

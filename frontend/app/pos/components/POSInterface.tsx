@@ -54,6 +54,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DSWDForm } from "../components/DSWDForm";
 import { PrescriptionForm } from "../components/PrescriptionForm";
+import { ShiftManager } from "./ShiftManager";
+import { CashShift } from "@/app/lib/services/cash-shift";
 
 const branches = [
   { id: 1, name: "Asuncion" },
@@ -93,6 +95,7 @@ export default function PosInterface() {
   const [hasPrescription, setHasPrescription] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Products[]>([]);
+  const [activeShift, setActiveShift] = useState<CashShift | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<string | undefined>(
     undefined
   );
@@ -284,6 +287,7 @@ export default function PosInterface() {
   const handleCheckout = () => {
     // Create order data
     const orderData = {
+      shift_id: activeShift?.shift_id || null,
       user_id: session?.user?.user_id,
       branch: selectedBranch,
       customerInfo, // ✅ Removed duplicate
@@ -410,18 +414,21 @@ export default function PosInterface() {
           <CardHeader className="pb-3">
             <div className="flex justify-between items-center">
               <CardTitle>Current Transaction</CardTitle>
-              <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select Branch" />
-                </SelectTrigger>
-                <SelectContent>
-                  {branches.map((branch) => (
-                    <SelectItem key={branch.id} value={branch.id.toString()}>
-                      {branch.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex space-x-2 items-center">
+                <ShiftManager session={session} onShiftActive={setActiveShift} />
+                <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select Branch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branches.map((branch) => (
+                      <SelectItem key={branch.id} value={branch.id.toString()}>
+                        {branch.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="flex gap-2 mt-4">

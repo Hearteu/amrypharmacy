@@ -63,6 +63,7 @@ class POS(APIView):
                     "invoice": pos.invoice,
                     "order_type": pos.order_type,
                     "user_id": pos.user_id,
+                    "shift_id": getattr(pos, 'shift_id', None),
                     "prescription_id": pos.prescription_id,
                     "POS_Item": items_data,
                     "total_amount": total_amount,
@@ -167,6 +168,11 @@ class POS(APIView):
                         client_name=customer_info.get("client_name"),
                     )
 
+            # Find an active open shift for this user
+            from ..models import CashShift
+            active_shift = CashShift.objects.filter(user_id=data.get("user_id"), status='OPEN').first()
+            shift_id = active_shift.shift_id if active_shift else None
+
             # Create POS record
             pos = POSModel.objects.create(
                 sale_date=now,
@@ -176,6 +182,7 @@ class POS(APIView):
                 prescription_id=prescription_id,
                 payment_method=data.get("paymentMethod", "Cash"),
                 payment_amount=data.get("paymentAmount", 0),
+                shift_id=shift_id,
             )
 
             # Process each item

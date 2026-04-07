@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 export const metadata: Metadata = {
   title: "Amry Pharmacy Inventory Management System",
   description: "An Inventory Management System created for Amry Pharmacy",
+  manifest: "/manifest.json",
 };
 
 export default async function RootLayout({

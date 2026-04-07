@@ -9,7 +9,7 @@ from .views import (POI, POS, STI, Branch, Brand, Customers, CustomerType,
                     StatementOfAccounts, Status, Stock_Transfer_Item_Status,
                     Stock_Transfer_Status, StockItem, StockTransactionView,
                     StockTransfer, Supplier, SupplierItem, Unit, UserList,
-                    UserLoginView, UserRole)
+                    UserLoginView, UserRole, CashShiftView, CashMovementView)
 
 # Define resources with their corresponding view classes
 resources = [
@@ -49,6 +49,8 @@ resources = [
     ("stock-items", StockItem),
     ("pos", POS),
     ("statement-of-accounts",StatementOfAccounts),
+    ("cash-shifts", CashShiftView),
+    ("cash-movements", CashMovementView),
 ]
 
 # Generate urlpatterns dynamically

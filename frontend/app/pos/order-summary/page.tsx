@@ -1,6 +1,7 @@
 "use client";
 
 import { API_URL } from "@/app/lib/api-config";
+import { offlineSync } from "@/app/lib/services/offline-sync";
 
 import type React from "react";
 
@@ -182,6 +183,25 @@ export default function OrderSummaryPage() {
 
     console.log("Submitting transaction:", transactionData);
 
+    const completeTransaction = (invoiceFallback: string) => {
+      setInvoiceId(invoiceFallback);
+      setTransactionComplete(true);
+      localStorage.removeItem("orderSummary");
+    };
+
+    if (!navigator.onLine) {
+      offlineSync.saveTransaction(transactionData)
+        .then(() => {
+          console.log("Order saved offline");
+          completeTransaction("OFFLINE-" + Math.floor(Math.random() * 10000));
+        })
+        .catch(err => {
+          console.error("Failed to save offline tx", err);
+          alert("Error saving offline order.");
+        });
+      return;
+    }
+
     fetch(`${API_URL}/pos/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -190,14 +210,13 @@ export default function OrderSummaryPage() {
       .then((response) => response.json())
       .then((data) => {
         console.log("Order submitted successfully:", data);
-        setInvoiceId(data.invoice || "INV-0000");
-        setTransactionComplete(true);
-        // Clear order data from localStorage
-        localStorage.removeItem("orderSummary");
+        completeTransaction(data.invoice || "INV-0000");
       })
       .catch((error) => {
-        console.error("Error submitting order:", error);
-        alert("Error submitting order. Please try again.");
+        console.error("Error submitting order, falling back to offline", error);
+        offlineSync.saveTransaction(transactionData)
+          .then(() => completeTransaction("OFFLINE-" + Math.floor(Math.random() * 10000)))
+          .catch(err => alert("Error submitting order. Please try again."));
       });
   };
 
