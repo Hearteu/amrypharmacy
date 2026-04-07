@@ -16,7 +16,6 @@ jobs:
           host: 161.118.220.237
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             cd /home/ubuntu/amrypharmacy
             git pull origin oracle
