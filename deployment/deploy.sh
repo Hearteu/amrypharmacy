@@ -176,9 +176,10 @@ echo "  ✅ Services installed and started"
 echo ""
 echo "[8/8] Configuring Nginx..."
 
-# Copy Nginx config to snippets (so it doesn't break the main config)
-sudo mkdir -p /etc/nginx/snippets
-sudo cp $DEPLOY_DIR/nginx-pharmacy.conf /etc/nginx/snippets/pharmacy.conf
+# We no longer aggressively copy this file because it creates duplicate global includes.
+# Nginx is already configured manually on the server.
+# sudo mkdir -p /etc/nginx/snippets
+# sudo cp $DEPLOY_DIR/nginx-pharmacy.conf /etc/nginx/snippets/pharmacy.conf
 
 echo "  ⚠️  Nginx configuration copied to /etc/nginx/snippets/pharmacy.conf"
 echo "  ⚠️  Since you already have a website on hearteu02.com, you must manually add this"
