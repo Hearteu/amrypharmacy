@@ -31,14 +31,32 @@ class PurchaseOrder(APIView):
                 ).filter(purchase_order_id=po.purchase_order_id)
 
                 items_data = []
+                po_total = 0
+                supplier_data = None
+
                 for item in items:
                     si = item.supplier_item
                     product = si.product if si else None
                     drug = getattr(product, 'drug', None) if product else None
+                    
+                    price = float(si.supplier_price) if si else 0
+                    ordered = item.ordered_qty or 0
+                    poi_total = price * ordered
+                    po_total += poi_total
+
+                    if si and si.supplier and not supplier_data:
+                        supplier_data = {
+                            "name": si.supplier.supplier_name,
+                            "contact": si.supplier.person.contact if si.supplier.person else None,
+                            "email": si.supplier.person.email if si.supplier.person else None,
+                            "phone": si.supplier.person.contact if si.supplier.person else None,
+                            "address": si.supplier.person.address if si.supplier.person else None,
+                        }
 
                     items_data.append({
                         "purchase_order_item_id": item.purchase_order_item_id,
                         "poi_id": item.poi_id,
+                        "description": product.product_name if product else "Unknown Product",
                         "ordered_qty": item.ordered_qty,
                         "received_qty": item.received_qty,
                         "expired_qty": item.expired_qty,
@@ -46,14 +64,14 @@ class PurchaseOrder(APIView):
                         "expiry_date": str(item.expiry_date) if item.expiry_date else None,
                         "unit_id": item.unit_id,
                         "Unit": {"unit": item.unit.unit} if item.unit else None,
-                        "purchase_order_item_status_id": item.purchase_order_item_status_id,
-                        "Purchase_Order_Item_Status": {
-                            "po_item_status": item.purchase_order_item_status.po_item_status
-                        } if item.purchase_order_item_status else None,
+                        "purchase_order_item_status": item.purchase_order_item_status_id,
+                        "po_item_status": item.purchase_order_item_status.po_item_status if item.purchase_order_item_status else "Pending",
+                        "supplier_price": price,
+                        "poi_total": poi_total,
                         "supplier_item_id": item.supplier_item_id,
                         "Supplier_Item": {
                             "supplier_item_id": si.supplier_item_id,
-                            "supplier_price": float(si.supplier_price),
+                            "supplier_price": price,
                             "product_id": si.product_id,
                             "Supplier": {
                                 "supplier_id": si.supplier_id,
@@ -79,16 +97,20 @@ class PurchaseOrder(APIView):
                 result.append({
                     "purchase_order_id": po.purchase_order_id,
                     "po_id": po.po_id,
+                    "supplier": supplier_data,
                     "order_date": str(po.order_date) if po.order_date else None,
-                    "expected_delivery_date": str(po.expected_delivery_date) if po.expected_delivery_date else None,
+                    "expected_date": str(po.expected_delivery_date) if po.expected_delivery_date else None,
+                    "status_id": po.purchase_order_status_id,
+                    "status": po.purchase_order_status.purchase_order_status if po.purchase_order_status else "Draft",
                     "purchase_order_status_id": po.purchase_order_status_id,
-                    "Purchase_Order_Status": {
-                        "purchase_order_status": po.purchase_order_status.purchase_order_status
-                    } if po.purchase_order_status else None,
                     "notes": po.notes,
+                    "po_total": po_total,
                     "is_delayed": is_delayed,
-                    "Purchase_Order_Item": items_data,
+                    "lineItems": items_data,
                 })
+
+            if purchase_order_id is not None and result:
+                return Response(result[0], status=200)
 
             return Response(result, status=200)
 

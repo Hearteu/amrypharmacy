@@ -31,6 +31,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Item {
   id: number;
@@ -82,7 +89,10 @@ interface OrderData {
 export default function OrderSummaryPage() {
   const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<string>("");
+  const [paymentMethod, setPaymentMethod] = useState<string>("Cash");
   const [change, setChange] = useState<number>(0);
+  const [transactionComplete, setTransactionComplete] = useState<boolean>(false);
+  const [invoiceId, setInvoiceId] = useState<string>("");
   const router = useRouter();
 
   useEffect(() => {
@@ -157,6 +167,7 @@ export default function OrderSummaryPage() {
       transactionData = {
         ...orderData,
         paymentAmount: payment,
+        paymentMethod,
         change,
       };
     } else {
@@ -164,6 +175,7 @@ export default function OrderSummaryPage() {
       transactionData = {
         ...orderData,
         paymentAmount: 0,
+        paymentMethod: "DSWD",
         change: 0,
       };
     }
@@ -178,17 +190,152 @@ export default function OrderSummaryPage() {
       .then((response) => response.json())
       .then((data) => {
         console.log("Order submitted successfully:", data);
-        alert("Transaction completed successfully!");
+        setInvoiceId(data.invoice || "INV-0000");
+        setTransactionComplete(true);
         // Clear order data from localStorage
         localStorage.removeItem("orderSummary");
-        // Navigate back to the POS page
-        router.push("/pos");
       })
       .catch((error) => {
         console.error("Error submitting order:", error);
         alert("Error submitting order. Please try again.");
       });
   };
+
+  const handlePrintReceipt = () => {
+    window.print();
+  };
+
+  if (transactionComplete) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50/50 p-4">
+        {/* Style block for 80mm thermal printer */}
+        <style dangerouslySetInnerHTML={{__html: `
+          @media print {
+            body * { visibility: hidden; }
+            #printable-receipt, #printable-receipt * { visibility: visible; }
+            #printable-receipt {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 300px; /* 80mm approx */
+              font-family: monospace;
+              color: black;
+              background: white;
+              padding: 10px;
+            }
+          }
+        `}} />
+
+        {/* The screen UI for successful transaction */}
+        <Card className="w-full max-w-md shadow-lg border-green-200 hide-on-print">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <Receipt className="h-8 w-8 text-green-600" />
+            </div>
+            <CardTitle className="text-2xl text-green-700">Transaction Complete!</CardTitle>
+            <CardDescription className="text-base">
+              Invoice #{invoiceId} has been saved successfully.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-4">
+             <div className="rounded-lg bg-slate-50 p-4 border space-y-2">
+               <div className="flex justify-between text-sm">
+                 <span className="text-muted-foreground">Total:</span>
+                 <span className="font-semibold">{isDSWD ? "FREE" : formatCurrency(orderData.total)}</span>
+               </div>
+               {!isDSWD && (
+                 <>
+                   <div className="flex justify-between text-sm">
+                     <span className="text-muted-foreground">Amount Paid ({paymentMethod}):</span>
+                     <span className="font-semibold">{formatCurrency(Number.parseFloat(paymentAmount))}</span>
+                   </div>
+                   <Separator className="my-2" />
+                   <div className="flex justify-between text-sm">
+                     <span className="text-muted-foreground">Change:</span>
+                     <span className="font-semibold text-green-600">{formatCurrency(change)}</span>
+                   </div>
+                 </>
+               )}
+             </div>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-3">
+            <Button onClick={handlePrintReceipt} size="lg" className="w-full">
+              Print Receipt
+            </Button>
+            <Button onClick={() => router.push("/pos")} variant="outline" className="w-full">
+              New Transaction
+            </Button>
+          </CardFooter>
+        </Card>
+
+        {/* The printable 80mm Receipt */}
+        <div id="printable-receipt" className="hidden print:block text-xs">
+           <div className="text-center font-bold text-sm mb-2">
+              AMRY PHARMACY
+           </div>
+           <div className="text-center mb-4">
+              Receipt: {invoiceId}<br/>
+              Date: {format(new Date(), "MM/dd/yyyy HH:mm")}<br/>
+              {orderData.branch ? `Branch: ${orderData.branch}` : ""}
+           </div>
+           
+           <div className="border-t border-dashed border-black my-2"></div>
+           
+           <table className="w-full mb-2">
+             <tbody>
+               {orderData.items.map(item => (
+                 <tr key={item.id}>
+                   <td className="align-top py-1">
+                     <div className="font-bold">{item.full_product_name}</div>
+                     <div>{item.quantity} x {formatCurrency(item.price)}</div>
+                   </td>
+                   <td className="text-right align-bottom py-1">
+                     {formatCurrency(item.price * item.quantity)}
+                   </td>
+                 </tr>
+               ))}
+             </tbody>
+           </table>
+
+           <div className="border-t border-dashed border-black my-2"></div>
+           
+           <div className="flex justify-between">
+             <span>Subtotal:</span>
+             <span>{formatCurrency(orderData.subtotal)}</span>
+           </div>
+           {hasDiscount && (
+             <div className="flex justify-between">
+               <span>Discount:</span>
+               <span>-{formatCurrency(orderData.discount)}</span>
+             </div>
+           )}
+           <div className="flex justify-between font-bold text-sm my-1">
+             <span>Total:</span>
+             <span>{isDSWD ? "FREE" : formatCurrency(orderData.total)}</span>
+           </div>
+           
+           <div className="border-t border-dashed border-black my-2"></div>
+           
+           {!isDSWD && (
+             <>
+               <div className="flex justify-between">
+                 <span>Paid ({paymentMethod}):</span>
+                 <span>{formatCurrency(Number.parseFloat(paymentAmount || "0"))}</span>
+               </div>
+               <div className="flex justify-between font-bold">
+                 <span>Change:</span>
+                 <span>{formatCurrency(change)}</span>
+               </div>
+             </>
+           )}
+           
+           <div className="text-center mt-6">
+              Thank you for choosing Amry Pharmacy!
+           </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -384,6 +531,20 @@ export default function OrderSummaryPage() {
                 </div>
               ) : (
                 <>
+                  <div className="grid gap-2">
+                    <Label htmlFor="payment-method">Payment Method</Label>
+                    <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                      <SelectTrigger id="payment-method">
+                        <SelectValue placeholder="Select Method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Cash">Cash</SelectItem>
+                        <SelectItem value="GCash">GCash</SelectItem>
+                        <SelectItem value="Card">Credit/Debit Card</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="grid gap-2">
                     <Label htmlFor="payment">Payment Amount</Label>
                     <Input

@@ -1,0 +1,25 @@
+name: Deploy to OCI
+
+on:
+  push:
+    branches:
+      - oracle
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 161.118.220.237
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          script: |
+            cd /home/ubuntu/amrypharmacy
+            git pull origin oracle
+            # Ensure the deploy script is executable and run it
+            sudo chmod +x deployment/deploy.sh
+            bash deployment/deploy.sh

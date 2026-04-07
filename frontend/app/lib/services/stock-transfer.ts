@@ -15,9 +15,9 @@ export const getStockTransfer = async () => {
 };
 
 
-export const getIncomingStockTransfer = async (src_location: string) => {
+export const getIncomingStockTransfer = async (des_location: string) => {
     const response = await fetch(
-        `${API_URL}/stock-transfer-src/${src_location}/`
+        `${API_URL}/stock-transfers/?des_location=${des_location}`
     );
 
     if (!response.ok) {
@@ -38,9 +38,9 @@ export const getIncomingStockTransfer = async (src_location: string) => {
 };
 
 
-export const getOutgoingStockTransfer = async (des_location: string) => {
+export const getOutgoingStockTransfer = async (src_location: string) => {
     const response = await fetch(
-        `${API_URL}/stock-transfer-des/${des_location}/`
+        `${API_URL}/stock-transfers/?src_location=${src_location}`
     );
 
     if (!response.ok) {

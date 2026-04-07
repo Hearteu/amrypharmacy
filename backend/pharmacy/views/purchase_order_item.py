@@ -1,7 +1,8 @@
 import traceback
-from datetime import datetime, timezone
+from datetime import datetime
 
 from django.db import transaction
+from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -93,7 +94,7 @@ class POI(APIView):
                     src_location=src_location_id,
                     des_location=des_location_id,
                     quantity_change=to_receive,
-                    transaction_date=datetime.now(timezone.utc),
+                    transaction_date=timezone.now(),
                 )
 
                 # Insert Expiration record if expiry_date provided

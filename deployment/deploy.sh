@@ -23,7 +23,7 @@ echo "=========================================="
 echo ""
 echo "[1/8] Installing system dependencies..."
 sudo apt update
-sudo apt install -y postgresql postgresql-contrib python3 python3-venv python3-pip nginx nodejs npm
+sudo apt install -y postgresql postgresql-contrib python3 python3-venv python3-pip nginx
 
 # Install Node 20 LTS via NodeSource (if not already installed)
 NODE_VERSION=$(node -v 2>/dev/null || echo "none")
@@ -72,7 +72,7 @@ echo ""
 echo "[4/8] Pulling latest code..."
 if [ -d "$APP_DIR/.git" ]; then
     cd $APP_DIR
-    git pull origin main
+    git pull origin oracle
 else
     echo "  ⚠️  Repository not cloned yet."
     echo "  Please clone your repo to $APP_DIR first:"
@@ -176,19 +176,21 @@ echo "  ✅ Services installed and started"
 echo ""
 echo "[8/8] Configuring Nginx..."
 
-# Copy Nginx config
-sudo cp $DEPLOY_DIR/nginx-pharmacy.conf /etc/nginx/conf.d/pharmacy.conf
+# Copy Nginx config to snippets (so it doesn't break the main config)
+sudo mkdir -p /etc/nginx/snippets
+sudo cp $DEPLOY_DIR/nginx-pharmacy.conf /etc/nginx/snippets/pharmacy.conf
 
-# Test Nginx configuration
-sudo nginx -t
-
-if [ $? -eq 0 ]; then
-    sudo systemctl reload nginx
-    echo "  ✅ Nginx configured and reloaded"
-else
-    echo "  ❌ Nginx configuration test failed! Please check the config."
-    exit 1
-fi
+echo "  ⚠️  Nginx configuration copied to /etc/nginx/snippets/pharmacy.conf"
+echo "  ⚠️  Since you already have a website on hearteu02.com, you must manually add this"
+echo "  ⚠️  to your existing Nginx server block for hearteu02.com."
+echo ""
+echo "  Run this command to edit your existing config (e.g., /etc/nginx/sites-available/...):"
+echo "      sudo nano /etc/nginx/sites-available/default"
+echo "  And add this single line inside your 'server { ... }' block:"
+echo "      include /etc/nginx/snippets/pharmacy.conf;"
+echo ""
+echo "  Then reload Nginx:"
+echo "      sudo systemctl reload nginx"
 
 # -----------------------------------------------------------
 # Done!

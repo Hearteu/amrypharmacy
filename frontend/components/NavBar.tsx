@@ -105,7 +105,7 @@ export default function NavBar() {
   const handleSignOut = async () => {
     await signOut({
       redirect: true,
-      callbackUrl: "/", // Explicitly redirect to the login page
+      callbackUrl: process.env.NEXT_PUBLIC_BASE_PATH || "/", // Redirect to login page
     });
   };
 

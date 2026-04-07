@@ -80,7 +80,7 @@ class POS(APIView):
         try:
             items = data.get("items", [])
             branch = data.get("branch")
-            order_type = data.get("order_type", "regular")
+            order_type = data.get("customerType", "regular")
 
             # Generate invoice number
             now = datetime.now()
@@ -90,54 +90,81 @@ class POS(APIView):
             prescription_id = None
 
             # Handle customer types that need prescriptions
-            customer_type = data.get("customer_type")
-            if customer_type and customer_type.lower() in ["dswd", "senior citizen", "pwd"]:
+            customer_type = data.get("customerType")
+            
+            customer_info = data.get("customerInfo", {})
+            prescription_info = data.get("prescriptionInfo", {})
+            discount_info = data.get("discountInfo", {})
+
+            if customer_type and customer_type.lower() in ["dswd", "senior citizen", "pwd", "discount"]:
                 # Create or get Person
+                # The frontend mixes patient info in customerInfo or discountInfo
+                patient_name = customer_info.get("patient_name") or discount_info.get("name") or "Unknown"
+                name_parts = patient_name.split(" ", 1)
+                first_name = name_parts[0]
+                last_name = name_parts[1] if len(name_parts) > 1 else ""
+                
                 person_data = {
-                    "first_name": data.get("first_name"),
-                    "last_name": data.get("last_name"),
-                    "contact": data.get("contact"),
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "contact": customer_info.get("invoiceNumber") or "", # using invoiceNumber as contact in frontend form?
+                    "address": discount_info.get("address") or "",
                 }
                 person = Person.objects.create(**{k: v for k, v in person_data.items() if v})
+
+                # Determine Customer Type ID (naive match, assuming defaults exist)
+                ctype_id = 1
+                if customer_type.lower() == "dswd":
+                    ctype_id = 2  # Example ID
+                elif customer_type.lower() in ["pwd", "senior citizen", "discount"]:
+                    ctype_id = 3
 
                 # Create or get Customer
                 customer = Customer.objects.create(
                     person_id=person.person_id,
-                    customer_type_id=data.get("customer_type_id"),
-                    id_card_number=data.get("id_card_number"),
+                    customer_type_id=ctype_id,
+                    id_card_number=discount_info.get("idNumber") or "",
                 )
 
                 # Create Physician if provided
                 physician_id = None
-                if data.get("physician_first_name"):
+                doctor_name = prescription_info.get("doctorName")
+                if doctor_name:
+                    doc_parts = doctor_name.split(" ", 1)
                     physician_person = Person.objects.create(
-                        first_name=data.get("physician_first_name"),
-                        last_name=data.get("physician_last_name"),
+                        first_name=doc_parts[0],
+                        last_name=doc_parts[1] if len(doc_parts) > 1 else "",
                     )
                     physician = Physician.objects.create(
                         person_id=physician_person.person_id,
-                        prc_num=data.get("prc_num"),
-                        ptr_num=data.get("ptr_num"),
+                        prc_num=prescription_info.get("PRCNumber"),
+                        ptr_num=prescription_info.get("PTRNumber"),
                     )
                     physician_id = physician.physician_id
 
-                # Create Prescription
-                prescription = Prescription.objects.create(
-                    customer_id=customer.customer_id,
-                    physician_id=physician_id,
-                    prescription_details=data.get("prescription_details"),
-                    date_issued=data.get("date_issued"),
-                )
-                prescription_id = prescription.prescription_id
+                # Create Prescription if details exist
+                if doctor_name or prescription_info.get("prescriptionDate"):
+                    # Use a fallback empty string if prescription_details is needed but not provided
+                    prescription = Prescription.objects.create(
+                        customer_id=customer.customer_id,
+                        physician_id=physician_id,
+                        prescription_details=prescription_info.get("notes") or "",
+                        date_issued=prescription_info.get("prescriptionDate") or now.date(),
+                    )
+                    prescription_id = prescription.prescription_id
 
                 # Create DSWD Order if applicable
                 if customer_type.lower() == "dswd":
+                    date_val = customer_info.get("guaranteeLetterDate") or customer_info.get("receivedDate")
+                    gl_date_str = date_val[:10] if date_val else now.date() # Frontend sends ISO Strings
+                    claim_date_str = customer_info.get("receivedDate", "")[:10] if customer_info.get("receivedDate") else now.date()
+                    
                     DswdOrder.objects.create(
                         customer_id=customer.customer_id,
-                        gl_num=data.get("gl_num"),
-                        gl_date=data.get("gl_date"),
-                        claim_date=data.get("claim_date"),
-                        client_name=data.get("client_name"),
+                        gl_num=customer_info.get("guaranteeLetterNo"),
+                        gl_date=gl_date_str,
+                        claim_date=claim_date_str,
+                        client_name=customer_info.get("client_name"),
                     )
 
             # Create POS record
@@ -147,12 +174,14 @@ class POS(APIView):
                 user_id=data.get("user_id"),
                 order_type=order_type,
                 prescription_id=prescription_id,
+                payment_method=data.get("paymentMethod", "Cash"),
+                payment_amount=data.get("paymentAmount", 0),
             )
 
             # Process each item
             for item in items:
                 product_id = item["product_id"]
-                quantity_sold = int(item["quantity_sold"])
+                quantity_sold = int(item.get("quantity", item.get("quantity_sold", 0)))
                 price = float(item["price"])
 
                 # Insert POS Item

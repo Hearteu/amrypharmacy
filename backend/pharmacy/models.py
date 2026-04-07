@@ -439,6 +439,8 @@ class POS(models.Model):
     invoice = models.CharField(max_length=50, blank=True, null=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, db_column='user_id')
     order_type = models.CharField(max_length=100, blank=True, null=True)
+    payment_method = models.CharField(max_length=50, default='Cash')
+    payment_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     prescription = models.ForeignKey(
         Prescription, on_delete=models.SET_NULL, null=True, blank=True,
         db_column='prescription_id'

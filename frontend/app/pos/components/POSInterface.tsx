@@ -63,10 +63,10 @@ const branches = [
 interface Products {
   product_id: number;
   full_product_name: string;
-  price: number;
-  stock_per_location: {
+  current_price: number;
+  Stock_Item: {
     location_id: number;
-    total_quantity: number;
+    quantity: number;
   }[];
 }
 export default function PosInterface() {
@@ -120,10 +120,10 @@ export default function PosInterface() {
         const data: Products[] = await response.json();
 
         const filtered = data.filter((product) => {
-          return product.stock_per_location.some(
+          return product.Stock_Item?.some(
             (loc) =>
               branchesToCheck.includes(loc.location_id) &&
-              loc.total_quantity > 0
+              loc.quantity > 0
           );
         });
 
@@ -166,39 +166,39 @@ export default function PosInterface() {
 
   // Add product to cart
   const addToCart = (product: Products) => {
-    const existingItem = cart.find(
-      (item) => item.product_id === product.product_id
-    );
+    setCart((prevCart) => {
+      const existingItem = prevCart.find(
+        (item) => item.product_id === product.product_id
+      );
 
-    if (existingItem) {
-      setCart(
-        cart.map((item) =>
+      if (existingItem) {
+         return prevCart.map((item) =>
           item.product_id === product.product_id
             ? { ...item, quantity: item.quantity + 1 }
             : item
-        )
-      );
-    } else {
-      setCart([...cart, { ...product, quantity: 1 }]);
-    }
+        );
+      } else {
+         return [...prevCart, { ...product, price: product.current_price, quantity: 1 }];
+      }
+    });
   };
 
   // Update quantity
   const updateQuantity = (id: number, newQuantity: number) => {
-    if (newQuantity <= 0) {
-      setCart(cart.filter((item) => item.product_id !== id));
-    } else {
-      setCart(
-        cart.map((item) =>
+    setCart((prevCart) => {
+      if (newQuantity <= 0) {
+        return prevCart.filter((item) => item.product_id !== id);
+      } else {
+        return prevCart.map((item) =>
           item.product_id === id ? { ...item, quantity: newQuantity } : item
-        )
-      );
-    }
+        );
+      }
+    });
   };
 
   // Remove item from cart
   const removeItem = (id: number) => {
-    setCart(cart.filter((item) => item.product_id !== id));
+    setCart((prevCart) => prevCart.filter((item) => item.product_id !== id));
   };
 
   // Calculate subtotal
@@ -232,6 +232,51 @@ export default function PosInterface() {
   const filteredProducts = products.filter((product) =>
     product.full_product_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Barcode Scanner Event Listener (Physical Scanner)
+  useEffect(() => {
+    let barcodeString = "";
+    let lastKeyTime = Date.now();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing inside an actual input field (so we don't duplicate search)
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      const currentTime = Date.now();
+      // Physical barcode scanners "type" very fast (usually < 30ms per char)
+      // If delay is > 50ms, it's just human typing, so reset the buffer
+      if (currentTime - lastKeyTime > 50) {
+        barcodeString = "";
+      }
+      lastKeyTime = currentTime;
+
+      if (e.key === "Enter" && barcodeString.length > 0) {
+        // Find matching product by ID or name (simulating barcode lookup)
+        const scannedProd = products.find(
+          (p) =>
+            p.product_id.toString() === barcodeString ||
+            p.full_product_name.toLowerCase() === barcodeString.toLowerCase()
+        );
+
+        if (scannedProd) {
+          addToCart(scannedProd);
+          // Play a small beep (optional)
+          // new Audio('/beep.mp3').play().catch(()=>null);
+        }
+        barcodeString = "";
+      } else if (e.key.length === 1) {
+        barcodeString += e.key;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [products]);
 
   const router = useRouter();
 
@@ -338,7 +383,7 @@ export default function PosInterface() {
                     </CardHeader>
                     <CardFooter className="p-4 pt-2 flex justify-between">
                       <span className="font-medium">
-                        ₱{product.price.toFixed(2)}
+                        ₱{product.current_price.toFixed(2)}
                       </span>
                       <Button
                         size="sm"

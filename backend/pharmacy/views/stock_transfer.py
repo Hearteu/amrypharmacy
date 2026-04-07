@@ -84,14 +84,18 @@ class StockTransfer(APIView):
                     "transfer_id": st.transfer_id,
                     "transfer_date": str(st.transfer_date) if st.transfer_date else None,
                     "stock_transfer_status_id": st.stock_transfer_status_id,
+                    "status_id": st.stock_transfer_status_id,
+                    "status": st.stock_transfer_status.stock_transfer_status if st.stock_transfer_status else "Draft",
                     "Stock_Transfer_Status": {
                         "stock_transfer_status": st.stock_transfer_status.stock_transfer_status
                     } if st.stock_transfer_status else None,
                     "src_location": st.src_location_id,
+                    "src_location_name": st.src_location.location if st.src_location else None,
                     "src_location_data": {
                         "location": st.src_location.location
                     } if st.src_location else None,
                     "des_location": st.des_location_id,
+                    "des_location_name": st.des_location.location if st.des_location else None,
                     "des_location_data": {
                         "location": st.des_location.location
                     } if st.des_location else None,
