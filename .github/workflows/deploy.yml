@@ -18,6 +18,9 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/ubuntu/amrypharmacy
+            # Force wipe any manual edits stuck on the server so it matches Github 100%
+            git fetch --all
+            git reset --hard origin/oracle
             git pull origin oracle
             # Ensure the deploy script is executable and run it
             sudo chmod +x deployment/deploy.sh
