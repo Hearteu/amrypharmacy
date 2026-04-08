@@ -130,7 +130,7 @@ export default function PosInterface() {
   useEffect(() => {
     async function fetchLocations() {
       try {
-        const response = await fetch(`${API_URL}/location/`);
+        const response = await fetch(`${API_URL}/locations/`);
         const data: Location[] = await response.json();
         setBranches(data);
         
