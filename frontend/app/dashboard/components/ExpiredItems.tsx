@@ -99,20 +99,23 @@ export function InventoryDashboard() {
     <div className="space-y-6">
       {/* Alerts Section */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Alert variant="destructive">
+        <Alert variant={expirations.length > 0 ? "destructive" : "default"} className={expirations.length > 0 ? "border-red-500 bg-red-50/50" : ""}>
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Expiring Items</AlertTitle>
+          <AlertTitle className="font-bold">Expiring Items</AlertTitle>
           <AlertDescription>
-            You have {expirations.length} items expiring that need attention.
-            {error && <p className="text-sm mt-1 text-red-500">{error}</p>}
+            {expirations.length > 0 
+              ? `Critical: You have ${expirations.length} items expiring soon that require immediate disposal or sale.`
+              : "No items expiring within the next 30 days."}
           </AlertDescription>
         </Alert>
 
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Low Stock Alert</AlertTitle>
+        <Alert variant={lowStockItems.length > 0 ? "destructive" : "default"} className={lowStockItems.length > 0 ? "border-orange-500 bg-orange-50/50" : ""}>
+          <Package className="h-4 w-4 text-orange-600" />
+          <AlertTitle className="font-bold text-orange-700">Low Stock Inventory</AlertTitle>
           <AlertDescription>
-            You have items below reorder level that need restocking.
+            {lowStockItems.length > 0
+              ? `Alert: ${lowStockItems.length} products have reached critical reorder levels.`
+              : "All inventory levels are within healthy ranges."}
           </AlertDescription>
         </Alert>
       </div>
@@ -223,15 +226,20 @@ export function InventoryDashboard() {
                           <TableCell>{item.expiry_date}</TableCell>
                           <TableCell className="text-center">
                             <Badge
+                              className="font-bold px-3 py-1"
                               variant={
                                 item.days_until_expiry < 0
+                                  ? "destructive"
+                                  : item.days_until_expiry <= 7
                                   ? "destructive"
                                   : "secondary"
                               }
                             >
                               {item.days_until_expiry < 0
-                                ? "Expired"
-                                : `${item.days_until_expiry} days`}
+                                ? "EXPIRED"
+                                : item.days_until_expiry === 0
+                                ? "EXPIRING TODAY"
+                                : `${item.days_until_expiry} Days Left`}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
@@ -284,7 +292,17 @@ export function InventoryDashboard() {
                             {item.product_details.full_product_name}
                           </TableCell>
                           <TableCell className="text-center">
-                            <Badge variant="destructive">{item.quantity}</Badge>
+                            <div className="flex flex-col items-center gap-1">
+                              <Badge 
+                                variant={item.quantity === 0 ? "destructive" : "outline"}
+                                className={`font-bold ${item.quantity === 0 ? "animate-pulse" : "border-orange-500 text-orange-600"}`}
+                              >
+                                {item.quantity === 0 ? "OUT OF STOCK" : `${item.quantity} UNITS`}
+                              </Badge>
+                              <span className="text-[10px] text-muted-foreground uppercase font-medium">
+                                Level: {item.quantity <= 10 ? "CRITICAL" : "LOW"}
+                              </span>
+                            </div>
                           </TableCell>
                           <TableCell className="hidden md:table-cell">
                             {item.location_name}

@@ -35,3 +35,4 @@ from .user_views import UserList, UserLoginView
 from .statement_of_accounts import StatementOfAccounts
 from .cash_shift import CashShiftView
 from .cash_movement import CashMovementView
+from .analytics import SalesAnalytics

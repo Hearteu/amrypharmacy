@@ -56,11 +56,31 @@ import { DSWDForm } from "../components/DSWDForm";
 import { PrescriptionForm } from "../components/PrescriptionForm";
 import { ShiftManager } from "./ShiftManager";
 import { CashShift } from "@/app/lib/services/cash-shift";
+import { SyncStatus } from "./SyncStatus";
+import { BarChart3 } from "lucide-react";
+import Link from "next/link";
+import { toast } from "sonner";
+import { 
+  Badge as UIBadge 
+} from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
-const branches = [
-  { id: 1, name: "Asuncion" },
-  { id: 2, name: "Talaingod" },
-];
+interface Location {
+  location_id: number;
+  name: string;
+}
+
+const CATEGORIES = ["All", "Medicine", "Supplies", "Vitamins", "Others"];
 
 interface Products {
   product_id: number;
@@ -95,10 +115,12 @@ export default function PosInterface() {
   const [hasPrescription, setHasPrescription] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Products[]>([]);
+  const [branches, setBranches] = useState<Location[]>([]);
   const [activeShift, setActiveShift] = useState<CashShift | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<string | undefined>(
     undefined
   );
+  const [selectedCategory, setSelectedCategory] = useState("All");
 
   useEffect(() => {
     if (session?.user?.location_id) {
@@ -109,17 +131,35 @@ export default function PosInterface() {
   }, [session]);
 
   useEffect(() => {
+    async function fetchLocations() {
+      try {
+        const response = await fetch(`${API_URL}/location/`);
+        const data: Location[] = await response.json();
+        setBranches(data);
+        
+        // Auto-select user's branch if not set
+        if (session?.user?.location_id && !selectedBranch) {
+          const userLoc = session.user.location_id.toString();
+          setSelectedBranch(userLoc);
+        }
+      } catch (error) {
+        console.error("❌ Error fetching locations:", error);
+      }
+    }
+    fetchLocations();
+  }, [session, selectedBranch]);
+
+  useEffect(() => {
     async function fetchSupplierItems() {
       try {
-        const locationIdRaw = session?.user?.location_id;
-        if (!locationIdRaw) return; // wait for location_id to be available
+        const locationIdRaw = selectedBranch || session?.user?.location_id;
+        if (!locationIdRaw) return;
 
         const locationId = Number(locationIdRaw);
-        const branchesToCheck = locationId === 8 ? [1, 3] : [locationId];
+        // If location is Asuncion (id:1) or Main (id:8), check both stock locations
+        const branchesToCheck = locationId === 1 || locationId === 8 ? [1, 8] : [locationId];
 
-        const response = await fetch(
-          `${API_URL}/products/`
-        );
+        const response = await fetch(`${API_URL}/products/`);
         const data: Products[] = await response.json();
 
         const filtered = data.filter((product) => {
@@ -131,14 +171,15 @@ export default function PosInterface() {
         });
 
         setProducts(filtered);
-        console.log(filtered);
       } catch (error) {
-        console.error("❌ Error fetching supplier items:", error);
+        console.error("❌ Error fetching products:", error);
       }
     }
 
-    fetchSupplierItems();
-  }, [session]);
+    if (selectedBranch) {
+      fetchSupplierItems();
+    }
+  }, [session, selectedBranch]);
 
   // Customer information for DSWD clients
   const [customerInfo, setCustomerInfo] = useState({
@@ -169,25 +210,44 @@ export default function PosInterface() {
 
   // Add product to cart
   const addToCart = (product: Products) => {
+    const locationId = Number(selectedBranch);
+    const stockQuantity = product.Stock_Item?.find(si => si.location_id === locationId)?.quantity || 0;
+
     setCart((prevCart) => {
       const existingItem = prevCart.find(
         (item) => item.product_id === product.product_id
       );
 
       if (existingItem) {
-         return prevCart.map((item) =>
+        if (existingItem.quantity >= stockQuantity) {
+          toast.error(`Only ${stockQuantity} units available in stock`);
+          return prevCart;
+        }
+        return prevCart.map((item) =>
           item.product_id === product.product_id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       } else {
-         return [...prevCart, { ...product, price: product.current_price, quantity: 1 }];
+        if (stockQuantity <= 0) {
+          toast.error("Item out of stock");
+          return prevCart;
+        }
+        return [...prevCart, { ...product, price: product.current_price, quantity: 1 }];
       }
     });
   };
 
-  // Update quantity
   const updateQuantity = (id: number, newQuantity: number) => {
+    const product = products.find(p => p.product_id === id);
+    const locationId = Number(selectedBranch);
+    const stockQuantity = product?.Stock_Item?.find(si => si.location_id === locationId)?.quantity || 0;
+
+    if (newQuantity > stockQuantity) {
+      toast.error(`Cannot exceed stock limit (${stockQuantity})`);
+      return;
+    }
+
     setCart((prevCart) => {
       if (newQuantity <= 0) {
         return prevCart.filter((item) => item.product_id !== id);
@@ -231,10 +291,12 @@ export default function PosInterface() {
   // Calculate total
   const total = customerType === "dswd" ? 0 : subtotal - discount;
 
-  // Filter products based on search term
-  const filteredProducts = products.filter((product) =>
-    product.full_product_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter products based on search term and category
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch = product.full_product_name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === "All" || true; // In the future, match product.category
+    return matchesSearch && matchesCategory;
+  });
 
   // Barcode Scanner Event Listener (Physical Scanner)
   useEffect(() => {
@@ -360,14 +422,29 @@ export default function PosInterface() {
           <CardHeader className="pb-3">
             <CardTitle>Products</CardTitle>
             <CardDescription>Search and add products to cart</CardDescription>
-            <div className="relative mt-2">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search products..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div className="flex flex-col gap-3 mt-2">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search products (or use scanner)..."
+                  className="pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                {CATEGORIES.map(cat => (
+                  <Button
+                    key={cat}
+                    variant={selectedCategory === cat ? "default" : "outline"}
+                    size="sm"
+                    className="rounded-full px-4 h-8 text-xs whitespace-nowrap"
+                    onClick={() => setSelectedCategory(cat)}
+                  >
+                    {cat}
+                  </Button>
+                ))}
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -388,6 +465,9 @@ export default function PosInterface() {
                     <CardFooter className="p-4 pt-2 flex justify-between">
                       <span className="font-medium">
                         ₱{product.current_price.toFixed(2)}
+                        <span className="text-[10px] text-muted-foreground ml-2">
+                          ({product.Stock_Item?.find(si => si.location_id === Number(selectedBranch))?.quantity || 0} in stock)
+                        </span>
                       </span>
                       <Button
                         size="sm"
@@ -415,14 +495,20 @@ export default function PosInterface() {
             <div className="flex justify-between items-center">
               <CardTitle>Current Transaction</CardTitle>
               <div className="flex space-x-2 items-center">
+                <Link href="/pos/analytics">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/5">
+                    <BarChart3 className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <SyncStatus />
                 <ShiftManager session={session} onShiftActive={setActiveShift} />
                 <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select Branch" />
+                  <SelectTrigger className="w-[140px] h-8 text-xs">
+                    <SelectValue placeholder="Branch" />
                   </SelectTrigger>
                   <SelectContent>
                     {branches.map((branch) => (
-                      <SelectItem key={branch.id} value={branch.id.toString()}>
+                      <SelectItem key={branch.location_id} value={branch.location_id.toString()}>
                         {branch.name}
                       </SelectItem>
                     ))}
@@ -575,8 +661,10 @@ export default function PosInterface() {
 
           <CardContent className="flex-grow overflow-auto">
             {cart.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No items in cart. Add products to begin.
+              <div className="flex flex-col items-center justify-center h-full py-12 text-muted-foreground">
+                <Search className="h-12 w-12 opacity-10 mb-4" />
+                <p>No items in cart</p>
+                <p className="text-xs">Search or scan items to begin</p>
               </div>
             ) : (
               <Table>
@@ -624,16 +712,36 @@ export default function PosInterface() {
                       <TableCell className="text-right">
                         ₱{(item.price * item.quantity).toFixed(2)}
                       </TableCell>
-                      <TableCell className="text-right">
+                  <TableCell className="text-right">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 text-destructive"
-                          onClick={() => removeItem(item.product_id)}
+                          className="h-6 w-6 text-destructive hover:bg-red-50"
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
-                      </TableCell>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remove Item?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to remove {item.full_product_name} from the cart?
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => removeItem(item.product_id)}
+                          >
+                            Remove
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

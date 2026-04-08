@@ -5,6 +5,21 @@ const STORE_NAME = "offline-transactions";
 
 class OfflineSync {
   db: IDBDatabase | null = null;
+  private pendingCountListeners: ((count: number) => void)[] = [];
+
+  onPendingCountChange(callback: (count: number) => void) {
+    this.pendingCountListeners.push(callback);
+    this.getTransactions().then(txs => callback(txs.length));
+    return () => {
+      this.pendingCountListeners = this.pendingCountListeners.filter(l => l !== callback);
+    };
+  }
+
+  private notifyListeners() {
+    this.getTransactions().then(txs => {
+      this.pendingCountListeners.forEach(l => l(txs.length));
+    });
+  }
 
   async initDB() {
     return new Promise<void>((resolve, reject) => {
@@ -29,7 +44,10 @@ class OfflineSync {
       const tx = this.db!.transaction(STORE_NAME, "readwrite");
       const store = tx.objectStore(STORE_NAME);
       const request = store.add({ data: transaction, timestamp: new Date().toISOString() });
-      request.onsuccess = () => resolve(request.result);
+      request.onsuccess = () => {
+        this.notifyListeners();
+        resolve(request.result);
+      };
       request.onerror = () => reject(request.error);
     });
   }
@@ -51,7 +69,10 @@ class OfflineSync {
       const tx = this.db!.transaction(STORE_NAME, "readwrite");
       const store = tx.objectStore(STORE_NAME);
       const request = store.delete(id);
-      request.onsuccess = () => resolve(request.result);
+      request.onsuccess = () => {
+        this.notifyListeners();
+        resolve(request.result);
+      };
       request.onerror = () => reject(request.error);
     });
   }
