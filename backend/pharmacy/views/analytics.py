@@ -2,7 +2,7 @@ from django.db.models import Sum, Count, F
 from django.db.models.functions import TruncDate, TruncMonth
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from ..models import POS, POSItem, Drug, Products
+from ..models import POS, POSItem, Drug, Product
 from datetime import datetime, timedelta
 
 class SalesAnalytics(APIView):
