@@ -26,7 +26,7 @@ class StockItem(APIView):
                 qs = qs.filter(location_id=int(branch))
 
             if not qs.exists():
-                return Response({"error": "No low stock items found"}, status=404)
+                return Response([], status=200)
 
             formatted_items = []
             for item in qs:

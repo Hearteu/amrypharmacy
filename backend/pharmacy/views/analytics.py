@@ -25,7 +25,7 @@ class SalesAnalytics(APIView):
                 sales_qs.annotate(date=TruncDate('sale_date'))
                 .values('date')
                 .annotate(
-                    total=Sum(F('pos_item__price') * F('pos_item__quantity_sold')),
+                    total=Sum(F('items__price') * F('items__quantity_sold')),
                     count=Count('pos_id', distinct=True)
                 )
                 .order_by('date')
@@ -51,7 +51,7 @@ class SalesAnalytics(APIView):
 
             # 4. Total Stats
             total_stats = sales_qs.aggregate(
-                revenue=Sum(F('pos_item__price') * F('pos_item__quantity_sold')),
+                revenue=Sum(F('items__price') * F('items__quantity_sold')),
                 orders=Count('pos_id', distinct=True)
             )
 

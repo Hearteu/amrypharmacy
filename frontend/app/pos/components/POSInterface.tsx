@@ -54,8 +54,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DSWDForm } from "../components/DSWDForm";
 import { PrescriptionForm } from "../components/PrescriptionForm";
-import { ShiftManager } from "./ShiftManager";
-import { CashShift } from "@/app/lib/services/cash-shift";
 import { SyncStatus } from "./SyncStatus";
 import { BarChart3 } from "lucide-react";
 import Link from "next/link";
@@ -116,7 +114,6 @@ export default function PosInterface() {
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Products[]>([]);
   const [branches, setBranches] = useState<Location[]>([]);
-  const [activeShift, setActiveShift] = useState<CashShift | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<string | undefined>(
     undefined
   );
@@ -349,14 +346,13 @@ export default function PosInterface() {
   const handleCheckout = () => {
     // Create order data
     const orderData = {
-      shift_id: activeShift?.shift_id || null,
       user_id: session?.user?.user_id,
       branch: selectedBranch,
-      customerInfo, // ✅ Removed duplicate
+      customerInfo,
       customerType,
       discount,
       discountInfo,
-      items: cart, // ✅ Changed from `cart` to `items`
+      items: cart,
       prescriptionInfo,
       subtotal,
       total,
@@ -501,7 +497,6 @@ export default function PosInterface() {
                   </Button>
                 </Link>
                 <SyncStatus />
-                <ShiftManager session={session} onShiftActive={setActiveShift} />
                 <Select value={selectedBranch} onValueChange={setSelectedBranch}>
                   <SelectTrigger className="w-[140px] h-8 text-xs">
                     <SelectValue placeholder="Branch" />

@@ -41,7 +41,7 @@ class Expiration(APIView):
             expirations = expirations.filter(quantity__gt=0)
 
             if not expirations.exists():
-                return Response({"error": "No Expiration records found."}, status=404)
+                return Response([], status=200)
 
             enriched_data = []
             for exp in expirations:
